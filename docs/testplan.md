@@ -1,10 +1,10 @@
 # Test plan — What would catch it if it broke?
 
-## The gate (Day-One Step 14): NOT YET PROVEN
+## The gate (Day-One Step 14): PROVEN 2026-09-22
 
 | Date | Broke what | Gate blocked? | Fixed + merged | Shipped + live SHA verified? |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 2026-09-22 | `app/auth.py`: bypassed `compare_digest`, so any non-None key was accepted (`test_meta_with_wrong_key_is_401` red) | **Yes.** `test` failed, `deploy` was skipped (`needs: test`), and the PR reported `mergeStateStatus: BLOCKED`. Red run: [35754766404](https://github.com/mdk32366/StockGraderMDK/actions/runs/35754766404) | PR-1, second commit reverts the bypass | see the merge run recorded in PR-2 |
 
 Record it here the day you watch it block AND ship with your own eyes.
 Branch protection (Step 15) must require the status check named **`test`**.
