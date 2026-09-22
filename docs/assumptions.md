@@ -85,4 +85,12 @@ setup-python reported success.
 Consequence: D-014 needs a different interpreter-discovery step, or setup.ps1
 needs a documented CI path. The rule must not be weakened to fall back to
 another Python (D-011).
-Status: ASSUMED · tested by the first D-014 run
+Status: **TESTED 2026-09-22, HOLDS.** First D-014 run, Actions run
+[35755627563](https://github.com/mdk32366/StockGraderMDK/actions/runs/35755627563),
+job `windows-setup (PS 5.1)`: setup-python reported CPython 3.12.10, and
+`py -3.12 --version` returned `Python 3.12.10`, resolving to
+`C:\hostedtoolcache\windows\Python.12.10d\python.exe`. `setup.ps1` then
+reached `Suite GREEN`, and `-SuiteOnly` ran green after it. **Sample: 1 run.**
+Note: the runner's `py` default is `3.14`, the same shape as the workstation in
+F-005 -- `py -m venv` on either machine yields 3.14, not the pinned 3.12. D-011
+now has two independent instances rather than one.

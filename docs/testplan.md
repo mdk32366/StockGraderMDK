@@ -48,6 +48,9 @@ red was FAILED; none was ERROR.**
 | B-11 | key comparison | `... or not compare_digest(...)` removed, so any non-None key is accepted | `test_meta_with_wrong_key_is_401` (200 ≠ 401). **Neither original table tripped this.** |
 | B-12 | direct-connect ban | `asyncpg.connect(` | `test_tests_never_open_database_connections_directly`. **Untested by either original table.** |
 | B-13 | direct-connect ban | `psycopg.connect(`, alone | same test. Isolates the branch G-7 exercised only while bundled. |
+| B-14 | `-SuiteOnly` (D-012) | ran `.\setup.ps1 -SuiteOnly` with `.venv` renamed away | threw `-SuiteOnly needs an existing .venv...`; **no `.venv` was created**, so the switch cannot silently defeat D-011 |
+| B-15 | warnings-as-errors (D-015) | a test raising a brand new `DeprecationWarning` | **FAILED** -- a new deprecation goes red instead of scrolling past |
+| B-16 | warnings-as-errors, direction | no mutation: the two F-007 allowances left in place | 22 passed, 2 warnings. The allowances still report as warnings, so they stay visible rather than becoming errors or disappearing |
 
 Session guard end to end (Builder Step 4): a tunnel-style `DATABASE_URL` with no
 confirmation → exit **3**, `KEEL DB GUARD REFUSED`, before collection.
