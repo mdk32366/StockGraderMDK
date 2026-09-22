@@ -104,3 +104,57 @@ repo changed between the config being correct and being wrong.
 Status: **REFUTED once already, 2026-09-22**, for `sea` (F-011). Held for `sjc`
 as of the same date. Required alongside D-017.
 
+**A-014 - Enough of a typical fund's weight resolves to securities carrying a GQS**
+Relies on: the identifier spine resolving a large majority of a fund's weight to
+US-listed common stocks that have enough filing history to score.
+Falsified when: scoreable weight for ordinary funds sits below D-027's coverage
+floor.
+Consequence: the fund score returns `insufficient_data` for the funds people
+most want scored, and D-027 Part B (cost, turnover, tenure, concentration)
+carries the whole thing on its own. That is not a failure of the design, but it
+must be discovered before the look-through machinery is built, not after.
+Status: ASSUMED. Tested by Phase 2's resolution-coverage figure.
+
+**A-015 - Quarter-lagged holdings are close enough to current to be informative**
+Relies on: a fund's basket not turning over so fast that last quarter's holdings
+misdescribe today's portfolio.
+Falsified by: high-turnover funds, where last quarter's basket is not this
+quarter's.
+Consequence: the score describes a portfolio that no longer exists, while
+looking current. Mitigation: report turnover alongside it, and carry both dates
+per D-027 trap 3 so nobody has to infer the lag.
+Status: ASSUMED.
+
+**A-016 - The Planner has not read GQS v3**
+Relies on: nothing - this is a statement of what is not known.
+Falsified when: the TDD and `docs/finance/growth-model-lineage.md` reach the
+Planner.
+Consequence: D-010 is ruled on the **Builder's summary** of the document, not on
+the document. A summary is not knowing (P8). Until the Planner has read both,
+no scoring design work proceeds, and D-010's condition - ratification of the
+five open questions in the TDD's section 17 - cannot even be assessed.
+Status: ASSUMED, and **currently true**. [OWNER] to supply both documents.
+
+**A-017 - A `writer` can do everything the application needs**
+Relies on: the application requiring row access only, with schema changes
+confined to the D-021 migration runner.
+Falsified when: the app cannot run its queries, or the migration runner turns
+out to need the application's credential.
+Consequence: D-031 cannot proceed and the app stays over-privileged at
+`schema_admin`, leaving Step 16's separation nominal (F-017).
+Status: **TESTED 2026-09-22, HOLDS.** Run as `builder_a017_probe` (`writer`)
+against `stockgrader_scratch` on cluster `d1zj5omk443ryqkv`:
+
+| Test | Result |
+|---|---|
+| `INSERT` | `INSERT 0 1` - works |
+| `SELECT count(*)` | works |
+| `UPDATE` / `DELETE` | `UPDATE 1` / `DELETE 1` - work |
+| `CREATE TABLE` | **refused** - `permission denied for schema public` |
+| `DROP TABLE` | **refused** - `must be owner of table` |
+
+**Sample: 1 account, 1 database.** The second falsifier - the migration runner
+needing the app's credential - remains **untested** and stays so until Phase 1.
+The scratch canary table was verified back at **zero rows** afterwards, so the
+test cleaned up after itself.
+

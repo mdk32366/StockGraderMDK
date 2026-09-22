@@ -227,3 +227,128 @@ An allowance that fails **open** -- one that quietly matches nothing and lets ne
 deprecations through -- is the dangerous shape, and this construction cannot take
 it. **Sample:** 1.
 
+### F-014 - Fly commands print live credentials in normal, successful output
+**Date:** 2026-09-22 - **By:** Planner and owner, cluster-creation session
+**Claim:** `fly mpg create` printed the full connection string for `fly-user`,
+and `fly mpg attach` printed it for `stockgradermdk` - in both cases inside the
+same block as the cluster and app details the owner needed to relay. Both
+reached a planning chat.
+**Nobody was careless.** The tooling hands you the secret at the exact moment
+you are relaying the surrounding information.
+**Consequence:** two credentials compromised on the day the cluster was created.
+A third followed by a different route (F-019), making three in one day.
+**Mitigation is mechanical, not attentional:** D-030.
+**Amendment, 2026-09-22 (Builder):** **not every `fly mpg` command leaks.**
+`fly mpg users create` prints only `Name` and `Role` - no password, no
+connection string. The offenders are specifically `fly mpg create` and
+`fly mpg attach`. This matters because "Fly commands print credentials" is the
+kind of general warning that gets tuned out, whereas a named list of two
+offenders and one safe alternative is actionable - and it means **creating a
+user is the safe way to add an account.**
+**Sample:** 2 commands observed leaking, 1 observed not leaking.
+
+### F-015 - `DATABASE_URL` was left Staged by the attach
+**Date:** 2026-09-22 - **By:** Planner and owner, cluster-creation session
+**Claim:** `fly secrets list` showed `DATABASE_URL` as **Staged** while
+`STOCKGRADER_API_KEY` read **Deployed**. The running machine did not have the
+connection string. `fly secrets deploy` fixed it in seconds and both then read
+Deployed.
+**Artifact:** the two `fly secrets list` outputs.
+**Why it matters:** this is the Principle 4 scar observed live - a secret that
+looks set while the app holds the old value. It was harmless **only** because
+nothing queries the database yet.
+**What no existing guard would have caught:** the gate passed every check,
+including the live-SHA verification, because the SHA is baked into the image and
+has nothing to do with secrets. See the testplan open item.
+**Sample:** 1.
+
+### F-016 - The backup-list command has been run, and a backup exists
+**Date:** 2026-09-22 - **By:** Planner and owner, cluster-creation session
+**Claim:** `fly mpg backup list d1zj5omk443ryqkv --all` was executed against the
+real cluster and returned one completed full backup, `20260922-192041F`, at
+2026-09-22T19:20:41Z. Without `--all` it lists only the last 24 hours.
+Retention is 10 days.
+**Why it matters:** Principle 1's three questions have real answers on this
+project for the first time. A completed backup exists; exposure is everything
+since 19:20Z; it covers neither the scratch database nor anything ingested
+before the next backup.
+**This is what `architecture.md` recovery row 1 now records** - the command that
+ran, not one that looks right.
+**Sample:** 1 run, 1 backup.
+
+### F-017 - Step 16's separation was nominal as first configured
+**Date:** 2026-09-22 - **By:** Planner and owner, cluster-creation session
+**Claim:** `fly mpg users list` showed **both** accounts at `schema_admin`.
+Two accounts differing only in name give the recovery account no capability the
+application lacks, so the Step 16 separation existed on paper only.
+`fly mpg users create --help` then showed three roles - `schema_admin`,
+`writer`, `reader` - so this was **our default, not a platform ceiling.**
+**Consequence:** a compromised application credential would have carried full
+schema rights.
+**Resolution:** D-031, with A-017 as the evidence that `writer` suffices.
+
+### F-018 - Infrastructure mutations outran their written record
+**Date:** 2026-09-22 - **By:** Builder, and raised by the Planner
+**Claim:** between receiving the Phase 0 handover and reporting, three mutations
+landed on a live cluster - a database, a user, and a DDL statement - **with no
+written record anywhere.** Anyone reconstructing the project from its documents
+would have found cluster objects the newest report did not mention.
+**What was literally true:** no report said anything false. The last report
+predated the handover and correctly described the state at the time it was
+written, and each action was narrated in the session as it happened.
+**Why that is not the point:** the register is assembled from reports. **A chat
+is not a record** - it is not durable, not what the register is built from, and
+not what a reader will have later. For that window the only evidence the objects
+were legitimate was the Builder's own account of them afterwards. That is the
+shape that weakens every other guard's proof, because all of them rest on
+reports being written when the work happens rather than when someone asks.
+**Cause:** the Builder went straight from reading the handover into executing it,
+treating the report as the thing at the end. For code that is harmless - git is
+the record. For infrastructure there is no commit.
+**Resolution:** D-034.
+
+### F-019 - Closing OPEN-1 required a human-mediated secret transfer, and the channel was chat
+**Date:** 2026-09-22 - **By:** Builder, with the framing corrected by the Planner
+**Claim, stated precisely:** **Fly Managed Postgres offers no machine-retrievable
+credential path.** No reveal, no reset, no CLI command; `\password` is refused by
+a Fly policy trigger; `fly mpg users` exposes only `create`, `delete`, `list`
+and `set-role`; passwords are settable only by a human in the dashboard, and are
+printed unbidden only by `fly mpg create` and `fly mpg attach`. Therefore
+**every non-hermetic run on this platform requires a human-mediated secret
+transfer**, and the only thing under our control is the channel.
+**What happened:** the owner supplied `probe_ro`'s password in chat, with the
+cost explicitly acknowledged. OPEN-1 was closed with it. The Builder held it in
+a shell variable for the life of one command, never echoed it, never wrote it to
+any file, and never brought it into the repo - but a credential in a transcript
+is a credential in a log, and `probe_ro` joins D-029 as the third compromised
+credential of the day.
+**The correction that matters:** the Builder first wrote that closing OPEN-1
+*"requires exactly the thing D-030 forbids."* That is not right, and the
+difference decides what gets built. D-030 forbids credentials in transcripts,
+repo files and env files in the tree; it does **not** forbid the Builder holding
+a scoped, short-lived credential. **The channel is the failure, not the
+requirement.** The default channel is chat because chat is where the
+conversation is happening - which is how three credentials were exposed by three
+different mechanisms in a single day.
+**Planner's share:** "hand it out of band" was said without specifying the
+mechanism, and **an unspecified mechanism defaults to the nearest one.**
+**Resolution:** D-030's procedure clause, and D-032 so the probe stops needing a
+DSN at all.
+
+### F-020 - The document relay is manual, lossy, and silent
+**Date:** 2026-09-22 - **By:** Planner
+**Claim:** documents have gone missing in **both** directions in a single day,
+and neither end could detect it:
+- **Planner to Builder:** `RULING-...-post-keel.md` was written and never
+  delivered. The Builder discovered it only because a later ruling superseded a
+  section of a document it had never seen, and because the register was missing
+  D-017, D-018 and D-019.
+- **Builder to Planner:** a Builder report - carrying the cluster-object
+  inventory, the F-014 amendment, and the psycopg proposal - never reached the
+  Planner, who learned of its contents only through a later report citing it.
+**Consequence:** a missing document surfaces late, as a stale decision, an
+unanswered question, or an unexplained object on a live cluster. Both instances
+cost real time and one of them produced an unexplained account on a production
+cluster.
+**Resolution:** D-033. **Sample:** 2 losses, opposite directions, same day.
+
