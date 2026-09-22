@@ -179,3 +179,32 @@ nearest surviving West Coast region. Region choice is a real decision and is
 referred to the Planner as **D-017** for ratification; it is one line and a
 redeploy to change.
 
+### F-013 - KEEL V10 states the go-private rule three ways, two of them superseded
+**Date:** 2026-09-22 - **By:** Planner, D-020 ruling, after the owner corrected it
+**Claim:** the rule for when a project repo goes private appears in three
+documents and does not agree with itself:
+
+| Document | What it says |
+|---|---|
+| KEEL-1, Principle 10, body | "goes private once the project is **production-stable**" -- the current rule |
+| KEEL-1, Principle 10, headline | "Go private when it goes **real**" -- undefined, and the source of the drift |
+| KEEL-2, Step 17 | "First real credential, first real user data, or first live deploy -- **whichever comes first**" -- superseded |
+| KEEL-3, Quick Card, line 17 | same superseded wording |
+
+**Consequence, observed:** the rule was amended in one document out of three,
+and **the two that were missed are the operational ones** -- the field manual
+and the quick card. A person laying a Keel reads those, not the essay. On this
+project the Planner read the Checklist, treated Step 17 as triggered on day one,
+and planned to take the repo private. The owner's ruling is what caught it.
+**Artifact:** KEEL-1 Principle 10 (body and headline), KEEL-2 Step 17, KEEL-3
+line 17. **Sample:** 1 project, caught before acting.
+**Note on the inspection stamp:** KEEL-2 and KEEL-3 are stamped V10 as reviewed
+sets, and KEEL-3 carries no "INSPECTED, UNCHANGED" note at all. An inspection
+that did not catch this contradiction is recorded as an inspection that passed.
+**Resolution:** D-020 for this project. For KEEL itself the fix is doctrine and
+belongs to the owner, proposed for V11: align Step 17 and Quick Card line 17
+with Principle 10's body; replace the vague "when it goes real" headline with
+the observable; add the scar that *a rule amended in the essay and not in the
+checklist is a rule the next person will not follow*; and note in the travelogue
+that the V10 inspection pass did not detect it.
+

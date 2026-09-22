@@ -88,6 +88,11 @@ alternation is only as good as its least-tested branch.
   workstation makes this the likely cause, and the git error never names it
   (F-010).
 
+- **When doctrine and a checklist disagree, the checklist is what gets
+  followed.** An amendment lands in both or it has not landed. The essay is read
+  once; the checklist is read on day one, by someone deciding what to do next
+  (F-013).
+
 ## Open items. Each blocks something specific.
 
 | ID | Item | Blocks |

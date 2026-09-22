@@ -157,3 +157,31 @@ Every later change, including register updates, goes through a PR and the gate.
 **Rejected:** folding F-007, F-008, and the trip table into a v5 before the
 first commit. That spends the verified-artifact provenance on items that block
 nothing, and it asks the Builder to re-verify a fifth artifact.
+
+### D-020 - The repo stays PUBLIC through development
+**Status:** RULED 2026-09-22 (owner ruling)
+**Choice:** `StockGraderMDK` remains public for the whole build, connected to
+the Planner. It goes private when the application has **completed
+development**.
+**Rejected:** going private on the first live credential, first real user data,
+or first live deploy -- the wording in KEEL-2 Step 17 and KEEL-3 line 17. That
+wording is superseded (F-013).
+**Forced by:** the owner's standing rule, which matches KEEL-1 Principle 10's
+body ("private once the project is production-stable") and contradicts the two
+checklists.
+**Consequences, recorded so nobody re-derives them:**
+- The Planner keeps direct repo access for the whole build. No snapshot
+  hand-carrying.
+- The repo must stay free of real credentials and real user data for **months,
+  not days**. The hygiene secret scan is therefore load-bearing for the whole
+  build, not a day-one formality.
+- When the database arrives (D-009), the connection string, the recovery
+  credential, and any cached filing data all land while the repo is public.
+  None of them may touch the tree.
+**Open, [OWNER]:** "completed development" is a sentence, not a mechanism. Where
+a specification names a stopping point, it must name the thing that stops. The
+observable is not yet named. Candidates, none ruled: the first real
+(non-synthetic) API user other than the owner; the first stored data that cannot
+be rebuilt from public sources; or an owner declaration recorded as a dated
+D-entry.
+
