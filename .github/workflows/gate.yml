@@ -1,0 +1,66 @@
+# The gate (KEEL Principles 2, 3, 6, 9).
+#   test   — runs on every PR and every push to main. Branch protection must
+#            REQUIRE this job by its name: "test".
+#   deploy — runs only after test passes, only on push to main (i.e. a merge).
+name: gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: Hermetic suite (no DATABASE_URL, no network needed)
+        run: python -m pytest -q
+
+  deploy:
+    name: deploy
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      APP_URL: https://stockgradermdk.fly.dev
+    steps:
+      - uses: actions/checkout@v4
+
+      # KEEL P4 scar: a secret saved under the wrong NAME left deploy silently
+      # dead for weeks. A missing token is a loud failure here, never a no-op.
+      - name: Refuse if FLY_API_TOKEN is missing or misnamed
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::GitHub secret FLY_API_TOKEN is missing or saved under a different name."
+            exit 1
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: flyctl deploy --remote-only --build-arg GIT_SHA=${{ github.sha }}
+
+      # "The gate is green" != "the service changed" (PharmFoldMDK 3.4).
+      # Fail unless the LIVE service reports the commit we just shipped.
+      - name: Verify the live build is this commit
+        run: |
+          for i in $(seq 1 18); do
+            live=$(curl -fsS "$APP_URL/healthz" | python3 -c "import sys,json; print(json.load(sys.stdin).get('build',''))" || true)
+            echo "attempt $i: live build = '$live'"
+            if [ "$live" = "${{ github.sha }}" ]; then echo "Live build verified."; exit 0; fi
+            sleep 10
+          done
+          echo "::error::Deploy finished but the live service is not running ${{ github.sha }}."
+          exit 1

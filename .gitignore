@@ -1,0 +1,12 @@
+# Env files are a loaded weapon (KEEL P4). Never committed.
+.env
+.env.*
+!.env.example
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.vscode/*
+!.vscode/extensions.json

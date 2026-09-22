@@ -1,0 +1,6 @@
+# Pinned: the API contract snapshot (tests/contract/openapi.v1.json) is rendered
+# by these exact versions. Upgrading them is a D-entry, not a chore (see A-006).
+fastapi==0.141.1
+starlette==1.6.0
+pydantic==2.13.5
+uvicorn[standard]==0.53.0

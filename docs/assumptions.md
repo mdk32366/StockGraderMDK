@@ -1,0 +1,87 @@
+# Assumptions — What are we taking for granted?
+
+Two bars. If you can't state the test that falsifies it, it doesn't go in. If
+nothing breaks when it's false, it's a detail, not an assumption. Read this
+file when writing a decision and when something breaks. Never on a schedule.
+
+---
+
+**A-001 — Public N-PORT filings give usable position-level fund holdings**
+Relies on: SEC N-PORT filings disclosing each fund's holdings with weights, on a
+cadence and lag we can state.
+Falsified when: the current public-disclosure cadence or lag (verify it; the
+SEC amended N-PORT timing recently and the regime in force is unconfirmed) makes
+holdings too stale to support an overlap claim, or a target fund doesn't file
+N-PORT at all.
+Consequence: overlap is a dated snapshot at best. Every overlap response must
+carry its holdings as-of date either way.
+Status: ASSUMED
+
+**A-002 — Holdings resolve to a common identifier across funds**
+Relies on: N-PORT positions carrying a CUSIP or ISIN that matches the same
+security in another fund.
+Falsified when: a material share of a fund's weight carries only "other
+identifier" or none at all. Measure it per fund as resolution coverage.
+Consequence: overlap is silently **understated**, the plausible-and-wrong shape
+(KEEL P11). Mitigation: coverage is always reported, and unresolved holdings are
+a named category, never dropped.
+Status: ASSUMED
+
+**A-003 — The price source permits redistribution through our API**
+Relies on: the vendor's terms allowing prices, or values derived from them, to
+be served to another application.
+Falsified when: the terms prohibit redistribution or derived-data display.
+Consequence: the data layer is rebuilt after launch. Scraped or unofficial
+sources almost always fail this.
+Status: ASSUMED · settled by D-007
+
+**A-004 — SEC EDGAR access stays within fair-access terms from Fly**
+Relies on: a declared User-Agent with contact info, and request rates within
+SEC limits, being accepted from Fly egress IPs.
+Falsified when: EDGAR returns 403 or 429 to ingestion.
+Consequence: ingestion stops. Unless a guard turns it red, the data quietly
+ages. Ingestion must fail loudly and responses must show data age.
+Status: ASSUMED
+
+**A-005 — A changed runtime secret reaches the app without an image rebuild**
+Relies on: Fly applying `fly secrets set` (or a staged secret plus
+`fly secrets deploy`) by restarting Machines on the existing image.
+Falsified when: a secret change triggers a rebuild, or the app keeps the old
+value (the KEEL P4 scar: a secret left Staged returned zero rows instead of an
+error).
+Consequence: re-pointing at a restored database costs a build. Recovery Access
+Problem 3.
+Status: ASSUMED · test on a non-emergency day, then record the exact command in
+architecture.md
+
+**A-006 — Pinned dependencies render an identical OpenAPI schema on Windows and Linux**
+Relies on: FastAPI/pydantic schema output being deterministic across OS for the
+pinned versions, and `read_text` normalizing CRLF.
+Falsified when: `test_openapi_matches_committed_contract` passes on one platform
+and fails on the other with no code change.
+Consequence: a false red on one side, or a snapshot regenerated on the wrong
+platform that masks real drift.
+Status: ASSUMED · first tested by running the suite on the owner's Windows
+machine (testplan OPEN-3)
+
+**A-007 — As-originally-filed fundamentals are recoverable from SEC XBRL data**
+Relies on: each reported fact carrying its filing date and accession number, so
+the value knowable on any past date can be reconstructed even after later
+restatement.
+Falsified when: restated values overwrite originals in the source, or facts lack
+a usable filed date for the periods needed.
+Consequence: any backtest reads hindsight numbers, and the score looks better
+than anything that was actually knowable. GQS v3 §5.2's point-in-time
+requirement could not be met.
+Status: ASSUMED · load-bearing only if D-010 adopts GQS; if so, test before the
+first migration
+
+**A-008 — On a windows-latest runner, `py -3.12` finds a Python installed by actions/setup-python**
+Relies on: setup-python registering its install so the `py` launcher can
+resolve `-3.12`.
+Falsified when: the D-014 job fails at setup.ps1's `py -3.12` check although
+setup-python reported success.
+Consequence: D-014 needs a different interpreter-discovery step, or setup.ps1
+needs a documented CI path. The rule must not be weakened to fall back to
+another Python (D-011).
+Status: ASSUMED · tested by the first D-014 run

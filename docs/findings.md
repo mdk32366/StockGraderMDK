@@ -1,0 +1,94 @@
+# Findings — How do we know?
+
+Every finding names the artifact it came from and its sample size. If the
+artifact can't be named, it is a belief and belongs in assumptions.md.
+
+---
+
+### F-001 — The repository was public and empty when the scaffold was built
+**Date:** 2026-09-22 · **By:** Planner
+**Claim:** `github.com/mdk32366/StockGraderMDK` accepted an unauthenticated
+clone and held no commits, so it is public, and there was nothing to merge the
+scaffold with.
+**Artifact:** output of `git clone https://github.com/mdk32366/StockGraderMDK.git`
+with no credentials: *"warning: You appear to have cloned an empty repository."*
+Reproducible by anyone. The first commit hash supersedes it as the "before"
+marker.
+**Sample:** 1.
+
+### F-002 — The hermetic suite passes, and every guard in it has been seen to go red
+**Date:** 2026-09-22 · **By:** Planner, in its own Linux container (Python 3.12.3)
+**Claim:** 21/21 tests pass in about 0.3 s with no database and no secrets. Each
+guard was then deliberately broken and went red as a **failure**, not an error;
+see testplan.md G-1 to G-8.
+**Artifact:** pytest summary lines captured in the Planner session. **This
+environment is not reachable by the owner.** The claim stands only once
+reproduced on the owner's machine (testplan OPEN-3). Until then, treat it as
+"passed elsewhere."
+**Amended (v4):** the tree is now 22 tests. F-006 added the `.ps1` guard. The
+number that counts is the Builder's own run.
+**Sample:** 2 green runs of the final tree (earlier runs preceded the /healthz SHA change); 8 distinct trips, 1 run each.
+
+### F-003 — The workstation's default Python is 3.11.9; the scaffold requires 3.12
+**Date:** 2026-09-22 · **By:** Builder (Claude Code), preflight
+**Claim:** `python --version` on the owner's workstation returns 3.11.9. The
+scaffold pins 3.12 locally (`setup.ps1`), in CI, and in the Dockerfile. It is not
+yet known whether 3.12 is installed alongside 3.11.
+**Artifact:** `REPORT-Code-2026-09-22-StockGraderMDK-preflight.md` §2.
+**Sample:** 1.
+**Consequence:** as first written, `setup.ps1` would have stopped at its
+version check. That is the correct failure direction, but it was a surprise.
+Resolved by D-011.
+**Amended by F-005:** the claim is true but incomplete. There are three runtimes
+and two defaults, neither of them 3.12. Left as written; reversals are recorded,
+not patched.
+
+### F-004 — The order's offline step contradicted setup.ps1
+**Date:** 2026-09-22 · **By:** Builder, order receipt §4
+**Claim:** The order's Step 3 (and testplan OPEN-3, v1–v2) said to run
+`setup.ps1` with the network off. `setup.ps1` installs dependencies from PyPI
+before it runs the suite, so offline it fails at the install step, never
+reaching the claim being tested (suite hermeticity).
+**Artifact:** `setup.ps1` (install precedes pytest); Builder report §4.
+**Sample:** static reading, 1.
+**Resolution:** build `.venv` with the network on, then run pytest alone with
+the network off (testplan OPEN-3, v3). A first-class offline mode is D-012.
+**Planner note:** the error was the Planner's. The order also stated "v1 never
+reached your machine" as fact. It had arrived four minutes after the preflight
+sweep. That was a belief written as a fact (P8) and is recorded here for that
+reason.
+
+### F-005 — Three Python runtimes, two defaults, none of them 3.12
+**Date:** 2026-09-22 · **By:** Builder, order receipt §5
+**Claim:** `python` resolves to 3.11.9 (on PATH). `py` with no version resolves
+to 3.14 (launcher default). 3.13 is present via WindowsApps. `py -3.12` finds no
+runtime.
+**Artifact:** `py -0p` and `py -3.12 --version` output, Builder report §5.
+**Sample:** 1.
+**Consequence:** a venv made by hand silently gets 3.11 or 3.14, and its green
+local suite would not correspond to what CI ran (P11 shape). `setup.ps1` hard-
+fails rather than falling back, so the sanctioned path is safe. Unsanctioned
+paths are not. Addressed by D-011 (amended).
+
+### F-006 — setup.ps1 did not parse under Windows PowerShell 5.1
+**Date:** 2026-09-22 · **By:** Builder, report "F006-BLOCKED"
+**Claim:**
+- `setup.ps1` (v1–v3) was UTF-8 without a BOM, so Windows PowerShell 5.1 read
+  it as cp1252.
+- Its em-dash (`e2 80 94`) decoded to `â€”`. The third character is U+201D,
+  which PowerShell accepts as a string delimiter.
+- Line 27's string therefore closed early, and the file failed to **parse**:
+  "missing terminator", reported at line 37. No statement ran, including the
+  3.12 guard.
+**Artifact:** PS 5.1 parser output, plus a two-file minimal reproduction
+(BOM-less fails, BOM'd passes). Builder report §4.1 and §4.3.
+**Sample:** 1 reproduction of the real script, 1 minimal pair.
+**Why the gate missed it:** CI runs pytest on Linux and never executes `.ps1`.
+**Resolution:** D-013, with guard G-9. The PS 5.1 parse of the fixed file is
+unproven until the Builder runs it (testplan OPEN-4).
+**Supersedes:** the Builder's order-receipt §3.3 conclusion ("encoding clean,
+no action needed"). Its observations were accurate; the conclusion did not
+ask whether the consuming interpreter would agree. Recorded, not rewritten.
+**Planner note:** the Planner never ran `setup.ps1`, having no Windows. It
+listed the unbuilt Dockerfile as OPEN-2 but did not list the unrun installer.
+That was the same kind of gap, and only one instance of it was recorded.
