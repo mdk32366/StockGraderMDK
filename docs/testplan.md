@@ -97,7 +97,7 @@ alternation is only as good as its least-tested branch.
 
 | ID | Item | Blocks |
 |---|---|---|
-| OPEN-1 | `postgres_probe` (the real-DB half of the guard) has **never run against a real Postgres**. Its logic is proven only through fakes. | **Now blocks D-009's first migration**, not merely the first DB-backed test. No test may use `db_url`, and no migration may run, until the probe has **refused** a non-canary database and **accepted** a canary one, both on a real server. First-data-slice order, Phase 0 step 6 closes it. |
+| ~~OPEN-1~~ | **CLOSED 2026-09-22.** `postgres_probe` ran against Fly Managed Postgres cluster `d1zj5omk443ryqkv`: **accepted** `stockgrader_scratch` (canary present, 0 rows) and **refused** `stockgrader` (no canary). Proven again end to end through `pytest_sessionstart` - see the real-cluster trips below. | - |
 | ~~OPEN-2~~ | **CLOSED 2026-09-22.** Built on the first deploy: 48 MB image, pushed to `registry.fly.io/stockgradermdk`, running live. It did fail on first deploy -- on `primary_region`, not the image (F-011). | — |
 | ~~OPEN-3~~ | **CLOSED 2026-09-22 by F-008.** Reproduced on the owner's machine: 22/22, egress-blocked. | — |
 | ~~OPEN-4~~ | **CLOSED 2026-09-22 by F-008.** Windows PowerShell 5.1.26100.9444 parsed and ran the fixed `setup.ps1`. | — |
@@ -105,9 +105,10 @@ alternation is only as good as its least-tested branch.
 ## D-019 counter - `windows-setup` consecutive green runs
 
 Promotion to a **required** check is an owner ruling at **10**. Reset to zero on
-any red.
+any red. **The counter is structurally one behind:** a count committed to the
+repo cannot include the run that validates the commit recording it.
 
-**Count: 4 of 10** (as of 2026-09-22)
+**Count: 6 of 10** (as of 2026-09-22)
 
 | # | Run | Branch |
 |---|---|---|
@@ -115,6 +116,42 @@ any red.
 | 2 | [35755827105](https://github.com/mdk32366/StockGraderMDK/actions/runs/35755827105) | pr3-code-d012-d014-d015 |
 | 3 | [35755972455](https://github.com/mdk32366/StockGraderMDK/actions/runs/35755972455) | main (PR-3 merge) |
 | 4 | [35761835450](https://github.com/mdk32366/StockGraderMDK/actions/runs/35761835450) | pr4-d020-visibility |
+| 5 | [35765068869](https://github.com/mdk32366/StockGraderMDK/actions/runs/35765068869) | pr4-d020-visibility |
+| 6 | [35765196736](https://github.com/mdk32366/StockGraderMDK/actions/runs/35765196736) | main (PR-4 merge) |
+
+## Real-cluster proofs (OPEN-1), 2026-09-22
+
+Cluster `d1zj5omk443ryqkv`. **`stockgrader` and `stockgrader_scratch` sit on the
+same cluster, same host, same port, and were probed by the same user.** Nothing
+but the canary table distinguishes them. That is what makes this proof of
+**positive identity** rather than proof of a working query: a guard that read
+the hostname would have accepted both.
+
+| ID | Condition | Expected | Observed |
+|---|---|---|---|
+| R-1 | `postgres_probe` against `stockgrader_scratch` | accept | `canary_present=True`, `max_table_rows=0` -> **ACCEPTED, `DISPOSABLE_VERIFIED`** |
+| R-2 | `postgres_probe` against `stockgrader` (production) | refuse | `canary_present=False` -> **REFUSED**, "Canary table keel_disposable_canary not found" |
+| R-3 | Full suite, `DATABASE_URL`=scratch, sentence typed | suite runs | **22 passed, exit 0** - the first green this suite has produced with a real database armed |
+| R-4 | Full suite, `DATABASE_URL`=production, sentence typed | refuse, exit 3 | **exit 3**, `KEEL DB GUARD REFUSED: Canary table ... not found` |
+| R-5 | Full suite, `DATABASE_URL`=production, **no** sentence | refuse at factor 1 | **exit 3**, `...KEEL_TEST_DB_DISPOSABLE does not equal the confirmation sentence` |
+
+**R-4 and R-5 are the pair worth keeping.** They are two *different* refusals of
+the same production database, from two independent barriers. R-5 never contacts
+it at all - factor 1 is checked before the probe is called, so a shell pointed at
+production without the sentence cannot even cause a connection. R-4 connects,
+finds no canary, and refuses on identity.
+
+**Probe read-only confirmation:** before pointing it at production, the probe was
+confirmed to issue only an `information_schema.tables` existence check, a
+`pg_stat_user_tables` listing, and bounded `SELECT count(*)` queries. No DDL, no
+writes.
+
+## Open items added 2026-09-22
+
+| ID | Item | Blocks |
+|---|---|---|
+| OPEN-5 | **The gate cannot see a staged secret.** F-015 passed every check we have, including the live-SHA verification, because the SHA is baked into the image and has nothing to do with secrets. A DB-backed endpoint plus a check that it actually answers *from the database* would close this. | Not buildable until such an endpoint exists, so this is an open item, not a guard. It is also what D-029 means by "a rotation is complete when a request to the live service proves the new credential is in use". |
+| OPEN-6 | **`pharmfoldmdk` is attached to two MPG clusters**, seen in `fly mpg list`. Out of scope for this project, and flagged because it is PharmFoldMDK's own section 3.1 shape - a write that appears to succeed against a connection nobody proved. | Nothing here. Owner's call, another day. |
 
 ## Expected behaviour that is not a fault
 

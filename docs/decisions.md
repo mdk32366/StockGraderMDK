@@ -76,26 +76,56 @@ refresh or ingest? This decides the auth and rate-limit design.
 **Status:** OPEN. Settles A-003 (redistribution rights). Blocks all price-derived
 scoring.
 
-### D-008 — Universe
-**Status:** OPEN. US only? Include ETFs? ETFs file N-PORT, so overlap extends to
-them nearly for free.
+### D-008 - Universe: US common stocks, US mutual funds, and US ETFs
+**Status:** RULED 2026-09-22 (owner)
+**Choice:** US-listed common stocks, US mutual funds, **and US ETFs**.
+**Rejected:** mutual funds only -- it leaves the obvious question
+("how much does my fund overlap my ETF?") unanswerable; non-US -- identifier
+coverage collapses, A-002 gets materially worse, and there is no demand yet.
+**Forced by:** ETFs file N-PORT, so overlap extends to them at almost no extra
+cost, and fund-versus-ETF is the comparison people actually want.
 
-### D-009 — Fly Postgres flavor (managed vs unmanaged)
-**Status:** OPEN. Decides the backup-list command and the recovery-credential
-procedure (architecture.md, Recovery access).
+### D-009 - Fly Managed Postgres, one cluster, region `sjc`
+**Status:** RULED 2026-09-22. **DELIVERED** the same day -- cluster
+`d1zj5omk443ryqkv` (`stockgrader-db`), basic/10 GB, status ready.
+**Choice:** Fly **Managed** Postgres, a single cluster in `sjc`, with the
+application database `stockgrader` created deliberately rather than using the
+`fly-db` default.
+**Rejected:**
+- **Unmanaged Fly Postgres** -- the recovery maze that cost two hours was on that
+  path, and the backup-list command was the thing we could not run.
+- **DuckDB** -- better columnar analytics, but single-writer and wrong for a
+  hosted API with a live consumer.
+- **SQLite** -- PharmFoldMDK proved a hermetic SQLite test can pass while the
+  real schema behaves differently.
+- **A warehouse** -- cost and latency for no benefit at this size.
+**Region:** `sjc` follows D-017. App and cluster in one region; MPG is available
+there.
+**Consequences realised on delivery:** F-014 (credentials printed by
+`fly mpg create` and `fly mpg attach`), F-015 (`DATABASE_URL` left Staged),
+F-016 (the backup command run for real), F-017 (Step 16 separation nominal).
 
-### D-010 — Score framing and pre-registration
-**Status:** OPEN. The output is a score, not a recommendation. Before any score
-runs on real data, write down: the components and weights; what the score
-predicts, over what horizon; the result that would mean it does not work; and
-how survivorship bias is handled (dead funds and delisted stocks included).
-**Candidate:** the owner's *Growth Quality Score TDD v3* (2026-09-09, status
-"draft, not ready to build", five open questions in its §17) appears to already
-contain the stock-side pre-registration. The Builder found it on the workstation
-(preflight report §5). The Planner has not read it. Its declared axiom source,
-`docs/finance/growth-model-lineage.md`, has not been located. GQS covers
-businesses, not funds, so the fund score stays a separate design either way.
-If adopted, A-007 becomes load-bearing and constrains the first migration.
+### D-010 - The stock score is GQS v3
+**Status:** RULED 2026-09-22 (owner), **with a condition that is not yet met.**
+**Choice:** the owner's *Growth Quality Score TDD v3* is adopted as the
+stock-side design -- its four independently ranked blocks, its integrity gate,
+its `insufficient_data` fourth state, its point-in-time requirement, and its
+attribution of score moves (fundamentals deteriorating versus price rising and
+valuation compressing).
+**Condition, binding:** GQS v3's own header says it is a draft with **five open
+questions in its §17 requiring owner ratification before a build order**. Those
+five are ratified, or **the build order for scoring does not issue**. Adopting a
+draft without answering the questions its own author flagged is how a draft
+becomes doctrine by accident.
+**Rejected:** the Planner's first-turn placeholder component list, which was a
+sketch and is superseded.
+**Consequence:** A-007 becomes load-bearing. Point-in-time integrity constrains
+the **first migration**, so the schema must carry it from Phase 1 whether or not
+scoring is built yet -- it is unaffordable to retrofit.
+**Blocking:** see **A-016**. The Planner has not read GQS v3 or
+`docs/finance/growth-model-lineage.md`; everything above is taken from the
+Builder's summary, and a summary is not knowing (P8). GQS covers businesses, not
+funds; the fund score is a separate design -- see D-027.
 
 ### D-011 — Python 3.12 everywhere: local, CI, image
 **Status:** DELIVERED 2026-09-22. 3.12.10 locally, `python-version: "3.12"` in
@@ -174,31 +204,44 @@ first commit. That spends the verified-artifact provenance on items that block
 nothing, and it asks the Builder to re-verify a fifth artifact.
 
 ### D-020 - The repo stays PUBLIC through development
-**Status:** RULED 2026-09-22 (owner ruling)
+**Status:** RULED 2026-09-22 (owner). Observable named 2026-09-22.
 **Choice:** `StockGraderMDK` remains public for the whole build, connected to
-the Planner. It goes private when the application has **completed
-development**.
+the Planner. It goes private when the application has **completed development**.
 **Rejected:** going private on the first live credential, first real user data,
-or first live deploy -- the wording in KEEL-2 Step 17 and KEEL-3 line 17. That
-wording is superseded (F-013).
-**Forced by:** the owner's standing rule, which matches KEEL-1 Principle 10's
-body ("private once the project is production-stable") and contradicts the two
-checklists.
+or first live deploy -- the wording in KEEL-2 Step 17 and KEEL-3 line 17, now
+superseded in KEEL V11 (F-013).
+**Forced by:** the owner's standing rule, matching KEEL-1 Principle 10's body.
+
+**The observable -- development is complete when ALL FOUR are true:**
+1. Scores exist across the ruled universe (D-008), not a sample.
+2. A portfolio can be constructed from those scores and tracked over time.
+3. That tracking has run long enough to say whether the scoring system works.
+4. The API is available to an external consumer -- a bot building or tracking its
+   own portfolio, or watching a stock, fund or ETF.
+
+Condition 4 is also "the first user who is not you" -- the trigger the Planner
+thought would never fire. It fires.
+
+**Two sub-rulings still OPEN, both [OWNER], and both must be answered BEFORE the
+portfolio starts:**
+- **How long is "long enough"?** Name a number of months now. Named afterwards,
+  it becomes however long it took to get a result somebody liked.
+- **What result would mean the scoring system does NOT work?** Write it before
+  the data exists. Criterion 3 is a validation study, and a validation whose
+  success criteria are set after the numbers arrive is a rationalisation. GQS v3
+  pre-registers at the component level; this is the same discipline at the
+  portfolio level.
+
 **Consequences, recorded so nobody re-derives them:**
 - The Planner keeps direct repo access for the whole build. No snapshot
   hand-carrying.
 - The repo must stay free of real credentials and real user data for **months,
-  not days**. The hygiene secret scan is therefore load-bearing for the whole
-  build, not a day-one formality.
-- When the database arrives (D-009), the connection string, the recovery
-  credential, and any cached filing data all land while the repo is public.
-  None of them may touch the tree.
-**Open, [OWNER]:** "completed development" is a sentence, not a mechanism. Where
-a specification names a stopping point, it must name the thing that stops. The
-observable is not yet named. Candidates, none ruled: the first real
-(non-synthetic) API user other than the owner; the first stored data that cannot
-be rebuilt from public sources; or an owner declaration recorded as a dated
-D-entry.
+  not days**. The hygiene secret scan is load-bearing for the whole build.
+- **Accepted risk, crossed deliberately:** the Planner's post-Keel §2 noted that
+  staying public stops being near-zero risk the moment a database exists. The
+  cluster now exists (D-009) and the repo is still public. The connection
+  string, the recovery credential and all cached filing data live outside the
+  tree, and nothing may bring them in.
 
 ### D-017 - Fly region is `sjc`
 **Status:** RULED 2026-09-22
@@ -260,3 +303,178 @@ by a test. The guard must not be allowed to imply otherwise; a guard that
 documents a blind spot rather than closing it is an open defect, and this one
 closes a different, smaller thing than it might appear to.
 
+### D-021 - Forward-only numbered SQL migrations, run by our own runner
+**Status:** RULED 2026-09-22
+**Choice:** numbered, forward-only SQL migrations applied by a runner we own.
+Each migration runs **in its own transaction, under a session advisory lock**,
+and is followed by a **verification query** asserting that the objects it claims
+to create exist and are the right shape.
+**Forced by:** "the migration reported success" and "the schema changed" are
+different claims - D-005's shape, applied to schema instead of deploys.
+**Rejected:** Alembic with SQLAlchemy 2.0 as delivered. PharmFoldMDK section 3.1
+records a migration chain that **silently rolled itself back** because a `SET`
+ran before the transaction the tool owned. We can adopt it later deliberately;
+we are not inheriting that failure on day one.
+**Consequence:** the runner holds schema rights and the web process does not.
+That is what makes D-031 possible.
+
+### D-022 - Ingestion runs as a separate Fly process group
+**Status:** RULED 2026-09-22
+**Choice:** ingestion never runs inside the web process - a separate process
+group or scheduled machine.
+**Rejected:** background tasks in the API process. A slow or rate-limited fetch
+would touch API latency, and a crashed ingest would take the API down.
+
+### D-023 - EDGAR client rules
+**Status:** RULED 2026-09-22
+**Choice:** a declared User-Agent with contact details; a hard client-side rate
+limit; retry with backoff on 429 and 503; and **no retry that hides a 403**.
+Every fetch records source URL, retrieval timestamp, and a hash of the payload.
+**Raw filings are not stored** - EDGAR is the authoritative permanent copy, and
+accession plus hash makes any row re-derivable.
+**Forced by:** A-004. A 403 means we have been refused, not that we should try
+again. A retry that swallows it turns a policy failure into a silent data gap.
+
+### D-027 - Fund scoring is look-through PLUS fund mechanics
+**Status:** PROPOSED 2026-09-22
+**Choice:** two parts, and both are required.
+- **Part A, look-through quality:** each holding's GQS weighted by portfolio
+  weight.
+- **Part B, fund mechanics that no look-through can see:** expense ratio, loads,
+  turnover and its tax drag, manager tenure, concentration.
+
+**Why Part B is not optional:** the published research is unusually consistent
+that **cost is the strongest single predictor of long-run fund outcomes**,
+stronger than anything about the holdings. The same basket of excellent
+businesses at 1.4% with 90% turnover, and at 0.03% buy-and-hold, are not the
+same investment, and a pure look-through score cannot tell them apart. A
+buy-and-hold suitability score that ignored cost would be wrong in the most
+expensive possible direction.
+
+**Four traps this design must defuse, each with a required behaviour:**
+1. **Renormalisation.** Dividing by resolved weight assumes the unscored
+   holdings resemble the scored ones. **Never renormalise silently.** Report the
+   weighted mean **and** the share of fund weight it was computed over, in the
+   same response, always.
+2. **Coverage floor.** Below a stated fraction of scoreable weight the answer is
+   `insufficient_data` with its reason, not a number.
+3. **Date mismatch.** Holdings are quarter-lagged; stock scores are current. A
+   look-through score is today's score of what they held last quarter. The
+   response carries **both** dates and labels which is which. It is never
+   presented as a current portfolio.
+4. **Reason codes, not blanks.** Every unscored holding carries why:
+   `NON_EQUITY`, `NO_FUNDAMENTALS`, `UNRESOLVED_IDENTIFIER`, `FOREIGN_LISTING`,
+   and so on.
+
+**Pre-registration required before the fund score touches real data.** The
+honest null is not "does the fund score do something". It is: **does look-through
+quality add anything over expense ratio and turnover alone?** Write down, before
+looking, what result would mean it does not - and report that result if that is
+what comes back. PharmFoldMDK section 4 applied before the fact instead of after.
+
+### D-028 - Asset-class scope for v1: equity only
+**Status:** RULED 2026-09-22
+**Choice:** bonds are out of scope for this version and get their own analysis
+later.
+**Hard consequence that must be BUILT, not merely noted:** a fund whose
+non-equity weight exceeds a stated floor returns **`insufficient_data`**, never
+a stock-only score computed over the equity part. A balanced fund that is 40%
+bonds is **not a fund we scored badly - it is a fund we cannot score.**
+Rendering those two the same way is exactly the plausible-and-wrong shape
+Principle 11 exists for.
+
+### D-029 - Every exposed credential is replaced or rotated before Phase 2
+**Status:** PROPOSED 2026-09-22. **Amended the same day from two credentials to
+three.**
+**Choice:** all three are treated as compromised until resolved, and all three
+are resolved **before the first real data load**. The cluster holds nothing that
+matters, which is what makes this cheap now and expensive later.
+
+| Credential | How exposed | Resolution |
+|---|---|---|
+| `stockgradermdk` (app) | `fly mpg attach` printed it (F-014) | **Replace**, not rotate - D-031 |
+| `fly-user` (recovery) | `fly mpg create` printed it (F-014) | Rotate; it is the Step 16 account |
+| `probe_ro` (reader) | **supplied in a chat transcript** (F-019) | **Delete.** It has served its entire purpose |
+
+**A rotation is not complete when the password changes. It is complete when a
+request to the live service proves the new one is in use.** `/healthz` cannot
+prove it, because it touches no database; the first DB-backed endpoint can.
+**Order:** the application credential goes first.
+
+### D-030 - Credential handling, with a procedure
+**Status:** PROPOSED 2026-09-22
+**Choice:**
+- Credentials live as Fly secrets and are consumed from the injected environment
+  at runtime. Never in a repo file, never in an env file in the tree, never in a
+  transcript.
+- **Fly secrets are write-only.** `fly secrets list` returns names and digests;
+  no command returns a value. The platform is where credentials are **put**, not
+  retrieved. A human who needs one rotates it rather than looking it up.
+- The exception is the Step 16 recovery credential, which lives in the password
+  manager precisely because the platform will not give it back.
+- Prefer `fly secrets import` from stdin over `fly secrets set KEY=value`, which
+  puts the value in shell history.
+- **Known offenders that print live credentials: `fly mpg create` and
+  `fly mpg attach`.** Redact before relaying. `fly mpg users create` does **not**
+  - it prints only name and role (F-014 amendment).
+
+**The procedure, added because an unspecified mechanism defaults to the nearest
+one - and the nearest one is chat:**
+- When the Builder needs a credential, the owner writes the value to a file
+  **outside the repo tree** at a fixed, named location. The Builder reads it,
+  uses it, **deletes the file, and confirms the deletion in its report.**
+- **No credential is ever typed into a Planner conversation** - including by the
+  owner, including when the owner knows and accepts the cost.
+- A credential's lifetime is the task. Mint it scoped, drop it after. Never keep
+  one "in case".
+
+**Residual, stated rather than hidden:** anything in a machine's environment is
+readable by anyone who can `fly ssh console` into it. "Never printed" is a habit;
+**least privilege and rotation are the controls.**
+
+### D-031 - The application connects as a `writer`, not a `schema_admin`
+**Status:** PROPOSED 2026-09-22. Evidence in hand (A-017).
+**Choice:** create a new user at `writer`, attach with it, `fly secrets deploy`,
+**verify against the live service**, then drop the exposed `stockgradermdk`
+account. `fly-user` stays at `schema_admin` in the password manager as the Step
+16 recovery account - which then means something, because the gap is real.
+**Forced by:** under D-021 migrations run from the Builder, so the web process
+needs **rows, not schema rights**. F-017 found both accounts at `schema_admin`,
+making Step 16's separation nominal: two accounts differing only in name give
+the recovery account no capability the application lacks.
+**Replace rather than rotate:** closes D-029's application half and F-017's
+over-privilege in one pass, and never rotates a credential in place.
+**Evidence it is sufficient:** A-017, tested on the real cluster - a `writer`
+can INSERT, SELECT, UPDATE and DELETE, and is refused `CREATE TABLE`
+(`permission denied for schema public`) and `DROP TABLE` (`must be owner`).
+
+### D-032 - `postgres_probe` accepts an open connection, not a DSN
+**Status:** PROPOSED 2026-09-22 (Planner)
+**Choice:** the probe takes a connection object, so the non-hermetic runner
+obtains it however it likes.
+**Forced by:** F-019. Taking a DSN means every non-hermetic run needs a
+credential string in the Builder's hands, on a platform that offers no
+machine-retrievable credential path.
+**Note on numbering:** the Builder independently proposed a different D-032 in
+the same hour. That one is renumbered **D-034**. Numbers are allocated by the
+Planner; where the Builder needs one before a ruling, it proposes
+`D-next/<short name>`.
+
+### D-033 - Sequence numbers on every document, both directions
+**Status:** PROPOSED 2026-09-22
+**Choice:** Planner documents are numbered `P-nnn`, Builder reports `C-nnn`, and
+**each document names the last document it received from the other side.**
+**Forced by:** F-020. The relay is manual and lossy, and until now neither end
+could tell. A gap becomes visible immediately instead of surfacing later as a
+stale decision or an unanswered question.
+
+### D-034 - Report before the next unit of work; no silent infrastructure mutation
+**Status:** RULED 2026-09-22. Adopted from the Builder's proposal and renumbered
+from its D-032 to resolve the collision recorded in D-032.
+**Choice:** the Builder writes its report **before starting the next unit of
+work**, and **every cluster mutation** - a database, a user, a secret, a schema
+object - appears in a report **before anything else is done**.
+**Forced by:** F-018. For code, git is the record and the commit is automatic.
+For infrastructure there is no commit, so work can outrun its record and nothing
+in the documents reveals it. The register is assembled from reports; a chat is
+not a record.
