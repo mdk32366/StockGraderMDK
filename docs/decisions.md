@@ -185,3 +185,63 @@ observable is not yet named. Candidates, none ruled: the first real
 be rebuilt from public sources; or an owner declaration recorded as a dated
 D-entry.
 
+### D-017 - Fly region is `sjc`
+**Status:** RULED 2026-09-22
+**Choice:** `sjc` for the app, and for the database cluster when D-009 creates
+it.
+**Rejected:** `sea` -- withdrawn by the platform, and the cause of the first
+deploy failure (F-011). Latency is irrelevant for a filings-and-prices API, so
+nearest-surviving-West-Coast was the only criterion that mattered.
+**Binding consequence:** the D-009 cluster is created in `sjc`. An app in one
+region with its cluster in another is a latency and failure-domain problem
+nobody chooses on purpose.
+
+### D-018 - Branch protection as configured
+**Status:** RULED 2026-09-22
+**Choice:** `main` requires a PR and the `test` check, with
+`enforce_admins: true`, `required_approving_review_count: 0`, `strict: false`,
+and no force pushes or deletions.
+**Rejected:** requiring an approving review (nothing could ever merge for a solo
+owner); `strict: true` (forces a rebase and rerun on every PR for no gain at
+this size).
+**Residual, stated rather than hidden:** with `strict: false`, a stale branch can
+merge green and still break `main`, because the required check ran against an
+older base. The post-merge `deploy` job and the live-SHA check (D-005) are what
+would catch it. **Revisit both settings the day a second person can push.**
+
+### D-019 - `windows-setup` stays non-required until 10 consecutive green runs
+**Status:** RULED 2026-09-22
+**Choice:** the D-014 job runs on every PR but is **not** a required check.
+Promotion is an owner ruling once it has been green on **10 consecutive runs**,
+counted in `testplan.md`.
+**Rejected:** promoting it now. Two green runs was a sample of two, and a
+Windows-runner outage would block every merge on a job that guards one script.
+**What protects the entry point meanwhile:** the required `.ps1` byte guard
+(G-9 / D-013), which runs inside the required `test` job.
+
+### D-024 - Decision status vocabulary, and the rule that keeps it true
+**Status:** PROPOSED 2026-09-22
+**Choice:** the vocabulary is exactly `OPEN`, `PROPOSED`, `RULED`, `DELIVERED`,
+`SUPERSEDED by D-NNN`, `REFUTED [date]`. **The PR that delivers a decision
+updates that decision's status in the same PR** -- not the next one, not a
+cleanup pass.
+**Forced by:** D-012, D-014 and D-015 sat at `PROPOSED - deliver as a PR after
+branch protection` for an hour after they were merged and live. A register that
+describes the future for work already shipped is a record that no longer matches
+the world, and the register is what the next reader acts on.
+**Rejected:** a periodic cleanup pass. It makes staleness normal between passes,
+and the window is exactly when someone reads the entry and acts on it.
+**Applied retroactively in this PR** to D-012, D-014 and D-015.
+
+### D-025 - Status vocabulary guard
+**Status:** PROPOSED 2026-09-22, for PR-5, low priority
+**Choice:** a test parsing every `**Status:**` line in `decisions.md`, failing on
+any value outside D-024's vocabulary.
+**Scope, to be stated inside the test itself:** it catches **malformed and
+unknown** statuses only. **It cannot catch a status that is valid but stale** --
+a `PROPOSED` entry whose work shipped yesterday passes this guard. That is what
+D-024's same-PR rule is for, and that rule is a ritual enforced by people, not
+by a test. The guard must not be allowed to imply otherwise; a guard that
+documents a blind spot rather than closing it is an open defect, and this one
+closes a different, smaller thing than it might appear to.
+

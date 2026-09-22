@@ -208,3 +208,22 @@ the observable; add the scar that *a rule amended in the essay and not in the
 checklist is a rule the next person will not follow*; and note in the travelogue
 that the V10 inspection pass did not detect it.
 
+### F-012 - A mis-specified warning allowance failed closed, not open
+**Date:** 2026-09-22 - **By:** Builder, PR-3
+**Claim:** the first `filterwarnings` allowance for F-007 named
+`DeprecationWarning` as the category. Starlette raises its own
+`StarletteDeprecationWarning`, so the filter did not match, `error` applied, and
+the suite went **red at collection**:
+```
+ERROR tests/test_api.py - starlette.exceptions.StarletteDeprecationWarning
+Interrupted: 1 error during collection
+```
+**Resolution:** the category field is left **empty**, so each filter matches on
+its message whatever class upstream raises it as. The lesson is also recorded as
+a comment in `pytest.ini`, because a tool's home is the tool.
+**Why this is a finding and not just a bug:** the **direction was right.** A
+mis-specified allowance made the suite fail rather than silently stop filtering.
+An allowance that fails **open** -- one that quietly matches nothing and lets new
+deprecations through -- is the dangerous shape, and this construction cannot take
+it. **Sample:** 1.
+
