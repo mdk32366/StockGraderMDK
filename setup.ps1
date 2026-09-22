@@ -1,5 +1,16 @@
 ﻿# StockGraderMDK local setup - idempotent. Safe to run any number of times.
-#   .\setup.ps1          create/refresh .venv, install deps, run the hermetic suite
+#   .\setup.ps1              create/refresh .venv, install deps, run the hermetic suite
+#   .\setup.ps1 -SuiteOnly   run the suite against an existing .venv, installing nothing
+#
+# -SuiteOnly exists so the offline run is a repeatable mode rather than a
+# sequence someone has to remember (D-012). The original order said to run this
+# script with the network off, but the script installs dependencies, so it could
+# not work (F-004). Install once with the network on, then use -SuiteOnly with
+# the network off to prove the suite needs no network.
+[CmdletBinding()]
+param(
+    [switch]$SuiteOnly
+)
 $ErrorActionPreference = "Stop"
 Set-Location -Path $PSScriptRoot
 
@@ -7,6 +18,19 @@ Set-Location -Path $PSScriptRoot
 if ($env:DATABASE_URL) {
     Write-Host "DATABASE_URL is set in this shell. The suite's DB guard will refuse to run" -ForegroundColor Yellow
     Write-Host "unless the target is verified disposable. For hermetic runs:  Remove-Item Env:DATABASE_URL" -ForegroundColor Yellow
+}
+
+if ($SuiteOnly) {
+    # No network, no installs, no venv creation. A missing .venv is a hard error:
+    # creating one here would silently defeat D-011.
+    if (-not (Test-Path ".venv\Scripts\python.exe")) {
+        throw "-SuiteOnly needs an existing .venv. Run .\setup.ps1 once with the network on first. Never create .venv by hand (D-011)."
+    }
+    Write-Host "Running hermetic suite (-SuiteOnly: no installs) ..."
+    & .\.venv\Scripts\python.exe -m pytest -q
+    if ($LASTEXITCODE -ne 0) { throw "Suite is RED. Do not push." }
+    Write-Host "Suite GREEN." -ForegroundColor Green
+    return
 }
 
 # Python 3.12 everywhere: local, CI, and the Docker image (D-011). The workstation

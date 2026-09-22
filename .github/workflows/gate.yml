@@ -64,3 +64,41 @@ jobs:
           done
           echo "::error::Deploy finished but the live service is not running ${{ github.sha }}."
           exit 1
+
+  # D-014: the gate never executes setup.ps1, so F-006 -- a .ps1 that will not
+  # PARSE under Windows PowerShell 5.1 -- was invisible to CI. G-9 checks the
+  # bytes; only running the script checks the parse.
+  #
+  # Deliberately a SEPARATE job and NOT a required check. Promoting it to
+  # required is an owner ruling, made after it has been green on real runs.
+  #
+  # A-008 is under test here: that the `py` launcher on a runner finds the 3.12
+  # that setup-python installed. If it does not, setup.ps1 throws by design and
+  # this job goes red. That red is the finding. Do NOT add a fallback to another
+  # Python to make it pass (D-011).
+  windows-setup:
+    name: windows-setup (PS 5.1)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: What the py launcher can see (A-008 evidence)
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion
+          Write-Host "--- py -0p ---"
+          py -0p
+          Write-Host "--- py -3.12 ---"
+          py -3.12 --version
+
+      - name: Run setup.ps1 under Windows PowerShell 5.1
+        shell: powershell
+        run: .\setup.ps1
+
+      - name: Offline proof via -SuiteOnly (D-012)
+        shell: powershell
+        run: .\setup.ps1 -SuiteOnly
+
