@@ -123,3 +123,59 @@ loop, not the suite. Any future offline instrument must leave loopback open, or
 it reports a false dependency.
 **Closes:** OPEN-3 and OPEN-4. **Supersedes:** F-002's "passed elsewhere"
 caveat.
+
+### F-009 — The `--3way` instruction could not do what it said
+**Date:** 2026-09-22 · **By:** Builder, patch-verification report §4
+**Claim:** `StockGraderMDK-register-update-2.patch` carries **no `index` lines**,
+because it was produced with `diff -u` rather than `git diff`. `git apply --3way`
+therefore cannot resolve the pre-image blob. It prints
+`error: repository lacks the necessary blob to perform 3-way merge`, falls back
+to direct application, and **exits 0**. A procedure step printed `error:` on a
+successful run, and the merge safety net it was chosen for did not exist.
+**Artifact:** rehearsal in a throwaway repo; exit code 0 with the error on stderr.
+**Sample:** 1 patch, 4 simulated PR-1 shapes, all applying by direct application.
+**Why regenerating with index lines was rejected:** the pre-image blob is
+update-1's `testplan.md` *without* PR-1's gate row, and PR-2 restores that row
+before committing, so that blob never enters the repository. `--3way` would fail
+identically. The fix would have looked like a fix without being one.
+**Resolution:** step 12.3 became verify-hash → `git apply --check` → `git apply`.
+Confirmed in this PR: `--check` passed and the patch applied, with PR-1's gate
+row untouched because it sits above both hunk context windows.
+
+### F-010 — An LF-only patch survived `core.autocrlf = true` only because of `.gitattributes`
+**Date:** 2026-09-22 · **By:** Builder, patch-verification report §5
+**Claim:** the owner's workstation has **`core.autocrlf = true`** set globally.
+The register patch is LF-only. Had the working tree checked `docs/testplan.md`
+out as CRLF, the patch would not have applied. `.gitattributes`
+(`* text=auto eol=lf`) overrides `core.autocrlf`, the working tree stays LF, and
+the patch applies.
+**Artifact:** rehearsal with the real `.gitattributes` in place —
+`working-tree testplan.md has CRLF: False`, `git apply --check: PASS`.
+**Sample:** 1.
+**Consequence if `.gitattributes` were removed or weakened:** LF patches would
+fail **only on Windows**, invisibly to CI and to the Planner's environment, with
+an error that does not name line endings. The same file also pins
+`*.ps1 text eol=crlf`, which keeps `setup.ps1` correct for PowerShell while the
+rest of the tree stays LF.
+**Resolution:** none needed. Recorded so the rule is never deleted as noise.
+
+### F-011 — Fly region `sea` is deprecated; the first deploy failed on it
+**Date:** 2026-09-22 · **By:** Builder, Step 9
+**Claim:** the v4 `fly.toml` pinned `primary_region = "sea"`. The first deploy of
+`0ac7a7d` passed `test`, built and pushed the image (48 MB), and provisioned IPs,
+then failed creating the machine:
+`Region sea is deprecated and cannot have new resources provisioned. Please
+consider using an alternate region such as sjc`.
+`fly platform regions` no longer lists `sea` at all.
+**Artifact:** Actions run
+[35754209737](https://github.com/mdk32366/StockGraderMDK/actions/runs/35754209737),
+deploy job log.
+**Sample:** 1.
+**Note on direction:** this is the failure mode OPEN-2 predicted — the first real
+build is where an untested Dockerfile and an untested platform config fail, and
+it failed loudly at the gate rather than quietly in production.
+**Resolution:** changed to `sjc` in `6f69a09`, Fly's own suggestion and the
+nearest surviving West Coast region. Region choice is a real decision and is
+referred to the Planner as **D-017** for ratification; it is one line and a
+redeploy to change.
+

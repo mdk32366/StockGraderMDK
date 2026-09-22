@@ -79,12 +79,18 @@ alternation is only as good as its least-tested branch.
   trip file importing an uninstalled `psycopg2` produced ERROR, which was the
   mutation failing, not the guard.)
 
+- **A patch that fails to apply on Windows only is line endings first.** Check
+  `.gitattributes` is present and still says `* text=auto eol=lf`, then check
+  whether the working-tree file has CRLF. `core.autocrlf = true` on the
+  workstation makes this the likely cause, and the git error never names it
+  (F-010).
+
 ## Open items. Each blocks something specific.
 
 | ID | Item | Blocks |
 |---|---|---|
 | OPEN-1 | `postgres_probe` (the real-DB half of the guard) has **never run against a real Postgres**. Its logic is proven only through fakes. | The first DB-backed test. No test may use `db_url` until the probe has refused a non-canary DB and accepted a canary DB, both on a real server. |
-| OPEN-2 | The `Dockerfile` has **never been built** (no Docker in the Planner environment). | Nothing yet. Its first build is the Step 14 deploy, which is exactly where it should fail if it's going to. |
+| ~~OPEN-2~~ | **CLOSED 2026-09-22.** Built on the first deploy: 48 MB image, pushed to `registry.fly.io/stockgradermdk`, running live. It did fail on first deploy -- on `primary_region`, not the image (F-011). | — |
 | ~~OPEN-3~~ | **CLOSED 2026-09-22 by F-008.** Reproduced on the owner's machine: 22/22, egress-blocked. | — |
 | ~~OPEN-4~~ | **CLOSED 2026-09-22 by F-008.** Windows PowerShell 5.1.26100.9444 parsed and ran the fixed `setup.ps1`. | — |
 
