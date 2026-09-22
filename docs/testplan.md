@@ -88,14 +88,33 @@ alternation is only as good as its least-tested branch.
   workstation makes this the likely cause, and the git error never names it
   (F-010).
 
+- **When doctrine and a checklist disagree, the checklist is what gets
+  followed.** An amendment lands in both or it has not landed. The essay is read
+  once; the checklist is read on day one, by someone deciding what to do next
+  (F-013).
+
 ## Open items. Each blocks something specific.
 
 | ID | Item | Blocks |
 |---|---|---|
-| OPEN-1 | `postgres_probe` (the real-DB half of the guard) has **never run against a real Postgres**. Its logic is proven only through fakes. | The first DB-backed test. No test may use `db_url` until the probe has refused a non-canary DB and accepted a canary DB, both on a real server. |
+| OPEN-1 | `postgres_probe` (the real-DB half of the guard) has **never run against a real Postgres**. Its logic is proven only through fakes. | **Now blocks D-009's first migration**, not merely the first DB-backed test. No test may use `db_url`, and no migration may run, until the probe has **refused** a non-canary database and **accepted** a canary one, both on a real server. First-data-slice order, Phase 0 step 6 closes it. |
 | ~~OPEN-2~~ | **CLOSED 2026-09-22.** Built on the first deploy: 48 MB image, pushed to `registry.fly.io/stockgradermdk`, running live. It did fail on first deploy -- on `primary_region`, not the image (F-011). | — |
 | ~~OPEN-3~~ | **CLOSED 2026-09-22 by F-008.** Reproduced on the owner's machine: 22/22, egress-blocked. | — |
 | ~~OPEN-4~~ | **CLOSED 2026-09-22 by F-008.** Windows PowerShell 5.1.26100.9444 parsed and ran the fixed `setup.ps1`. | — |
+
+## D-019 counter - `windows-setup` consecutive green runs
+
+Promotion to a **required** check is an owner ruling at **10**. Reset to zero on
+any red.
+
+**Count: 4 of 10** (as of 2026-09-22)
+
+| # | Run | Branch |
+|---|---|---|
+| 1 | [35755627563](https://github.com/mdk32366/StockGraderMDK/actions/runs/35755627563) | pr3-code-d012-d014-d015 |
+| 2 | [35755827105](https://github.com/mdk32366/StockGraderMDK/actions/runs/35755827105) | pr3-code-d012-d014-d015 |
+| 3 | [35755972455](https://github.com/mdk32366/StockGraderMDK/actions/runs/35755972455) | main (PR-3 merge) |
+| 4 | [35761835450](https://github.com/mdk32366/StockGraderMDK/actions/runs/35761835450) | pr4-d020-visibility |
 
 ## Expected behaviour that is not a fault
 

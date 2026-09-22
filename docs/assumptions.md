@@ -94,3 +94,13 @@ reached `Suite GREEN`, and `-SuiteOnly` ran green after it. **Sample: 1 run.**
 Note: the runner's `py` default is `3.14`, the same shape as the workstation in
 F-005 -- `py -m venv` on either machine yields 3.14, not the pinned 3.12. D-011
 now has two independent instances rather than one.
+
+**A-009 - A platform region stays available**
+Relies on: a region named in `fly.toml` continuing to accept new resources.
+Falsified when: provisioning is refused for a region already in the config.
+Consequence: configuration goes stale with **no code change and no warning**,
+and it fails at provisioning time rather than at review time. Nothing in the
+repo changed between the config being correct and being wrong.
+Status: **REFUTED once already, 2026-09-22**, for `sea` (F-011). Held for `sjc`
+as of the same date. Required alongside D-017.
+
