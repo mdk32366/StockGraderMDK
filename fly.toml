@@ -2,7 +2,7 @@
 # if "stockgradermdk" is taken, change it HERE, in gate.yml (APP_URL), and in
 # D-001, in the same commit.
 app = "stockgradermdk"
-primary_region = "sea"
+primary_region = "sjc"
 
 [build]
 
