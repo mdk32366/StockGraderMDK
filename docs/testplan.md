@@ -4,7 +4,7 @@
 
 | Date | Broke what | Gate blocked? | Fixed + merged | Shipped + live SHA verified? |
 |---|---|---|---|---|
-| 2026-09-22 | `app/auth.py`: bypassed `compare_digest`, so any non-None key was accepted (`test_meta_with_wrong_key_is_401` red) | **Yes.** `test` failed, `deploy` was skipped (`needs: test`), and the PR reported `mergeStateStatus: BLOCKED`. Red run: [35754766404](https://github.com/mdk32366/StockGraderMDK/actions/runs/35754766404) | PR-1, second commit reverts the bypass | see the merge run recorded in PR-2 |
+| 2026-09-22 | `app/auth.py`: bypassed `compare_digest`, so any non-None key was accepted (`test_meta_with_wrong_key_is_401` red) | **Yes.** `test` failed, `deploy` was skipped (`needs: test`), and the PR reported `mergeStateStatus: BLOCKED`. Red run: [35754766404](https://github.com/mdk32366/StockGraderMDK/actions/runs/35754766404) | PR-1, second commit reverts the bypass | **Yes.** Merge run [35754987995](https://github.com/mdk32366/StockGraderMDK/actions/runs/35754987995); live `/healthz` build = `ae4e61acf61e5df41e30c44d69a49c68188bf095` on attempt 1 |
 
 Record it here the day you watch it block AND ship with your own eyes.
 Branch protection (Step 15) must require the status check named **`test`**.
@@ -26,14 +26,48 @@ All trips were done 2026-09-22 in the Planner container. Every red was a
 | G-8 | Added an undeclared endpoint | `test_openapi_matches_committed_contract` |
 | G-9 | (F-006, D-013) Ran the new `.ps1` guard against the unfixed v3 `setup.ps1`; then, on the fixed file, re-inserted an em-dash with the BOM kept (A), and stripped the BOM from an ASCII body (B) | `test_powershell_scripts_are_safe_for_windows_powershell_5`, all three times. v3 reported the BOM plus `e2 80 94` on lines 1 and 27; A reported line 27; B reported the BOM. Each half bites alone. |
 
+## Independent guard trips by the Builder (blind, 2026-09-22)
+
+Designed from the implementation without reading G-1..G-9. Run on the owner's
+workstation (Windows, PS 5.1, Python 3.12.10). Each trip was reverted and
+re-greened, and the tree was confirmed byte-identical to v4 afterwards. **Every
+red was FAILED; none was ERROR.**
+
+| ID | Guard | Mutation | Went red |
+|---|---|---|---|
+| B-1 | auth fails closed | unconfigured-server branch `raise` → `return` | `test_unconfigured_server_fails_closed[None]` and `[""]` |
+| B-2 | DB factor 1 | exact-sentence match → any non-empty value | `test_near_miss_confirmation_is_refused` |
+| B-3 | DB factor 2 | canary check → `if False` | `test_missing_canary_is_refused` |
+| B-4 | row tripwire | `> MAX` → `> MAX + 1` (off by one) | `test_row_tripwire_refuses_one_over_the_ceiling` |
+| B-5 | env-file ban | `.env` holding the confirmation sentence | `test_confirmation_variable_never_lives_in_an_env_file` |
+| B-6 | secret scan | untracked file with a fabricated password URL | `test_no_secrets_anywhere_in_the_working_tree` |
+| B-7a/b | direct-connect ban | `psycopg2.connect(`, then `create_engine(`, in uncalled helpers | `test_tests_never_open_database_connections_directly` (both) |
+| B-8 | contract drift | undeclared `GET /v1/undeclared` | `test_openapi_matches_committed_contract` |
+| B-9a/b | `.ps1` guard | BOM stripped (ASCII body); then BOM kept with an em-dash re-inserted | `test_powershell_scripts_are_safe_for_windows_powershell_5` (both) |
+
+Session guard end to end (Builder Step 4): a tunnel-style `DATABASE_URL` with no
+confirmation → exit **3**, `KEEL DB GUARD REFUSED`, before collection.
+
+**Comparison with G-1..G-9:** pending. The Builder reports any gap in either
+direction.
+
+## How to read a red
+
+- **A test file that fails to import aborts collection before
+  `test_hygiene.py` reports.** The run is still red, so the direction is safe,
+  but the red names the import, not the hygiene rule the file may also break.
+  Fix the import, re-run, then read hygiene's verdict. (Builder §6.1: a first
+  trip file importing an uninstalled `psycopg2` produced ERROR, which was the
+  mutation failing, not the guard.)
+
 ## Open items. Each blocks something specific.
 
 | ID | Item | Blocks |
 |---|---|---|
 | OPEN-1 | `postgres_probe` (the real-DB half of the guard) has **never run against a real Postgres**. Its logic is proven only through fakes. | The first DB-backed test. No test may use `db_url` until the probe has refused a non-canary DB and accepted a canary DB, both on a real server. |
 | OPEN-2 | The `Dockerfile` has **never been built** (no Docker in the Planner environment). | Nothing yet. Its first build is the Step 14 deploy, which is exactly where it should fail if it's going to. |
-| OPEN-3 | F-002 has not been reproduced on the owner's machine. | Step 12 proof. Install Python 3.12 if absent (D-011). Run `.\setup.ps1` with the network **on** (it installs from PyPI; see F-004). Then take the network **down** and run `.\.venv\Scripts\python.exe -m pytest -q` alone. That proves the suite, not the installer, is hermetic., then run the suite once with `$env:DATABASE_URL="postgresql://app@localhost:15432/x"` and watch it refuse (exit 3). |
-| OPEN-4 | The fixed `setup.ps1` has **never been parsed by Windows PowerShell 5.1**. G-9 proves the bytes, not the parse. CI still never runs `.ps1` (D-014). | Step 3. The Builder's first clean run of `.\setup.ps1` closes it. |
+| ~~OPEN-3~~ | **CLOSED 2026-09-22 by F-008.** Reproduced on the owner's machine: 22/22, egress-blocked. | — |
+| ~~OPEN-4~~ | **CLOSED 2026-09-22 by F-008.** Windows PowerShell 5.1.26100.9444 parsed and ran the fixed `setup.ps1`. | — |
 
 ## Expected behaviour that is not a fault
 

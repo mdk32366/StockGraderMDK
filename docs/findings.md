@@ -92,3 +92,34 @@ ask whether the consuming interpreter would agree. Recorded, not rewritten.
 **Planner note:** the Planner never ran `setup.ps1`, having no Windows. It
 listed the unbuilt Dockerfile as OPEN-2 but did not list the unrun installer.
 That was the same kind of gap, and only one instance of it was recorded.
+
+### F-007 — Two dependency deprecation warnings are invisible to the gate
+**Date:** 2026-09-22 · **By:** Builder, Steps 1–6 report §4.2
+**Claim:** Every run reports 2 warnings:
+- Starlette: using `httpx` with its TestClient is deprecated in favour of
+  `httpx2`.
+- anyio: the `anyio.abc.BlockingPortal` alias is deprecated.
+Neither fails anything today. The first is pin-shaped: acting on it moves
+pinned versions, which may move the contract snapshot (A-006).
+**Artifact:** pytest summary lines, owner workstation, 2 runs.
+**Sample:** 2.
+**Resolution:** D-015.
+
+### F-008 — The suite is reproduced on the owner's workstation, parsed by PS 5.1, and makes no network egress
+**Date:** 2026-09-22 · **By:** Builder, Steps 1–6 report §4
+**Claim:**
+- Windows PowerShell 5.1.26100.9444 parsed and ran `setup.ps1` (v4). It
+  created `.venv` with Python 3.12.10 and reported **22 passed** (0.79 s,
+  network on).
+- The suite alone then passed **22/22 in 0.58 s** with every DNS lookup and
+  every non-loopback connection forced to raise.
+**Artifact:** console output in the Builder report §4. The egress blocker was an
+out-of-tree pytest plugin (`-p`), never committed.
+**Sample:** 1 run each.
+**Instrument lesson:** the first version of the blocker also blocked loopback,
+and 7 tests went red. On Windows the event loop under Starlette's TestClient
+builds its self-pipe from a loopback `socketpair()`. That red measured the event
+loop, not the suite. Any future offline instrument must leave loopback open, or
+it reports a false dependency.
+**Closes:** OPEN-3 and OPEN-4. **Supersedes:** F-002's "passed elsewhere"
+caveat.

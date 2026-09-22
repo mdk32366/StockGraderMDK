@@ -134,3 +134,26 @@ D-012.
 **Rejected:** relying on G-9 alone. G-9 closes this encoding class, but only
 executing the sanctioned entry point proves that the entry point works.
 **Depends on:** A-008.
+
+### D-015 — Warnings are errors, with named, dated allowances
+**Status:** PROPOSED. Deliver as a PR after branch protection, with D-012 and
+D-014.
+**Choice:** `pytest.ini` gains `filterwarnings = error`, plus one `ignore`
+line per F-007 warning. Each allowance carries a comment naming F-007 and the
+condition that retires it.
+**Rejected:**
+- Leaving warnings visible but non-failing: by the tenth run they are
+  background noise.
+- A blanket ignore: that hides the next deprecation too.
+**Proof required:** introduce a new, unallowed warning in a test and watch the
+gate go red.
+**Forced by:** F-007.
+
+### D-016 — The first commit is the verified artifact, byte for byte; everything after is a PR
+**Status:** PROPOSED
+**Choice:** The initial commit is scaffold v4 unchanged. Its message cites
+SHA-256 `d21f51e4f056b3fe7cd587d565ef81b1f53760d8f6e65ec647cd345510f9c03f`.
+Every later change, including register updates, goes through a PR and the gate.
+**Rejected:** folding F-007, F-008, and the trip table into a v5 before the
+first commit. That spends the verified-artifact provenance on items that block
+nothing, and it asks the Builder to re-verify a fifth artifact.

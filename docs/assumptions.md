@@ -61,8 +61,9 @@ Falsified when: `test_openapi_matches_committed_contract` passes on one platform
 and fails on the other with no code change.
 Consequence: a false red on one side, or a snapshot regenerated on the wrong
 platform that masks real drift.
-Status: ASSUMED · first tested by running the suite on the owner's Windows
-machine (testplan OPEN-3)
+Status: TESTED 2026-09-22. The contract test passed on Windows (PS 5.1, Python
+3.12.10, F-008) and on Linux (Python 3.12.3, F-002) against the same snapshot.
+Sample: one run per platform. Re-test whenever a pin changes.
 
 **A-007 — As-originally-filed fundamentals are recoverable from SEC XBRL data**
 Relies on: each reported fact carrying its filing date and accession number, so
