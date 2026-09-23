@@ -187,6 +187,30 @@ COMMENT ON COLUMN filing.filing_date IS
 CREATE TABLE fact (
     fact_id         bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     accession       text        NOT NULL REFERENCES filing (accession),
+    -- The XBRL context's ENTITY identifier — not the filing's CIK. They are
+    -- usually the same and must never be assumed to be. One submission can
+    -- carry facts for several entities: co-registrants, parent-and-guarantor
+    -- structures, REIT operating partnerships, multi-registrant trusts.
+    --
+    -- Without this column, two co-registrants reporting the same concept for
+    -- the same period in the same unit with no dimensions are
+    -- INDISTINGUISHABLE, and ON CONFLICT DO NOTHING discards the second **while
+    -- calling it idempotency** — a fact vanishing with no evidence it ever
+    -- arrived, which is the exact failure this schema exists to refuse.
+    --
+    -- Same argument as `dimensions`, one level up: a schema that cannot
+    -- represent the distinction cannot refuse it.
+    --
+    -- QUERY CONSEQUENCE, and it is easy to get wrong: "this company's revenue"
+    -- filters on fact.entity_cik, NOT on filing.cik. Filtering on filing.cik
+    -- returns a parent's co-registrants' facts as though they were the
+    -- parent's.
+    --
+    -- SCHEME ASSUMPTION: SEC XBRL contexts identify entities by CIK
+    -- (scheme http://www.sec.gov/CIK), so this is a bigint and carries an FK.
+    -- An identifier under any other scheme must make ingest FAIL rather than be
+    -- coerced into this column.
+    entity_cik      bigint      NOT NULL REFERENCES filer (cik),
     concept         text        NOT NULL,
     taxonomy        text        NOT NULL DEFAULT 'us-gaap',
     unit            text        NOT NULL,
@@ -203,14 +227,16 @@ CREATE TABLE fact (
     ),
 
     -- The key. See the block comment above for what it forecloses.
+    -- entity_cik is part of it: without it, co-registrants collide.
     CONSTRAINT fact_one_per_filing UNIQUE (
-        accession, taxonomy, concept, unit, period_type,
+        accession, entity_cik, taxonomy, concept, unit, period_type,
         period_start, period_end, dimensions
     )
 );
 
--- The point-in-time workhorse. Answers "this concept, for this filer, as
--- known at date D" once joined to filing.
+-- The point-in-time workhorse. Answers "this concept, for this ENTITY, as
+-- known at date D" once joined to filing for the filing_date.
+CREATE INDEX fact_entity_concept_idx ON fact (entity_cik, concept, period_end);
 CREATE INDEX fact_concept_period_idx ON fact (concept, period_end, period_start);
 CREATE INDEX fact_accession_idx      ON fact (accession);
 -- Consolidated facts are the overwhelming majority of reads; a partial index

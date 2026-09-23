@@ -88,6 +88,23 @@ BEGIN
                         'not accession - this forces upsert-on-amendment';
     END IF;
 
+    -- A8: the key MUST include entity_cik. Without it, two co-registrants
+    -- reporting the same concept for the same period collide, and ON CONFLICT
+    -- DO NOTHING silently discards the second while calling it idempotency.
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint c
+        JOIN LATERAL unnest(c.conkey) AS k(attnum) ON TRUE
+        JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.attnum
+        WHERE c.conname = 'fact_one_per_filing'
+          AND c.conrelid = 'public.fact'::regclass
+          AND a.attname = 'entity_cik'
+    ) THEN
+        RAISE EXCEPTION 'A8 FAILED: fact uniqueness does not include entity_cik - '
+                        'co-registrants in one filing would collide and the '
+                        'second would be discarded as a duplicate';
+    END IF;
+
     -- A5: the ticker exclusion constraint exists.
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint
@@ -149,10 +166,17 @@ INSERT INTO filing (accession, cik, form_type, filing_date, period_of_report, is
     ('9990000003-13-000001', 999000003, '10-K', DATE '2013-03-01', DATE '2012-12-31', FALSE);
 
 -- FY2021 revenue: originally 1000, restated to 900 fifteen months later.
-INSERT INTO fact (accession, concept, unit, period_type, period_start, period_end, value) VALUES
-    ('9990000001-22-000001', 'Revenues', 'USD', 'duration', DATE '2021-01-01', DATE '2021-12-31', 1000),
-    ('9990000001-23-000007', 'Revenues', 'USD', 'duration', DATE '2021-01-01', DATE '2021-12-31',  900),
-    ('9990000001-23-000001', 'Revenues', 'USD', 'duration', DATE '2022-01-01', DATE '2022-12-31', 1200);
+INSERT INTO fact (accession, entity_cik, concept, unit, period_type, period_start, period_end, value) VALUES
+    ('9990000001-22-000001', 999000001, 'Revenues', 'USD', 'duration', DATE '2021-01-01', DATE '2021-12-31', 1000),
+    ('9990000001-23-000007', 999000001, 'Revenues', 'USD', 'duration', DATE '2021-01-01', DATE '2021-12-31',  900),
+    ('9990000001-23-000001', 999000001, 'Revenues', 'USD', 'duration', DATE '2022-01-01', DATE '2022-12-31', 1200);
+
+-- THE CO-REGISTRANT CASE (OPEN-29). Beta's facts inside Alpha's submission:
+-- same accession, same concept, same period, same unit, no dimensions. These
+-- differ ONLY by entity_cik. Before entity_cik entered the key this INSERT
+-- collided, and ON CONFLICT DO NOTHING would have discarded it as a re-ingest.
+INSERT INTO fact (accession, entity_cik, concept, unit, period_type, period_start, period_end, value) VALUES
+    ('9990000001-22-000001', 999000002, 'Revenues', 'USD', 'duration', DATE '2021-01-01', DATE '2021-12-31', 55);
 
 
 -- ----------------------------------------------------------------------------
@@ -163,6 +187,7 @@ DECLARE
     v        numeric;
     n        integer;
     leaked   integer;
+    cutoff   date;
 BEGIN
     -- ====================================================================
     -- B1 — POINT IN TIME. Facts as of a past date return nothing filed
@@ -171,7 +196,7 @@ BEGIN
     -- ====================================================================
     SELECT f.value INTO v
     FROM fact f JOIN filing g ON g.accession = f.accession
-    WHERE g.cik = 999000001
+    WHERE f.entity_cik = 999000001          -- entity, NOT g.cik. See OPEN-29.
       AND f.concept = 'Revenues'
       AND f.period_end = DATE '2021-12-31'
       AND f.dimensions = '{}'::jsonb
@@ -187,7 +212,7 @@ BEGIN
     -- And the same query after the restatement returns the restated value.
     SELECT f.value INTO v
     FROM fact f JOIN filing g ON g.accession = f.accession
-    WHERE g.cik = 999000001
+    WHERE f.entity_cik = 999000001          -- entity, NOT g.cik. See OPEN-29.
       AND f.concept = 'Revenues'
       AND f.period_end = DATE '2021-12-31'
       AND f.dimensions = '{}'::jsonb
@@ -199,16 +224,34 @@ BEGIN
         RAISE EXCEPTION 'B1 FAILED: as-of today returned %, expected 900', v;
     END IF;
 
-    -- The leak check, stated in the negative: NOTHING filed after the as-of
-    -- date may appear. A point-in-time query that merely happens to pick the
-    -- right row is not the same as one that cannot see the future.
+    -- The leak check, stated in the negative: of everything the as-of query is
+    -- ALLOWED to see, nothing may post-date the boundary.
+    --
+    -- The first version of this check read
+    --   WHERE filing_date <= D AND filing_date > D
+    -- which is empty by construction whatever the data says. It could not fail,
+    -- so it proved nothing while looking like proof — the same defect as a
+    -- harness that reports green without running. Replaced with a check that
+    -- reads the data and can go red: take the newest filing the as-of window
+    -- admits and assert it really is at or before the boundary.
     SELECT count(*) INTO leaked
     FROM fact f JOIN filing g ON g.accession = f.accession
-    WHERE g.cik = 999000001
-      AND g.filing_date <= DATE '2022-06-30'
-      AND g.filing_date > DATE '2022-06-30';
-    IF leaked <> 0 THEN
-        RAISE EXCEPTION 'B1 FAILED: % rows leaked past the as-of boundary', leaked;
+    WHERE f.entity_cik = 999000001
+      AND g.filing_date <= DATE '2022-06-30';
+    IF leaked <> 1 THEN
+        RAISE EXCEPTION 'B1 FAILED: the as-of 2022-06-30 window admits % fact '
+                        'rows for this entity, expected exactly 1 (the original). '
+                        'More means a later filing is visible before it was filed.',
+                        leaked;
+    END IF;
+
+    SELECT max(g.filing_date) INTO cutoff
+    FROM fact f JOIN filing g ON g.accession = f.accession
+    WHERE f.entity_cik = 999000001
+      AND g.filing_date <= DATE '2022-06-30';
+    IF cutoff > DATE '2022-06-30' THEN
+        RAISE EXCEPTION 'B1 FAILED: as-of window returned a filing dated %, '
+                        'which is after the boundary', cutoff;
     END IF;
 
     -- ====================================================================
@@ -218,7 +261,7 @@ BEGIN
     -- ====================================================================
     SELECT count(*) INTO n
     FROM fact f JOIN filing g ON g.accession = f.accession
-    WHERE g.cik = 999000001
+    WHERE f.entity_cik = 999000001          -- entity, NOT g.cik. See OPEN-29.
       AND f.concept = 'Revenues'
       AND f.period_end = DATE '2021-12-31';
 
@@ -232,7 +275,7 @@ BEGIN
     -- as one rather than inferred from ordering.
     IF NOT EXISTS (
         SELECT 1 FROM fact f JOIN filing g ON g.accession = f.accession
-        WHERE g.cik = 999000001 AND f.period_end = DATE '2021-12-31'
+        WHERE f.entity_cik = 999000001 AND f.period_end = DATE '2021-12-31'
           AND g.is_amendment AND f.value = 900
     ) THEN
         RAISE EXCEPTION 'B2 FAILED: the restated value is not carried by a '
@@ -286,7 +329,31 @@ BEGIN
         RAISE EXCEPTION 'B4 FAILED: SYNTH in 2020 resolved to %, expected 999000002', n;
     END IF;
 
-    RAISE NOTICE 'PART B passed: point-in-time, amendment, universe, reassignment.';
+    -- ====================================================================
+    -- B5 - CO-REGISTRANT (OPEN-29). Two entities reported the same concept,
+    -- period and unit inside ONE accession with no dimensions. Both must
+    -- survive and each must be retrievable as its own. If this returns 1,
+    -- entity_cik is not in the key and a real fact was discarded as a
+    -- duplicate - the failure this schema exists to refuse.
+    -- ====================================================================
+    SELECT count(*) INTO n
+    FROM fact
+    WHERE accession = '9990000001-22-000001'
+      AND concept = 'Revenues' AND period_end = DATE '2021-12-31';
+    IF n <> 2 THEN
+        RAISE EXCEPTION 'B5 FAILED: expected 2 co-registrant facts in one '
+                        'accession, found %. A value of 1 means the second '
+                        'entity was discarded as a duplicate.', n;
+    END IF;
+
+    SELECT value INTO v FROM fact
+    WHERE accession = '9990000001-22-000001' AND entity_cik = 999000002
+      AND concept = 'Revenues' AND period_end = DATE '2021-12-31';
+    IF v IS DISTINCT FROM 55 THEN
+        RAISE EXCEPTION 'B5 FAILED: the co-registrant fact returned %, expected 55', v;
+    END IF;
+
+    RAISE NOTICE 'PART B passed: point-in-time, amendment, universe, reassignment, co-registrant.';
 END $$;
 
 
@@ -316,8 +383,8 @@ BEGIN
     -- REFUSED. This is the idempotency half of the key.
     got_refused := FALSE;
     BEGIN
-        INSERT INTO fact (accession, concept, unit, period_type, period_start, period_end, value)
-        VALUES ('9990000001-22-000001', 'Revenues', 'USD', 'duration',
+        INSERT INTO fact (accession, entity_cik, concept, unit, period_type, period_start, period_end, value)
+        VALUES ('9990000001-22-000001', 999000001, 'Revenues', 'USD', 'duration',
                 DATE '2021-01-01', DATE '2021-12-31', 1111);
     EXCEPTION WHEN unique_violation THEN
         got_refused := TRUE;
@@ -330,8 +397,8 @@ BEGIN
     -- knowability date and is unusable point-in-time.
     got_refused := FALSE;
     BEGIN
-        INSERT INTO fact (accession, concept, unit, period_type, period_start, period_end, value)
-        VALUES ('0000000000-00-000000', 'Revenues', 'USD', 'duration',
+        INSERT INTO fact (accession, entity_cik, concept, unit, period_type, period_start, period_end, value)
+        VALUES ('0000000000-00-000000', 999000001, 'Revenues', 'USD', 'duration',
                 DATE '2021-01-01', DATE '2021-12-31', 1);
     EXCEPTION WHEN foreign_key_violation THEN
         got_refused := TRUE;
@@ -344,8 +411,8 @@ BEGIN
     -- that claims to cover a period is a modelling error, not a value.
     got_refused := FALSE;
     BEGIN
-        INSERT INTO fact (accession, concept, unit, period_type, period_start, period_end, value)
-        VALUES ('9990000001-22-000001', 'Assets', 'USD', 'instant',
+        INSERT INTO fact (accession, entity_cik, concept, unit, period_type, period_start, period_end, value)
+        VALUES ('9990000001-22-000001', 999000001, 'Assets', 'USD', 'instant',
                 DATE '2021-01-01', DATE '2021-12-31', 5000);
     EXCEPTION WHEN check_violation THEN
         got_refused := TRUE;

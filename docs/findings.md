@@ -1182,3 +1182,65 @@ which is D-005's shape applied to schema, and the thing D-021 was written to get
 not in the gate** and belongs to the non-hermetic track; a hermetic green is not
 evidence that a migration applies.
 **Sample:** 1 runner, 1 local cluster, 7 guard trips.
+
+### F-next/entity-missing-from-fact-key - The fact key omitted the XBRL context's entity, and co-registrants would have vanished
+**Date:** 2026-09-23 - **By:** Planner (OPEN-29), confirmed and fixed by Builder
+**Claim:** 0001's uniqueness key carried accession, taxonomy, concept, unit,
+period and dimensions - **and not the context's entity identifier.** An XBRL fact
+is identified by concept, unit and **context**, and a context carries an
+**entity** as well as a period and dimensions. The key was missing one component
+of the thing it claimed to key on.
+**Where it bites:** one submission can hold facts for several entities -
+co-registrants, parent-and-guarantor structures, REIT operating partnerships,
+multi-registrant trusts. Two entities reporting `Revenues` for the same period in
+USD with no dimensions differ **only** by entity. Under the old key they
+collided, and `ON CONFLICT DO NOTHING` - which the design correctly treats as
+idempotency - **would have discarded the second entity's fact and called it a
+re-ingest.**
+**That is the failure this schema exists to refuse:** a fact disappearing with no
+evidence it ever arrived. The key built to make overwrite-on-amendment impossible
+had a second, quieter hole in it.
+**The asymmetry that makes it obvious in hindsight:** `dimensions` was stored
+rather than discarded on the explicit reasoning that *a schema that cannot
+represent the distinction cannot refuse it.* **The entity is the same argument
+one level up**, and the design applied it to dimensions while missing it for
+entity.
+**Fixed:** `entity_cik bigint NOT NULL REFERENCES filer (cik)`, **in the key**.
+Legitimate to amend 0001 rather than write 0002 because **0001 has never been
+applied to any real database** - only to local throwaway clusters since
+destroyed. Forward-only constrains *applied* migrations.
+**Query consequence, recorded in the column comment because it is easy to get
+wrong:** *"this company's revenue"* filters on `fact.entity_cik`, **not**
+`filing.cik`. Filtering on `filing.cik` returns a parent's co-registrants' facts
+as though they were the parent's. The verification's own point-in-time queries
+were rewritten accordingly - they had the bug.
+**Caught, and by two independent checks:**
+- **A8** - structural: the key must contain `entity_cik`. Reintroducing the old
+  key fails A8 and leaves **0 tables**.
+- **B5 / the fixture** - behavioural: with A8 removed, the co-registrant fixture
+  itself raises `UniqueViolation`, and the DETAIL line names the key that is
+  missing the column. **0 tables** again.
+**Sample:** 1 key, 1 missing component, 2 independent catches.
+
+### F-next/a-check-that-could-not-fail - The leak check was tautological and proved nothing
+**Date:** 2026-09-23 - **By:** Builder, revising 0001's verification
+**Claim:** B1's leak check read
+`WHERE filing_date <= D AND filing_date > D`. **That is empty by construction,
+whatever the data contains.** It could not fail, so it proved nothing - while
+sitting in a file whose whole premise is that every check can be made to go red.
+**Why it survived the first review:** it *reads* like a negative assertion -
+*nothing filed after the boundary may appear* - and the shape of the sentence is
+right. The defect is in the logic, not the intent, and a reviewer checking
+intent finds nothing wrong.
+**Same family as `F-next/tolerated-error-hides-real-error` and the trip harness
+that reported five guards green while running nothing:** a thing that reports
+success without doing work. **This project has now found that shape three times
+in one day, in three different systems** - a counter, a test harness, and a SQL
+assertion.
+**Replaced with a check that reads the data and can go red:** count what the
+as-of window admits and assert it is exactly the one pre-boundary row, then
+assert the newest filing it admits really is at or before the boundary.
+**Rule reinforced:** *a guard never seen red is not a guard* is not only about
+running the trip test. **A check must be capable of failing in principle before
+trying to make it fail is meaningful.**
+**Sample:** 1 check, 0 possible failures.
