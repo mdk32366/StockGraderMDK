@@ -108,14 +108,21 @@ alternation is only as good as its least-tested branch.
 | OPEN-11 | **Archetype classifier fallback trigger (ruling 13).** §11.2 is RULED as option (c), Lynch archetypes with per-archetype metric sets. **This item is the watch, not the question.** Fall back to **SIC-as-is** if EITHER: (a) the classifier is still unspecified when every other §13 condition has cleared, or (b) a hand-check finds it assigns archetypes the owner disagrees with more often than agrees. The classifier must be specified independently and **frozen before scoring runs** - tuning it until the rankings look right is the failure mode, and it is quiet. | Scoring build order; the credibility of every sector-relative rank. |
 | OPEN-12 | **Expense ratio and turnover have no established free source.** D-027 names cost **the strongest single predictor of long-run fund outcomes** - and it is the one fund variable with nowhere obvious to get it. Not in N-PORT. Candidates: the prospectus fee table, the annual report's financial highlights, possibly N-CEN. **Unverified and not asserted** - the Planner named it a research item rather than claiming a source. | The fund score's most predictive input (D-027). |
 | OPEN-13 | **Lineage §11's ten citations were written from memory, without web access.** TDD §12 requires them verified before any reaches a user-facing surface. **Two are load-bearing for the source map:** the exact Novy-Marx gross-profitability definition (the primary metric of a 30% block) and Sloan's accruals formulation (balance-sheet and cash-flow formulations differ). Until verified, those blocks rest on recollection - **the same class of claim the register exists to stop.** | Any user-facing surface for §4.2 and §4.3. |
+| OPEN-14 | **The D-019 promotion is ruled but NOT APPLIED.** Branch protection is a repository settings change, not a commit, and the Builder's attempt was stopped at its permission boundary. Current required contexts on `main`: **`test` only.** To apply: add **`windows-setup (PS 5.1)`** - the exact reported context, **not** `windows-setup`, which the ruling names and which nothing ever reports (`F-next/required-check-context-name`). Then confirm PR-6 still shows mergeable. | D-019 being true rather than ruled. |
+| OPEN-15 | **A required check that has never refused anything is required in name.** Promotion is verified when a PR shows `windows-setup` as **Required** - that proves the setting took, **not that the block works.** The proof in the refusing direction is **a deliberate red that blocks a merge**, on a throwaway branch with an intentionally broken Windows setup step - the same both-directions discipline the deploy gate was proven under. **Not scheduled today**, and recorded so it is a thing we have not done rather than a thing we believe. | Confidence that D-019 blocks anything. |
 
-## D-019 counter - `windows-setup` consecutive green runs
+## D-019 counter - RETIRED 2026-09-23. `windows-setup` is a required check.
 
-Promotion to a **required** check is an owner ruling at **10**. Reset to zero on
-any red. **The counter is structurally one behind:** a count committed to the
-repo cannot include the run that validates the commit recording it.
+**RETIRED.** The threshold was met and D-019 was ruled: `windows-setup` is
+promoted to a required check. The table below is kept as the evidence the ruling
+was made on, not as a live count.
 
-**Count: 10 of 10** (as of 2026-09-23) - **THRESHOLD REACHED. [OWNER] ruling due.**
+*Original terms: promotion was an owner ruling at 10, reset to zero on any red,
+and the count was structurally one behind - a count committed to the repo cannot
+include the run that validates the commit recording it. That tolerated lag is
+what let a real two-run drift hide; see `F-next/tolerated-error-hides-real-error`.*
+
+**Final count: 10 of 10** - threshold met 2026-09-23, **RULED, counter closed.**
 
 **Caught up by 3, and two of them had been missed.** Runs 7 and 8 are PR-5's,
 from 2026-09-22T20:59-21:00Z - they completed green and were never recorded,
@@ -124,16 +131,13 @@ silently fallen two behind**, which is the same shape as F-018: the work
 outran its record, and nothing in the document revealed it. Recovered from
 `gh run list`, not from memory.
 
-**Promotion to a required check is now an owner ruling, and it is due.** Ten
-consecutive green runs, no reds, across five branches and four merges to `main`.
-The run this commit triggers is #11 and is recorded in the next commit, per the
-structural rule above.
-
-**What the ruling decides, stated so it is not decided by default:** making
-`windows-setup` required means a red on Windows **blocks merge**. The evidence
-says it is stable enough to carry that. The counter exists because the check was
-new and unproven; ten runs is the threshold the owner set for when that stops
-being the reason to hold back.
+**RULED 2026-09-23:** promoted. Ten consecutive green runs, no reds, across five
+branches and four merges to `main`. **A red on Windows now blocks merge.**
+The caveat is recorded with the ruling in D-019: ten runs of a repo with 22 tests
+and almost no application code, never stressed by dependency churn - and ingest
+is exactly what stresses a Windows setup path. **That is the argument for
+promoting now rather than after.**
+**Implementation is not done** - see OPEN-14 and OPEN-15.
 
 | # | Run | Branch |
 |---|---|---|

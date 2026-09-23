@@ -76,3 +76,31 @@ failure of this class will appear.*
 manifest naming the previous one — is the guard rather than self-reference. A
 manifest that never arrives cannot report its own absence, whatever it says
 about itself. See `D-next/delivery-manifest`.
+
+### P-6 — UNKNOWN, recorded as a gap
+**Date:** 2026-09-23 · **not received**
+D5 cites **P-7** as the next Planner error, so a **P-6 was recorded in delivery
+D4** — which never arrived (`F-next/continuity-caught-d4`). Its content is
+unknown.
+**Recorded as a numbered gap rather than skipped**, because a missing number in
+a sequence is evidence and a renumbered sequence destroys it. **[PLANNER] to
+re-send.**
+
+### P-7 — A counting rule and its own figure disagreed, inside the artifact whose job is the figure
+**Date:** 2026-09-23 · self-recorded, D5
+D4 stated a count of **1** while also stating a rule that excludes
+carried-forward entries **but not the manifest itself** — which implies **2**.
+**The contradiction sits inside the document issued to fix a counting defect.**
+**Builder's reading, offered as the rule to settle on:** **count new documents in
+the delivery, including the manifest, excluding the carried-forward
+previous-manifest entry.** So D5 counts **2**.
+Rationale: the manifest **is** a document that was issued and can be lost — it is
+the thing whose absence D4 just demonstrated matters. Excluding it from counts
+makes the count disagree with the disk for exactly the artifact whose loss is
+hardest to detect. The carried-forward entry is different in kind: it is a
+**pointer to an earlier delivery**, not a document issued in this one.
+**Consequence for the cumulative:** counts every manifest, so issued and on-disk
+figures stay comparable — which is the property the cumulative exists for.
+**Builder note on D5's own cumulative:** D5 states **15 issued, 14 on disk.**
+Issued is right. **On disk is 12**, not 14, because D5 could not know D4 never
+arrived. The two-document gap is exactly D4.

@@ -581,9 +581,31 @@ carried-forward entry inflates the cumulative by one per delivery, and the error
 compounds rather than staying constant.
 **Sample:** 3 manifests, 1 discrepancy, off by 1.
 
-### F-next/d019-counter-fell-behind - The D-019 counter silently fell two runs behind
-**Date:** 2026-09-23 - **By:** Builder, opening PR-6
-**Claim:** the counter read **6 of 10** and was **8** at the time it was read.
+### F-next/tolerated-error-hides-real-error - A value with a known, tolerated error has a place for a real error to hide
+**Date:** 2026-09-23 - **By:** Builder, opening PR-6; **generalised on the
+owner's instruction** (`RULING-RECORD-...-d019-promotion.md` §5)
+**Renamed from** `F-next/d019-counter-fell-behind`. **The counter is retired;
+the lesson is not, and it is the reason this entry outlives its subject.**
+
+**The general claim.** When a value is **known to be wrong in a specific,
+tolerated way**, that tolerance becomes cover for a second error of the same
+shape. **A count that is supposed to lag does not look wrong when it lags
+further.** The reader checks the value against the exception they were told
+about, finds it consistent, and stops - the exception has consumed the evidence
+that would have revealed the defect.
+
+**This generalises past counters** to anything carrying a documented margin: a
+metric with a known lag, a total with a known exclusion, a report with a known
+blind spot. **The tolerated error defines the exact size and shape of the real
+error that can hide behind it**, which is what makes it predictable rather than
+bad luck.
+
+**Rules adopted, both standing for any counter this project keeps:**
+- **Recompute, never increment.** Derive the value from the source of truth each
+  time it is touched, so it cannot drift.
+- **A documented tolerance is a place to look, not a place to stop looking.**
+
+**The instance it came from.** The counter read **6 of 10** and was **8**.
 PR-5's two green `windows-setup` runs - `35783781284` (branch) and `35783912646`
 (main, the merge) - completed at 2026-09-22T20:59-21:00Z and were **never
 recorded**, because PR-5 merged after the count line was last written.
@@ -600,9 +622,59 @@ work anyone reports on.
 and that is sound. **Being one behind by design and two behind by accident are
 different things**, and the design conceals the accident: a count that is
 *supposed* to lag does not look wrong when it lags further.
-**Proposed:** the count is recomputed from `gh run list` whenever it is touched,
-rather than incremented from its previous value. One command, and it cannot
-drift.
-**Consequence, favourable:** the true count is **9 of 10**. Promotion to a
-required check is **one green run away** and is an owner ruling.
+**Outcome:** recomputed to **9 of 10**, then **10 of 10** on run `35877772087`.
+D-019 was promoted on that threshold and **the counter is retired** - which is
+why this entry was rewritten to carry the lesson rather than the incident.
 **Sample:** 1 counter, 2 missed runs, 1 day.
+
+### F-next/required-check-context-name - The ruling named a context string that does not exist
+**Date:** 2026-09-23 - **By:** Builder, implementing the D-019 promotion
+**Claim:** the promotion ruling says to add **`windows-setup`** as a required
+check. **No check by that name is ever reported.** The gate's Windows job is a
+matrix job and reports as **`windows-setup (PS 5.1)`**.
+**Artifact:** `gh api repos/.../commits/<sha>/check-runs` on HEAD of
+`pr6-backup-strategy` - three contexts: `deploy`, `test`,
+**`windows-setup (PS 5.1)`**.
+**Why it matters, and it is not pedantry.** GitHub accepts **any string** as a
+required context, including one nothing will ever report. A required check that
+never reports is **permanently pending**, and permanently pending **blocks every
+merge to `main` with no failure to diagnose** - the PR shows an expected check
+that simply never arrives. **The failure mode of getting this wrong is strictly
+worse than not doing it at all**, because a job that does not run looks like an
+outage rather than a typo.
+**Where the error comes from:** the workflow's job *key* is `windows-setup`; the
+*context* is the key plus the matrix dimensions. Anyone reading `gate.yml` gets
+the first and needs the second. The ruling was written from the workflow file,
+which is the natural place to look and the wrong one.
+**Correct string: `windows-setup (PS 5.1)`.** It is brittle in a second way worth
+recording now - **changing the matrix dimension renames the context**, silently
+turning the required check into one that never reports. A PowerShell 7 addition
+to that matrix would do it.
+**Sample:** 1 workflow, 3 contexts, 1 name mismatch.
+
+### F-next/continuity-caught-d4 - An entire delivery went missing, and the manifest chain caught it at delivery
+**Date:** 2026-09-23 - **By:** Builder, reconciling D5
+**Claim:** **delivery D4 never arrived - the whole of it.** D5 names
+`MANIFEST-Planner-2026-09-23-...-D4.md` as its previous manifest; no file by that
+name exists, and no document from D4's delivery does either.
+**Artifact:** directory listing of Planner documents dated 2026-09-23: **12 on
+disk.** Ten from D1-D3 (established when D3 was reconciled: 11 issued, 1 never
+delivered) plus D5's two. **Nothing from D4.**
+**Scale of the loss, derived rather than assumed:** D5 states 13 issued through
+D4. D1-D3 accounted for 11. **D4 therefore carried 2 documents** - its own
+manifest and one other, whose identity is unknown because the only record of it
+was in the manifest that went with it.
+**This is the fourth relay defect in two days, and the first one caught by
+design.** F-020 surfaced when a decision went stale. `relay-loss-recurrence`
+surfaced when a later document cited what was missing. `same-name-revision`
+surfaced on a byte-count difference in a directory listing - luck. **This one
+surfaced in the first thirty seconds of reconciliation, before anything was
+applied, because D5 named its predecessor and its predecessor was not there.**
+**That is precisely what continuity was adopted to do** (`D-next/delivery-manifest`),
+and it is the first time this project has detected a relay loss **without needing
+a downstream symptom.**
+**What is not recovered:** the rule tells us a delivery is missing and how large.
+It does not say what was in it. **D4's second document is unknown and must be
+re-sent.** P-6 is also unknown - D5 cites **P-7** as the next error number, so a
+P-6 was recorded somewhere in D4.
+**Sample:** 1 delivery lost, 2 documents, detected at delivery.

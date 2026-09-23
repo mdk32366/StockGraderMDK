@@ -280,15 +280,35 @@ merge green and still break `main`, because the required check ran against an
 older base. The post-merge `deploy` job and the live-SHA check (D-005) are what
 would catch it. **Revisit both settings the day a second person can push.**
 
-### D-019 - `windows-setup` stays non-required until 10 consecutive green runs
-**Status:** RULED 2026-09-22
-**Choice:** the D-014 job runs on every PR but is **not** a required check.
-Promotion is an owner ruling once it has been green on **10 consecutive runs**,
-counted in `testplan.md`.
-**Rejected:** promoting it now. Two green runs was a sample of two, and a
-Windows-runner outage would block every merge on a job that guards one script.
-**What protects the entry point meanwhile:** the required `.ps1` byte guard
-(G-9 / D-013), which runs inside the required `test` job.
+### D-019 - `windows-setup` is a required check
+**Status:** **RULED 2026-09-23 (owner) - PROMOTED.** Supersedes the 2026-09-22
+ruling, which held it non-required until 10 consecutive green runs. **The counter
+is retired.**
+**Choice:** `windows-setup` is a **required** check on `main`. **A red on Windows
+blocks merge.**
+**Met on:** 10 consecutive green runs, **no reds**, across five branches and four
+merges to `main`. The ruling was made **on** the threshold rather than reached by
+default.
+**The caveat is recorded with the ruling, not against it.** Those ten runs are
+ten runs of a repo with 22 tests and **almost no application code**.
+`windows-setup` has not been stressed by dependency churn, and **ingest - the
+next work - is exactly what stresses a Windows setup path.** That is the argument
+*for* promoting now: **a check made required after the churn is one that was
+proven against nothing and then made load-bearing at the moment it started to
+matter.**
+**Reversal path, named in advance** so it is a decision rather than a scramble:
+the same settings change in reverse. **Condition: a red attributable to the
+runner rather than to the repository, twice.** One is noise.
+**Superseded rationale, kept:** the 2026-09-22 entry rejected promotion because
+two green runs was a sample of two and a runner outage would block every merge on
+a job guarding one script. That was right then; the counter is what changed it.
+**What protected the entry point meanwhile:** the required `.ps1` byte guard
+(G-9 / D-013), inside the required `test` job. It stays.
+**IMPLEMENTATION NOT YET APPLIED.** Branch protection is a repository settings
+change, not a commit, and the change was blocked at the Builder's permission
+boundary. The context string to add is **`windows-setup (PS 5.1)`** - **not**
+`windows-setup`, which the ruling names and which would never report. See
+`F-next/required-check-context-name`.
 
 ### D-024 - Decision status vocabulary, and the rule that keeps it true
 **Status:** PROPOSED 2026-09-22
