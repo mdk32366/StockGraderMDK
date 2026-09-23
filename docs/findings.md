@@ -465,3 +465,30 @@ of the TDD's §13 conditions are open and the note names which four items would
 clear part of it. Unblocking scoring is waiting on a document that does not
 exist on this side of the relay.
 **Sample:** 2 losses, same direction, 2 days.
+
+### F-next/same-name-revision - A superseding ruling arrived under the same filename, three minutes later
+**Date:** 2026-09-23 - **By:** Builder
+**Claim:** `RULING-RECORD-2026-09-23-StockGraderMDK-owner-rulings.md` was
+delivered at 07:29 and **revised at 07:32 under the same name**, landing as
+`RULING-RECORD-2026-09-23-StockGraderMDK-owner-rulings (1).md`. The suffix is the
+**browser's**, not the author's. The revision is not cosmetic: it moves two
+rulings from *pending clarification* to *ruled* (11 - Altman Z'; 13 - Lynch
+archetypes), attaches a prework obligation to the §11.1 deferral, and rewrites a
+row of the §13 gate table.
+**Artifact:** both files, `diff`ed. 7742 bytes vs 6091.
+**Why it matters:** the 07:29 version had already been applied to the register.
+Had the second been treated as a duplicate download - which is what a `(1)`
+suffix normally means - **the register would have recorded two open questions
+that were in fact ruled**, and the archetype classifier work would not have been
+opened at all.
+**Nothing in the document announces that it supersedes anything.** Its header
+still reads as a first issue; only the status line differs, and only if you have
+both to compare.
+**The detection was luck, not a guard:** a size difference noticed in a directory
+listing. **Sequence numbers (D-033) would not catch this either** - a revision
+reissued under the same identity is a different failure from a document that goes
+missing. What catches it is a **version or issue time in the document body**, and
+neither convention has one.
+**Related:** F-020, F-next/relay-loss-recurrence. Three relay defects in two
+days, three distinct mechanisms.
+**Sample:** 1 revision, 1 document, 3 minutes apart.

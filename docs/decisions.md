@@ -607,10 +607,13 @@ F-next/restore-name-flag.
 
 ## Owner rulings, 2026-09-23 - data and model
 
-**Source:** `RULING-RECORD-2026-09-23-StockGraderMDK-owner-rulings.md`. Thirteen
-rulings: eleven ruled, two pending clarification, one recorded as a deferral
-rather than an answer. Drill and infrastructure rulings (1, 2, 3, 6) are applied
-in place above; the data and model rulings are recorded here.
+**Source:** `RULING-RECORD-2026-09-23-StockGraderMDK-owner-rulings.md`,
+**revision of 07:32** (delivered as `... (1).md`), which supersedes the 07:29
+version. Thirteen rulings: **twelve ruled**, one recorded as a deferral rather
+than an answer - *which is itself the owner's ruling on how that question is
+handled.* Rulings 11 and 13 were pending in the 07:29 version and are ruled here.
+Drill and infrastructure rulings (1, 2, 3, 6) are applied in place above; the
+data and model rulings are recorded here.
 
 ### D-next/cutover-and-stay - Ruling 1: cutover-and-stay. RULED.
 `stockgrader-db-r1` becomes the live cluster and today's ticker load goes onto
@@ -648,24 +651,52 @@ The owner agreed it warrants a dedicated session. **§11.1 therefore remains an
 open question, and §5.4 with it.** §13 continues to refuse the TDD for build on
 those two grounds.
 **Recorded as a deferral, not an answer, deliberately** - so that no later reader
-mistakes agreement-to-defer for a ruling.
+mistakes agreement-to-defer for a ruling. The deferral **is** the owner's ruling
+on how the question is handled.
+**Obligation attached by the owner:** the deferral carries forward into a
+**closeout and prework document** for its dedicated session, **not into memory.**
+That document names what §11.1 has to decide - capitalize or unadjusted GAAP;
+if capitalized, what useful life - what it would reorder, and what evidence would
+settle it, **so the session opens on a prepared question rather than on a
+re-derivation of why the question is hard.**
 
-### PENDING CLARIFICATION - Ruling 11: Altman variant, which Z. NOT RECORDED.
-The Planner recommended **Z'** (private-firm form, book value of equity)
-specifically to keep a disqualifier from moving with the share price, against
-§3's no-price-signals non-goal. The ruling returned was *"take Z"*, which reads
-as the **original public-firm Z** (market value of equity). **Not assumed either
-way.**
-**Ruling 4 changes the calculus:** with a price vendor in the design, market
-value of equity is now cheap to obtain, so the original Z is defensible in a way
-it was not this morning. **The tension that remains is design, not sourcing** - a
-disqualifier that moves with price can disqualify a company on a day its
-fundamentals did not change.
+### D-next/altman-z-prime - Ruling 11: Altman variant. RULED: Z'.
+**Z'** - the private-firm form, **book value of equity in the fourth term.**
+The disqualifier does not move with the share price.
+**Reason recorded, per the owner's instruction:** TDD §3 names price and
+technical signals a non-goal on the grounds that including them **quietly
+converts a hold model into a trading model.** An integrity gate built on market
+value of equity would disqualify a company on a day its fundamentals did not
+change - **that failure in its least visible form, inside a gate rather than
+inside a block.**
+**Chosen for that reason and not for sourcing.** Ruling 4 means market equity is
+available, so this is a design choice made **with the alternative in hand**,
+which is the only kind worth recording.
 
-### PENDING CLARIFICATION - Ruling 13: §11.2 sector granularity. NOTHING RECORDED.
-**No recommendation existed to accept.** The Planner set out three options and
-quoted the TDD's warning that Lynch archetypes are the most correct and where the
-build would slip - that is not a recommendation. The ruling *"as recommended"*
-has no referent.
-**Live options:** SIC as-is, a hand-maintained mapping, or per-archetype metric
-sets.
+### D-next/sector-archetypes - Ruling 13: §11.2 sector granularity. RULED: option (c).
+**Lynch-style archetypes with per-archetype metric sets**, with an explicit
+fallback. Two consequences carry into v4, **neither of them objections**:
+
+**1. Archetype assignment becomes its own computed thing.** Fast growers,
+stalwarts, cyclicals, turnarounds and asset plays are **not derivable from SIC** -
+SIC says what industry a company is *in*, not which of Lynch's five it *behaves
+like*. The classifier needs its own definition, its own `insufficient_data` path
+for companies fitting none cleanly, and **its own place in the output**: a reader
+who cannot see which archetype was assigned cannot evaluate the sector-relative
+rank that followed from it.
+
+**2. It is partly circular, and the circularity needs stating rather than
+solving.** Classification draws on growth stability, margin behaviour and asset
+intensity - **the same fundamentals the blocks then score.** Tolerable if the
+classifier is **specified independently and frozen before scoring runs**; a quiet
+disaster if it is **tuned until the rankings look right.**
+
+**Fallback, made operational.** The owner's *"if we find we need to change that
+later, we can"* **only fires if something is watching for it.** §11.2 falls back
+to **SIC-as-is** if either holds:
+- the archetype classifier is still unspecified when **every other §13 condition
+  has cleared**, or
+- a hand-check finds it assigns archetypes the owner **disagrees with more often
+  than agrees**.
+
+Recorded as **testplan OPEN-11** so the fallback has a trigger rather than a hope.

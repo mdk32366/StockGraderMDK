@@ -104,8 +104,8 @@ alternation is only as good as its least-tested branch.
 | OPEN-7 | **Do a full backup's children expire with it?** B-6a. Backup IDs are chains (`<FULL>_<CHILD>`) and children are not independently restorable, so the recovery horizon is bounded by the oldest surviving **full** - but expiry behaviour is unverified. `20260922-192041F` should age out ~2026-10-02. **Run `fly mpg backup list d1zj5omk443ryqkv --all` on 2026-10-03** and record whether its four children went with it. One read-only command. | Confidence in the stated recovery horizon (B-6). |
 | OPEN-8 | **The PITR recovery window is unmeasured.** `--pitr-time` exists but no command reports the window it requires (`F-next/pitr-available-window-invisible`). B-9 proposes measuring it with one deliberate refusal against a throwaway cluster. **Owner's call, optional, and only after the restore drill.** Until then PITR stays unused and `--backup-id` is the only path. | Any use of PITR. |
 | OPEN-9 | **The price vendor is unchosen, and the deciding question is delisted coverage.** Owner ruling 4 settled *sourcing policy* (SEC is one source among several), **not vendor selection**. A vendor that drops dead names **reintroduces survivorship bias through the door ruling 5 just closed.** Put delisted coverage to **Tiingo** and **EODHD** directly - the question is whether a delisted ticker's history remains retrievable after delisting, not whether the vendor says it has "full history." | Any price ingest; the universe's integrity (ruling 5). |
-| OPEN-10 | **Altman variant unresolved (ruling 11).** Z' (private-firm, book equity) was recommended; *"take Z"* was returned and reads as public-firm Z (market equity). Not assumed either way. | The disqualifier block. |
-| OPEN-11 | **Sector granularity unresolved (ruling 13).** No recommendation existed to accept. Live options: SIC as-is, hand-maintained mapping, per-archetype metric sets. | Per-sector metric selection. |
+| ~~OPEN-10~~ | **CLOSED 2026-09-23 by owner ruling 11 (revised record).** Altman **Z'** - private-firm form, book value of equity. A gate built on market equity would disqualify a company on a day its fundamentals did not change; ruling 4 made market equity available, so this is a design choice made with the alternative in hand. | - |
+| OPEN-11 | **Archetype classifier fallback trigger (ruling 13).** §11.2 is RULED as option (c), Lynch archetypes with per-archetype metric sets. **This item is the watch, not the question.** Fall back to **SIC-as-is** if EITHER: (a) the classifier is still unspecified when every other §13 condition has cleared, or (b) a hand-check finds it assigns archetypes the owner disagrees with more often than agrees. The classifier must be specified independently and **frozen before scoring runs** - tuning it until the rankings look right is the failure mode, and it is quiet. | Scoring build order; the credibility of every sector-relative rank. |
 
 ## D-019 counter - `windows-setup` consecutive green runs
 
@@ -192,14 +192,15 @@ condition points here.
 
 | §13 condition | State |
 |---|---|
-| Any §11 question unratified | **OPEN** - 11.1 deferred (ruling 12), 11.2 unresolved (ruling 13) |
+| Any §11 question unratified | **OPEN** - 11.1 deferred (ruling 12). **11.2, 11.3, 11.4 ruled.** |
 | §5.4 R&D treatment unresolved | **OPEN** - the same question as 11.1 |
 | Eligibility table contains an unlisted class | Believed clear; **confirm in v4** |
 | Any block contains a placeholder metric | **Confirm in v4** |
 | Point-in-time property weakened in build order | Not yet applicable |
 
-**No scoring build order can issue.** Two conditions are open and two are
-unconfirmed.
+**No scoring build order can issue.** **§11.1 is now the only open §11 question**
+- 11.2, 11.3 and 11.4 are ruled - and §5.4 is the same question. Two conditions
+remain unconfirmed pending v4.
 
 **Ingest is unaffected and proceeds.** The universe, the point-in-time fact
 store, and the filing-date/accession discipline are the same work whichever way
