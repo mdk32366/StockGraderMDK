@@ -370,6 +370,15 @@ accession plus hash makes any row re-derivable.
 **Forced by:** A-004. A 403 means we have been refused, not that we should try
 again. A retry that swallows it turns a policy failure into a silent data gap.
 
+**Numbers established 2026-09-23** (`F-next/edgar-limits-established`), because
+"a hard client-side rate limit" without a figure is not a limit:
+- **10 requests per second**, the SEC's published maximum access rate.
+- **User-Agent format:** `Company Name AdminContact@domain.com`.
+The bound is one we can point at rather than a sleep someone guessed - a guessed
+sleep that happens to be slower is indistinguishable from a correct one until the
+limit moves, and then indistinguishable from a correct one that has silently
+become wrong.
+
 ### D-027 - Fund scoring is look-through PLUS fund mechanics
 **Status:** PROPOSED 2026-09-22
 **Choice:** two parts, and both are required.

@@ -1244,3 +1244,69 @@ assert the newest filing it admits really is at or before the boundary.
 running the trip test. **A check must be capable of failing in principle before
 trying to make it fail is meaningful.**
 **Sample:** 1 check, 0 possible failures.
+
+### F-next/ticker-file-seeding-reintroduces-survivorship - The ordered retrieval path would have rebuilt the bias ruling 5 closed
+**Date:** 2026-09-23 - **By:** Builder, establishing §4 of the ingest slice-1 handover
+**Claim:** the handover's §3 seeds `filer` rows from
+`company_tickers.json` / `company_tickers_exchange.json` and then fetches EDGAR
+submissions **per CIK**. Taken literally, **that produces a universe containing
+only currently-listed companies**, which is survivorship bias - the exact defect
+ruling 5 exists to close.
+**Measured, not argued.** `company_tickers.json`, fetched 2026-09-23:
+**10,461 entries, 8,049 distinct CIKs.**
+
+| Filer | CIK | In ticker file |
+|---|---|---|
+| Lehman Brothers Holdings | 806085 | **no** |
+| Sears Holdings | 1310067 | **no** |
+| Bed Bath & Beyond | 886158 | **no** |
+| Enron | 1024401 | **no** |
+| Apple *(control, still listed)* | 320193 | yes |
+
+**A universe seeded from this file can never contain a company that stopped
+trading**, so *"which CIKs had filed a 10-K in the three years before D"* - the
+question §3 says the slice exists to answer from data - **would return a
+survivorship-filtered answer that looks computed.** That is worse than an
+asserted one, because it carries the authority of having been derived.
+**This is the register's own prior reasoning, now with evidence.**
+`gqs-source-map.md` §9 already recorded that the ticker files are *current*
+universes; ruling 5 already ruled the historical universe comes from filing
+history. **The handover's retrieval path contradicted both**, and would have
+passed review because per-CIK submissions is the obvious way to get submissions.
+**Second, smaller reason the per-CIK path is wrong for this:** SEC documents the
+per-CIK endpoint as returning *"at minimum one year of filings or the 1,000 most
+recent filings"*, with older filings in separate paginated files. **Full history
+is not one request per CIK**, so the crawl is both incomplete and larger than it
+appears.
+**Established alternative:** `submissions.zip` - **the public EDGAR filing
+history for all filers**, one archive, refreshed nightly ~03:00 ET.
+1,565,081,455 bytes, `Last-Modified: Wed, 23 Sep 2026 04:31:05 GMT`, confirmed by
+a `HEAD` request. **All filers** means dead ones are in it.
+**Proposed correction, and it restores ruling 5 rather than departing from it:**
+- `filer` + `filing` from **`submissions.zip`** - the universe, dead companies included
+- `filer_ticker` from **`company_tickers*.json`** - the current-day identifier
+  crosswalk, **which is exactly what ruling 5 says the ticker files are for**
+**Sample:** 1 ticker file, 8,049 CIKs, 4 known-dead filers absent, 1 control present.
+
+### F-next/edgar-limits-established - EDGAR's published rate limit and User-Agent format, from the SEC
+**Date:** 2026-09-23 - **By:** Builder, establishing §4
+**Claim:** D-023 requires *"a hard client-side rate limit"* and A-004 depends on
+*"request rates within SEC limits"*. Neither named a number. **The SEC publishes
+one:**
+> *"our current maximum access rate is 10 requests per second. This is carefully
+> monitored to preserve equitable access for all users."*
+
+**User-Agent format, also published:**
+> `User-Agent: Sample Company Name AdminContact@<sample company domain>.com`
+
+**Artifact:** SEC webmaster FAQ / developer guidance, retrieved 2026-09-23.
+**Why recording the number matters more than honouring it:** §4 asked for *"a
+bound you can point at, not a sleep someone guessed."* A guessed sleep that
+happens to be slower than the limit is indistinguishable from a correct one until
+the limit changes - and then it is indistinguishable from a correct one that has
+silently become wrong.
+**Consequence for the retrieval path:** at 10 req/s a per-CIK crawl of 8,049
+current CIKs is ~13 minutes of sustained requests **and still misses every dead
+filer**. `submissions.zip` is **one** request. The bulk route is not only correct
+under ruling 5, it is also the one that does not spend the rate limit.
+**Sample:** 1 published limit, 1 published format.
