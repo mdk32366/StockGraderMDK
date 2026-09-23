@@ -1310,3 +1310,90 @@ current CIKs is ~13 minutes of sustained requests **and still misses every dead
 filer**. `submissions.zip` is **one** request. The bulk route is not only correct
 under ruling 5, it is also the one that does not spend the rate limit.
 **Sample:** 1 published limit, 1 published format.
+
+### F-next/sic-at-filing-has-no-source-in-slice-1 - The column is right; the data for it is not in the ruled source
+**Date:** 2026-09-23 - **By:** Builder, establishing OPEN-32
+**Claim:** `filing.sic_at_filing` exists so a 2014 backtest does not read 2026's
+classification. **The ruled source cannot fill it.**
+**Artifact:** `https://data.sec.gov/submissions/CIK0000320193.json`, fetched
+2026-09-23. `submissions.zip` carries the same per-filer documents.
+- **Entity level carries SIC:** `sic: 3571`, `sicDescription: Electronic Computers`.
+  **This is the filer's CURRENT classification.**
+- **Per-filing columns carry none:** `acceptanceDateTime, accessionNumber, act,
+  core_type, fileNumber, filingDate, filmNumber, form, isInlineXBRL, isXBRL,
+  isXBRLNumeric, items, primaryDocDescription, primaryDocument, reportDate, size`.
+  **No SIC field of any kind.**
+**Resolution, per the ruling and it is the right one: `sic_at_filing` stays
+NULL in slice 1**, with the reason recorded here. The entity-level `sic` maps to
+**`filer.current_sic`**, which is exactly what that column is named for and where
+it is honest.
+**Why filling it from the entity SIC would have been the worst option:** it puts
+**today's** classification into a column whose entire name asserts it is not
+today's, and it would be **invisible forever after** - every downstream reader
+would take it as point-in-time because the schema says so. **A column that is
+honestly empty is recoverable. A column quietly filled with the wrong thing is
+the fifth instrument.**
+**Still open:** whether per-filing SIC exists in the filing header or in the
+Financial Statement Data Sets. Not established, not assumed. Slice 1 does not
+need it.
+**Sample:** 1 filer document, 16 per-filing columns, 0 carrying SIC.
+
+### F-next/per-cik-history-is-paginated - Direct evidence that the per-CIK route is incomplete
+**Date:** 2026-09-23 - **By:** Builder, establishing OPEN-32
+**Claim:** the per-CIK submissions document for Apple carries a `files` array:
+```
+[{"name": "CIK0000320193-submissions-001.json",
+  "filingCount": 1249, "filingFrom": "1994-01-26", "filingTo": "2015-07-25"}]
+```
+**1,249 filings covering 1994-2015 are in a separate document.** The main
+response's `recent` array begins where that one ends.
+**Why this is recorded separately from the survivorship finding:** it is an
+**independent disqualification** of the per-CIK path. Even for a filer that *is*
+in the ticker file, one request does not return its history - and **the
+incompleteness hides inside the size**, because the response is 164 KB and looks
+complete. Either finding alone rules the path out; two independent ones are more
+durable than one.
+**Sample:** 1 filer, 1 pagination file, 1,249 hidden filings.
+
+### F-next/incremental-path-is-the-daily-index - The second run need not be another 1.56 GB
+**Date:** 2026-09-23 - **By:** Builder, establishing §7
+**Claim:** EDGAR publishes **daily index files** at
+`https://www.sec.gov/Archives/edgar/daily-index/YYYY/QTRn/master.YYYYMMDD.idx`,
+one per business day. Confirmed present through `master.20260922.idx`.
+**Columns:** `CIK, Company Name, Form Type, Date Filed, File Name`.
+**So the shape is:** `submissions.zip` **once** for history; the daily index
+**thereafter**. The archive refreshes nightly, but re-downloading it nightly is a
+choice rather than a requirement - which is what §7 asked.
+**The gap, stated rather than discovered later:** the daily index carries **no
+`reportDate`**, so it cannot populate `filing.period_of_report`. The incremental
+path is therefore *daily index -> the set of CIKs that filed that day -> per-CIK
+submissions for **only those CIKs***. That set is hundreds per day, not 8,049, so
+it fits inside the 10 req/s bound comfortably. **The per-CIK endpoint is wrong as
+a universe source and fine as an incremental detail source** - the two uses are
+not the same and ruling it out for one does not rule it out for the other.
+**Sample:** 1 index directory, 1 sampled file, 5 columns.
+
+### F-next/an-instrument-can-be-promoted-without-being-changed
+**Date:** 2026-09-23 - **By:** Builder, accepted and sharpened by the Planner as
+the more useful half of the §2 doctrine
+**Claim:** `/healthz` belongs on the list of five instruments that could not
+report the condition they existed to detect - **but it is not a defect.** It
+returns 200 and a build SHA, opens no database connection, and does exactly what
+it was written to do.
+**It joins the list because the question being asked of it changed.** It became
+the thing standing between us and recovery-table Row 4, while the instrument
+stayed the same.
+**The general form:** **any check acquires new load when the thing it is nearest
+to becomes important, and nothing in the check announces that it has been
+promoted.** The other four were built wrong. This one was built right and then
+asked a question it was never designed to answer.
+**Why it is the more useful half:** **no code review catches it, because there is
+nothing wrong with the code.** Reviewing the check finds a correct check.
+Reviewing the caller finds a reasonable call. The defect exists only in the gap
+between what the instrument measures and what someone has started concluding
+from it - and that gap is not visible in any single file.
+**How to look for it:** when a check becomes load-bearing for a *new* claim, the
+question is not *does it pass* but **what would it do if the new claim were
+false.** `/healthz` would return 200 against a dead database, which is how we
+know Row 4 was never proven.
+**Sample:** 5 instruments, 4 defects, 1 promotion.

@@ -159,3 +159,29 @@ the argument to reach for the next time a drill looks like ceremony.
 **Also amended (D11 §3):** **step 5 lists users as well as databases.** One line,
 and it would have caught `F-next/restore-carries-compromised-roles` during the
 drill rather than after it.
+
+### P-10 — A handover named data sources that contradicted the ruling it was written to satisfy
+**Date:** 2026-09-23 · self-recorded, D15
+The ingest slice-1 handover seeded `filer` from `company_tickers.json` in a
+document whose own §3 says the slice exists to satisfy **ruling 5** — which rules
+that the historical universe comes from **filing history**. `gqs-source-map.md`
+§9 already recorded the ticker files as **current** universes. **Both were in the
+register and the handover was written anyway.**
+
+**Measured by the Builder:** 8,049 distinct CIKs, all currently listed. Lehman,
+Sears, Bed Bath & Beyond and Enron absent; Apple present as control.
+
+**Why this is worse than an ordinary error:** the slice would have produced a
+survivorship-filtered universe **while looking computed**, in the one place the
+design was built to prevent it. *An asserted answer invites challenge; a derived
+one carries the authority of having been derived, and nothing downstream would
+question it.*
+
+**Same failure as P-1, one level down.** P-1 was orders written against a stale
+handover instead of the register. This is a **data source** chosen without
+consulting either the ruling or the source map, with the contradiction sitting
+two documents apart where review does not reach.
+
+**Rule adopted — narrower and more checkable than "be careful":** a handover that
+names data sources **cites the ruling or register entry each source satisfies,
+in the handover.** *A source with no citation is an unmade decision.*

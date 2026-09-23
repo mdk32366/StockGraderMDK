@@ -854,3 +854,39 @@ rule that guards one direction guards whichever direction failed most recently.*
 **nothing is renamed** - the mapping is stated in D3.
 **Reconciliations to date:** D1 7 entries, D2 9, D3 3. One predicted absence,
 confirmed three times. Nothing unaccounted. See `F-next/manifest-adopted`.
+
+
+### D-next/ingest-sources - Where slice 1's rows come from
+**Status:** RULED 2026-09-23 (D15), superseding §3's inputs in
+`HANDOVER-Planner-2026-09-23-...-ingest-slice-1.md`.
+
+| Table | Source |
+|---|---|
+| `filer`, `filing` | **`submissions.zip`** - the public EDGAR filing history for **all filers**, one archive, ~1.56 GB, refreshed nightly ~03:00 ET |
+| `filer_ticker` | `company_tickers*.json` - the **current-day identifier crosswalk only** |
+| `filing.sic_at_filing` | **NULL in slice 1.** No source (OPEN-32) |
+
+**The superseded input list, kept with its reason rather than deleted.** §3 as
+issued seeded `filer` from `company_tickers.json` and crawled submissions per
+CIK. **Struck**, because:
+- **That file is a current universe.** Measured: 8,049 distinct CIKs, all
+  currently listed; Lehman, Sears, Bed Bath & Beyond and Enron absent, Apple
+  present as control. A universe seeded from it **cannot contain a company that
+  stopped trading**, which is the survivorship bias ruling 5 exists to close.
+- **Independently, the per-CIK route is incomplete.** Its history is paginated -
+  Apple's document defers 1,249 filings (1994-2015) to a separate file - so one
+  request per CIK does not return one filer's history, and **the incompleteness
+  hides inside the size.**
+Either point alone disqualifies it. Recorded as **P-10**; the rule that followed
+is that a handover naming data sources **cites the ruling each source satisfies**,
+because *a source with no citation is an unmade decision.*
+
+**Incremental path, established rather than assumed:** `submissions.zip` **once**
+for history, then the **daily index**
+(`.../daily-index/YYYY/QTRn/master.YYYYMMDD.idx`) thereafter. The daily index
+carries no `reportDate`, so the incremental shape is *daily index -> the CIKs
+that filed that day -> per-CIK submissions for **only those***. Hundreds per day,
+comfortably inside the 10 req/s bound. **The per-CIK endpoint is wrong as a
+universe source and fine as an incremental detail source** - ruling it out for
+one use does not rule it out for the other.
+**Run-phase acceptance test:** testplan OPEN-33.
