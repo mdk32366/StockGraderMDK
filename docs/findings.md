@@ -750,3 +750,89 @@ falsified when the factor decays; a gate justified on accounting quality is not.
 quietly stopped being true, which is how a register loses its value even while
 every entry in it stays technically defensible.
 **Action:** edit lineage §5 and §9's third axiom. Tracked as OPEN-18.
+
+### F-next/restore-resizes-disk - The restore silently provisioned 50% more storage than the source
+**Date:** 2026-09-23 - **By:** Builder + owner, restore drill step 4
+**Claim:** `d1zj5omk443ryqkv` has **10 GB** allocated. `fly mpg restore` produced
+`kzpwm0j1dm204nv3` with **15 GB**. No size flag was passed; `fly mpg restore
+--help` documents none.
+**Artifact:** `fly mpg status` on both clusters, same session.
+**Why it matters beyond the number:** the restored cluster **became the live
+one**, so the change is permanent unless acted on, and the restore help states
+the new cluster is **billed separately** - so this is a real cost difference that
+arrived silently. More broadly: **a restore is not a faithful reproduction of the
+source's configuration.** We were treating it as "same cluster, new ID." It is
+not, at least for storage.
+**The part with a deadline:** the 10 GB original is **the only surviving record
+of what the configuration was supposed to be**, and it disappears when the old
+cluster is destroyed after the ticker load. Anyone reconstructing intent later
+sees 15 GB and no reason to doubt it.
+**Not a blocker:** more disk than the source is the harmless direction. Recorded
+because it would have gone unnoticed had the specs not been read, and because the
+same mechanism could resize in the harmful direction on a larger source.
+**Sample:** 1 restore, 1 discrepancy.
+
+### F-next/attach-refuses-to-overwrite - `fly mpg attach` fails closed on an existing DATABASE_URL, and the drill could not execute
+**Date:** 2026-09-23 - **By:** Builder + owner, restore drill step 7
+**Claim:** `fly mpg attach` **refuses** when the target app already has
+`DATABASE_URL` set:
+`Error: app stockgradermdk already has DATABASE_URL set. Use 'fly secrets unset
+DATABASE_URL' to remove it first`
+**The amended §4 assumed attach would replace it. It will not**, so **step 7 as
+written could not run**, and a step 6.5 (`fly secrets unset DATABASE_URL`) had to
+be inserted.
+**The tool is right and the drill was wrong.** Fly is **failing closed** rather
+than silently replacing a live database credential - the correct direction, and
+the same principle the rest of this register argues for. The defect is ours.
+**Why finding it here is the whole point of B-4:** this is a rehearsal on a quiet
+day with nothing at stake. The same gap discovered during an actual recovery
+would be found by an operator under time pressure, mid-incident, with the
+production app already pointing at a dead cluster.
+**Consequence recorded before acting:** after the unset, the app has **no path
+back to the old cluster.** Reverting means re-running `attach` against
+`d1zj5omk443ryqkv`, **which re-prints and re-leaks that credential** (F-014).
+The revert path is not free. Accepted deliberately, since `stockgradermdk` is
+compromised and slated for retirement by destroy anyway.
+**Also established:** `fly secrets unset` **deploys by default** (`--stage`
+skips). The plain form was chosen over `--stage` because it was unestablished
+whether a staged unset clears attach's precondition, and mid-cutover is not where
+to find out.
+**Amendment for the drill:** §4 step 7 requires a preceding unset **whenever the
+app already holds a `DATABASE_URL`** - which is every cutover after the first.
+**Sample:** 1 attach, 1 refusal, 1 inserted step.
+
+### F-next/app-connects-via-pgbouncer - The attached connection string points at the pooler, not the database
+**Date:** 2026-09-23 - **By:** Builder, restore drill step 7
+**Claim:** the `DATABASE_URL` written by `fly mpg attach` resolves to
+**`pgbouncer.kzpwm0j1dm204nv3.flympg.net`**, not the `direct.` endpoint that
+`fly mpg status` reports. The app talks to a **connection pooler**.
+**Why it is recorded now rather than when it bites:** a transaction-mode pooler
+interferes with **prepared statements, session-level settings and advisory
+locks** - and a migration runner (D-021) characteristically depends on all three.
+Migration 0001 is designed against `stockgrader_scratch` and run against this
+cluster afterwards, so **the question of which endpoint the runner uses has to be
+settled before that run, not during it.**
+**Not established:** the pooler's mode (transaction vs session), and whether the
+`direct.` endpoint is reachable with the same credential. **Both are questions,
+not claims.** Tracked as testplan OPEN-21.
+**Sample:** 1 connection string.
+
+### F-next/restored-cluster-joins-the-schedule-immediately - The rolling schedule claimed the new cluster within minutes
+**Date:** 2026-09-23 - **By:** Builder, restore drill step 11
+**Claim:** `kzpwm0j1dm204nv3` went `ready` at approximately 15:54-15:58Z. The
+rolling schedule took a **full** backup at **16:00:17Z** - before the drill
+reached step 11, which took its manual full at 16:27:44Z.
+**Artifact:** `fly mpg backup list kzpwm0j1dm204nv3 --all` - two fulls, the
+schedule's preceding ours.
+**What it amends:** **B-3's premise.** B-3 reads *"a freshly restored cluster has
+no backup lineage until one is made or the schedule fires, and the window between
+those is unguarded."* The window was approximately **six minutes**, not
+open-ended.
+**B-3 still stands, on B-2's ground rather than its own original one:** a
+checkpoint you took is a recovery point you can **name**, and the first act after
+a cutover is exactly when you want a named one. **But the argument is
+deliberateness, not absence** - the identical correction B-2 already took.
+**Also established:** the schedule's first act on a fresh cluster is a **full**,
+which it must be - there is no root to build on. So a restored cluster acquires a
+chain root on its own, quickly.
+**Sample:** 1 restored cluster, 1 schedule, ~6 minute window.
