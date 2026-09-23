@@ -1057,3 +1057,61 @@ Fixed by adding a sanity check that the harness itself works before any verdict
 is trusted. Recorded because the failure direction was silent and favourable,
 which is the dangerous combination.
 **Sample:** 1 local cluster, 7 injected defects, 7 caught.
+
+### F-next/citations-are-lossy-recovery - A citation carries what the citing author needed, not what the document contained
+**Date:** 2026-09-23 - **By:** Builder; **elevated on the Planner's instruction**
+from a reconciliation note in `F-next/continuity-caught-d9` to a standing finding.
+**Claim:** when a delivery is lost, the apparent recovery route - **reading what
+later documents cite of it** - is **systematically lossy, and lossy invisibly
+from the citing side.**
+**The instance that proves it.** D9 was lost. The Builder worked for two
+deliveries from D10's citations of it and got most of it right. **D9 §3 held the
+migration/`schema_admin` collision** - that `writer` cannot `CREATE TABLE`, so
+migration 0001 cannot run as the app account and needs a `schema_admin`, all of
+which are compromised. **Nothing cited it.** It became OPEN-27, the most
+consequential item in the document, and the Builder **had no way to know it
+existed** until the re-send arrived.
+**Why the loss is invisible:** a citing author quotes what **their** argument
+needed. They are not summarising, and they have no reason to think anything is
+missing - the document is in front of them. **The gap is undetectable from
+either end**: the citer sees a complete document, the reader sees a coherent
+citation. Nothing looks wrong.
+**How it sits with the manifest chain.** The chain **detects** a missing delivery
+and **bounds its size** - it did that twice today. **It does not recover
+contents, and this finding is why the difference matters.** A recovered size is
+not a recovered document.
+**Rule adopted:** working from citations while waiting for a re-send is
+reasonable and **must be marked provisional.** The register carries **which
+entries were made at second hand** until the document arrives, and they are
+revisited when it does.
+**Sample:** 1 lost delivery, 2 deliveries of second-hand work, 1 item missed
+entirely.
+
+### F-next/duplicate-suffix-now-ambiguous - The `(1)` suffix means two different things in the same folder
+**Date:** 2026-09-23 - **By:** Builder, reconciling D12
+**Claim:** the delivery folder now contains **three** files whose names end in
+` (1)`, and they are **not the same kind of thing**:
+
+| File | What it is |
+|---|---|
+| `RULING-RECORD-...-owner-rulings (1).md` | **A real document** - the 07:32 revision, D2 entry #6 |
+| `MANIFEST-...-D12 (1).md` | A duplicate download, byte-identical |
+| `RULING-...-open27-order-with-proof-step (1).md` | A duplicate download, byte-identical |
+
+**The near-miss:** the first count excluded every ` (1)` file and returned
+**27 against an expected 28** - a false shortfall that would have been reported
+as a lost document. Excluding the two confirmed byte-identical duplicates instead
+returns **28**, which matches.
+**Root cause is P-4's residue.** The browser's ` (1)` was harmless when it always
+meant *duplicate*. P-4 made it also mean *superseding revision* for one file, and
+the filename-is-not-identity rule fixed the Planner's side going forward **but
+left that one artifact behind.** The ambiguity is permanent in this folder.
+**Rule adopted:** reconciliation **never filters by filename pattern.** It
+**diffs** suspected duplicates and excludes only those confirmed byte-identical.
+Two commands, no inference.
+**Why record a near-miss that cost nothing:** the failure direction was a
+**false positive** - reporting a loss that did not happen. That is the benign
+direction today, and it is the direction that **erodes trust in the check
+itself**, which is how a real shortfall later gets waved through as another
+counting artifact.
+**Sample:** 1 folder, 3 suffixed files, 2 meanings.

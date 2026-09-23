@@ -504,6 +504,22 @@ one - and the nearest one is chat:**
 readable by anyone who can `fly ssh console` into it. "Never printed" is a habit;
 **least privilege and rotation are the controls.**
 
+**AMENDED 2026-09-23 - the rotation clause is a platform fact, not a discipline.**
+As written, *a human who needs a credential rotates it rather than looking it up*
+**reads as a choice**, and a rule that sounds like a choice invites the next
+person to go hunting for the lookup. **There isn't one.**
+`fly mpg users` exposes `create`, `delete`, `list`, `set-role` and **no
+`rotate`**; no flag on any of them emits a password or connection string; and
+Fly secrets are write-only. **So rotation on this platform is
+delete-and-recreate, or a dashboard password change, and looking a credential up
+is not a worse option - it is not an option**
+(`F-next/no-cli-path-to-a-recovery-credential`).
+**The general form:** every credential this project holds arrived either **by a
+leak** (F-014) or **by a human typing it into a browser.** There is no third
+route.
+**`set-role` is a mitigation, never a fix.** Downgrading an account's role
+shrinks the blast radius of an exposed password and leaves it exposed.
+
 ### D-031 - The application connects as a `writer`, not a `schema_admin`
 **Status:** PROPOSED 2026-09-22. Evidence in hand (A-017).
 **Choice:** create a new user at `writer`, attach with it, `fly secrets deploy`,
