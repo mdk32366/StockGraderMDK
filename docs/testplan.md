@@ -115,7 +115,7 @@ Promotion to a **required** check is an owner ruling at **10**. Reset to zero on
 any red. **The counter is structurally one behind:** a count committed to the
 repo cannot include the run that validates the commit recording it.
 
-**Count: 9 of 10** (as of 2026-09-23)
+**Count: 10 of 10** (as of 2026-09-23) - **THRESHOLD REACHED. [OWNER] ruling due.**
 
 **Caught up by 3, and two of them had been missed.** Runs 7 and 8 are PR-5's,
 from 2026-09-22T20:59-21:00Z - they completed green and were never recorded,
@@ -124,9 +124,16 @@ silently fallen two behind**, which is the same shape as F-018: the work
 outran its record, and nothing in the document revealed it. Recovered from
 `gh run list`, not from memory.
 
-**One green run from promotion.** At 10 it becomes an owner ruling on making
-`windows-setup` a required check. The run this commit triggers is #10 - and by
-the structural rule above, it is recorded in the next commit, not this one.
+**Promotion to a required check is now an owner ruling, and it is due.** Ten
+consecutive green runs, no reds, across five branches and four merges to `main`.
+The run this commit triggers is #11 and is recorded in the next commit, per the
+structural rule above.
+
+**What the ruling decides, stated so it is not decided by default:** making
+`windows-setup` required means a red on Windows **blocks merge**. The evidence
+says it is stable enough to carry that. The counter exists because the check was
+new and unproven; ten runs is the threshold the owner set for when that stops
+being the reason to hold back.
 
 | # | Run | Branch |
 |---|---|---|
@@ -139,6 +146,7 @@ the structural rule above, it is recorded in the next commit, not this one.
 | 7 | [35783781284](https://github.com/mdk32366/StockGraderMDK/actions/runs/35783781284) | pr5-register-catchup *(unrecorded until 2026-09-23)* |
 | 8 | [35783912646](https://github.com/mdk32366/StockGraderMDK/actions/runs/35783912646) | main (PR-5 merge) *(unrecorded until 2026-09-23)* |
 | 9 | [35877548924](https://github.com/mdk32366/StockGraderMDK/actions/runs/35877548924) | pr6-backup-strategy |
+| 10 | [35877772087](https://github.com/mdk32366/StockGraderMDK/actions/runs/35877772087) | pr6-backup-strategy |
 
 ## Real-cluster proofs (OPEN-1), 2026-09-22
 
