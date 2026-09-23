@@ -137,3 +137,25 @@ figures stay comparable — which is the property the cumulative exists for.
 **Builder note on D5's own cumulative:** D5 states **15 issued, 14 on disk.**
 Issued is right. **On disk is 12**, not 14, because D5 could not know D4 never
 arrived. The two-document gap is exactly D4.
+
+### P-9 — The drill's step 7 only worked on an app that had never been attached
+**Date:** 2026-09-23 · self-recorded, D9
+The amended §4 assumed `fly mpg attach` would replace an existing
+`DATABASE_URL`. **It refuses.** Step 7 could not execute; step 6.5
+(`fly secrets unset`) had to be inserted.
+
+**The consequence is worse than a failed step, and this is the reason it is
+recorded rather than just fixed.** The drill exists to rehearse **recovery**.
+**Recovery always happens on an app that already has a `DATABASE_URL` — that is
+what makes it recovery.** So the written drill **would have failed in precisely
+the situation it was written for.**
+
+It failed instead on a quiet afternoon, with an empty database and no clock
+running. **That is B-4 earning its entire keep on first execution**, and it is
+the argument to reach for the next time a drill looks like ceremony.
+
+**Rule adopted:** §4 step 7 is preceded by `fly secrets unset DATABASE_URL`
+**whenever the app already holds one** — every cutover after the first.
+**Also amended (D11 §3):** **step 5 lists users as well as databases.** One line,
+and it would have caught `F-next/restore-carries-compromised-roles` during the
+drill rather than after it.

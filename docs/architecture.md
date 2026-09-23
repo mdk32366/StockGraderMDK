@@ -56,3 +56,32 @@ The shape is not built yet and is gated on open D-entries.
 | 2. Recovery credential in password manager | `fly-user` (`schema_admin`) is the Step 16 recovery account. **[OWNER] to confirm it is in the password manager under the project name** - that confirmation is Step 16's actual proof and has not been given. The account was also printed in the clear at creation (F-014) and is on D-029's rotation list. Its separation from the application account was nominal until D-031 (F-017). |
 | 3. Re-point the app without an image rebuild | `DATABASE_URL` is a runtime secret, so no rebuild is needed - confirmed in practice on 2026-09-22. **`fly mpg restore <CLUSTER_ID>` restores into a NEW cluster**, from either `--backup-id <ID>` or `--pitr-time <RFC3339>` (mutually exclusive; PITR confirmed present in flyctl v0.4.102, though **no command reports the PITR recovery window** - F-next/pitr-available-window-invisible, so `--backup-id` against a listed `completed` backup is the verifiable path). `-n/--name` names the restored cluster; unnamed, it is generated. Recovery is *not* finished when the data comes back. It is finished when the app points at the new cluster: **`fly mpg attach` AND THEN `fly secrets deploy`.** The deploy half is the step that silently does not happen - see F-015. |
 | 4. Restore ever tested | **YES - 2026-09-23, end to end including cutover.** `fly mpg restore d1zj5omk443ryqkv --backup-id 20260923-155431F -n stockgrader-db-r1` produced `kzpwm0j1dm204nv3`, which is **now the live cluster**: both databases came across, a `writer` account (`stockgrader_app`) was created and attached with `-u`/`-d` - **but see the correction below: the restore also carried the old role catalogue**, `DATABASE_URL` reproduced F-015 as **Staged**, `fly secrets deploy` cleared it across both machines, and the new cluster was given its own chain root. **Three defects the drill found, none of which a green restore would have shown:** attach **refuses** to overwrite an existing `DATABASE_URL` so the written step 7 could not run (`F-next/attach-refuses-to-overwrite`); the restore **silently resized 10 GB to 15 GB** (`F-next/restore-resizes-disk`); the app connects via **pgbouncer**, not the direct endpoint (`F-next/app-connects-via-pgbouncer`). **The data half is NOT yet proven.** `/healthz` returned 200 on build `f9298de` but **opens no database connection** - it would answer identically against a dead cluster. Per B-5 and D-029 the recovery is finished when a live request answers **from the database**, and that endpoint does not exist yet. **Re-run after the ticker load**, when row counts make the data half meaningful (B-4). **CORRECTION, same day:** an earlier version of this row implied the cutover produced a clean cluster. **It did not. A restore is a copy, and it copied the role catalogue** - `stockgradermdk` and `fly-user`, both compromised on 2026-09-22, are live on `kzpwm0j1dm204nv3` with their original passwords (`F-next/restore-carries-compromised-roles`). **D-031 stands** - the app connects as `stockgrader_app` at `writer` - but **F-017's over-privilege was not escaped**, because the over-privileged account came across too. |
+
+
+## The old cluster's configuration, captured before its destroy
+
+**Why this is here.** `fly mpg restore` gave the live cluster **15 GB** when the
+source had **10 GB** - unasked, with no size flag passed and none documented
+(`F-next/restore-resizes-disk`). **The old cluster is the only surviving evidence
+that 15 GB was not chosen**, and that evidence disappears when it is destroyed.
+Whether to resize is a separate and unhurried question. **Whether anyone can
+still tell it was unintended expires with the old cluster**, so the capture
+happens now rather than at destroy time.
+
+Captured 2026-09-23, verbatim, `fly mpg status d1zj5omk443ryqkv`:
+
+```
+Cluster Status
+ ID                  │ d1zj5omk443ryqkv
+ Name                │ stockgrader-db
+ Organization        │ matt-kelly-802
+ Region              │ sjc
+ Status              │ ready
+ Allocated Disk (GB) │ 10
+ Replicas            │ 1
+ Direct IP           │ direct.d1zj5omk443ryqkv.flympg.net
+```
+
+**The live cluster `kzpwm0j1dm204nv3` differs in exactly one respect: 15 GB.**
+Region, plan, replica count and organisation all carried across faithfully. The
+storage did not, and nothing announced it.

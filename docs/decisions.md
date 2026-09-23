@@ -581,9 +581,17 @@ hourly (F-next/backup-cadence-observable), so worst-case unguarded exposure is
 took is a recovery point you can name**, and an hour of a bulk load is a real
 loss.
 
-**B-3 - A manual full backup immediately after a cutover.** Restore builds a new
-cluster and backup history does not follow it. A restored cluster has no lineage
-until one is made or the schedule fires.
+**B-3 - A manual full backup immediately after a cutover.**
+**Rationale REPLACED 2026-09-23**, exactly as B-2's was and by the same argument.
+The original read *"a restored cluster has no lineage until one is made or the
+schedule fires, and the window between those is unguarded."* **Observed: the
+schedule took a full at 16:00:17Z, roughly six minutes after the restored cluster
+went ready** (`F-next/restored-cluster-joins-the-schedule-immediately`). The
+window is ~6 minutes, not open-ended.
+**B-3 stands on deliberateness, not absence:** a checkpoint you took is a
+recovery point you can **name**, and the first act after a cutover is when you
+most want a named one. Restore builds a new cluster and backup history does not
+follow it - that part is unchanged and true.
 
 **B-4 - A backup that exists is not a backup that restores.** Recovery table row
 4 stays **Never** until a restore is driven end to end including cutover. Re-run
@@ -640,9 +648,19 @@ day nothing is at stake, that is a cheap measurement.
 **Cost, stated:** a restored cluster is provisioned asynchronously and billed
 separately - real money for as long as it exists - and is destroyed immediately
 after the answer is recorded.
-**APPROVED.** Runs *after* the drill completes, **never interleaved**. The probe
-cluster is **destroyed immediately once the window is recorded.** The measured
-boundary is the finding - *a refusal names it as usefully as a success.*
+**APPROVED.** Runs *after* the drill completes, **never interleaved**. The
+measured boundary is the finding - *a refusal names it as usefully as a success.*
+**CONDITION, hardened 2026-09-23 from an agreement into a gate:** **B-9 does not
+start unless there is time to finish it, destroy included.** The probe cluster is
+created, the window recorded, and the cluster **destroyed in the same sitting**,
+by the owner, before the session ends. **If the session cannot hold all three,
+B-9 does not begin.**
+**The reason is two clusters away and already running.** The instinct that says
+*leave it, it costs little* is visibly what produced the PharmFoldMDK orphans -
+one of them a restore of a restore, five weeks apart, named by timestamps the
+platform chose (`F-next/orphaned-restore-clusters-already-exist`). OPEN-6 marks
+those out of scope and that remains true; **it does not make the pattern someone
+else's.**
 
 **Platform mechanics established 2026-09-23 (read-only, §3):** `fly mpg backup`
 exposes only `create` and `list`. There is **no command to configure cadence or

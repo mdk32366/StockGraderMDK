@@ -965,3 +965,47 @@ difference in cost was luck, not guard strength.**
 **Outstanding: [PLANNER] re-send D9 in full** - its manifest and its second
 document, whose identity is unknown to us for the same reason as D4's.
 **Sample:** 2 deliveries lost, 2 detected by continuity, 1 day.
+
+### F-next/no-cli-path-to-a-recovery-credential - A non-attached account's password cannot be obtained from the CLI
+**Date:** 2026-09-23 - **By:** Builder, answering OPEN-26 read-only
+**Claim:** `fly mpg users create --help` in full exposes **three flags: `-h`,
+`-r/--role`, `-u/--username`.** There is **no flag that emits a password, a
+connection string, or any credential.** `set-role` is the same shape. Combined
+with D-030's record that Fly secrets are write-only and nothing returns a value,
+**no `fly mpg` command hands back a password.**
+
+**The consequence the Planner traced, confirmed:** `stockgrader_app`'s credential
+reached the password manager **through `fly mpg attach`** - a command that exists
+to bind a database to an app, and prints the connection string as a side effect.
+**That is the only observed route by which a password has left this platform.**
+**A recovery account is by definition not attached to an app**, so that route is
+not available to it.
+
+**But Step 16 is not nominal - it is manual.** F-019 already established the
+missing piece: **passwords are settable by a human in the Fly dashboard.** So a
+replacement `schema_admin` **can** be obtained, by a path that is entirely
+human-mediated:
+1. `fly mpg users create <CLUSTER> -u <name> -r schema_admin` (CLI, prints
+   nothing useful)
+2. **set its password in the dashboard** (human, out of band)
+3. store it in the password manager under the project name
+
+**That is not a workaround; on this platform it is the mechanism.** F-019's
+finding generalises further than it was written: **every credential this project
+holds arrived either by a leak (F-014) or by a human typing it into a browser.**
+There is no third route.
+
+**Consequence for rotation, and it reframes D-030.** `fly mpg users` exposes
+`create`, `delete`, `list`, `set-role` and **no rotate**. So rotating is
+**delete-and-recreate**, or a dashboard password change. D-030's line - *a human
+who needs a credential rotates it rather than looking it up* - **is not a
+discipline. It is the only mechanism available.** Worth recording that way,
+because a rule that reads as a choice invites someone to look for the lookup.
+
+**`set-role` is a mitigation and must not be recorded as a fix.** Downgrading
+`fly-user` from `schema_admin` to `reader` reduces blast radius and **does not
+close an exposed password.**
+**Unblocks:** OPEN-25's `fly-user` half - a replacement is obtainable, so the bad
+trade in §5.4 is avoidable. **The replacement goes into the password manager
+BEFORE anything is deleted.**
+**Sample:** 3 `--help` outputs, 1 negative sweep of `fly mpg users`.
