@@ -836,3 +836,60 @@ deliberateness, not absence** - the identical correction B-2 already took.
 which it must be - there is no root to build on. So a restored cluster acquires a
 chain root on its own, quickly.
 **Sample:** 1 restored cluster, 1 schedule, ~6 minute window.
+
+### F-next/attachment-record-is-not-authoritative - `fly mpg list` shows the app attached to both clusters
+**Date:** 2026-09-23 - **By:** Builder, post-drill sweep
+**Claim:** after the cutover, `fly mpg list -o matt-kelly-802` shows
+**`stockgradermdk` in the ATTACHED APPS column of BOTH clusters** -
+`kzpwm0j1dm204nv3` (live) and `d1zj5omk443ryqkv` (old).
+**Why:** the drill set `DATABASE_URL` via `attach` and re-pointed it via
+`unset` + `attach`, but **never ran `fly mpg detach` against the old cluster.**
+The attachment is a separate platform record from the secret.
+**The consequence that matters:** **the ATTACHED APPS column does not answer
+"which cluster is this app actually using."** It records which clusters have ever
+been attached and not detached. The only authoritative answer is the host inside
+`DATABASE_URL`, which **cannot be read without exposing the credential** - so the
+question "what is this app connected to" has **no cheap, safe, direct answer** on
+this platform.
+**This is F-015's family:** a platform surface that looks like state and is
+actually history. A reader checking `fly mpg list` during an incident would
+reasonably conclude the app was attached to the old cluster, and be wrong -
+or conclude it was attached to both, and not know which wins.
+**What we relied on instead**, and it was the right instrument: the connection
+string's own host component, read by the owner at attach time and reported
+without the password.
+**Action:** `fly mpg detach` against the old cluster is **not** run today - the
+old cluster is deliberately retained, and detaching may interact with the secret.
+Recorded as testplan OPEN-23 to be resolved at destroy time.
+**Sample:** 1 app, 2 clusters, 1 listing.
+
+### F-next/orphaned-restore-clusters-already-exist - The account holds restore artifacts from earlier recoveries, still running
+**Date:** 2026-09-23 - **By:** Builder, post-drill sweep
+**Claim:** `fly mpg list -o matt-kelly-802` returns **four** clusters, all
+`ready`, all on the `basic` plan, **all billed.** Two belong to StockGraderMDK.
+The other two are **restore artifacts from PharmFoldMDK recoveries**, and their
+names say so:
+
+| ID | Name | Attached |
+|---|---|---|
+| `kyzl60xz9zyrpj9g` | `sentinel-holy-rain-4562 restored 2026-08-17… restored 2026-09-13…` | `pharmfoldmdk` |
+| `zp2wjrej9lwodn4q` | `sentinel-holy-rain-4562 restored 2026-08-17…` | `sentinel-holy-rain-4562`, `pharmfoldmdk` |
+
+**The first is a restore of a restore** - its generated name carries two restore
+timestamps, five weeks apart.
+**Why this is recorded here rather than left to the other project:** it is
+**the exact failure mode this drill is at risk of**, already realised, visible
+today. `fly mpg restore` builds a new cluster every time and **destroys nothing**;
+the old one keeps running and keeps billing. Two recoveries produced two
+survivors, and the generated names are the only record of what they were.
+**It is also the argument for `-n`.** These clusters are identifiable only by a
+concatenation of timestamps the platform chose. Our `stockgrader-db-r1` is
+identifiable by reading it - which is why `-n` was adopted (ruling §3, 6.1).
+**Already tracked** as testplan OPEN-6 (2026-09-22), *"out of scope for this
+project."* **That remains true and is not the point.** The point is that the
+project which last ran a restore has two orphans, and this project has just run
+one. The scope boundary does not make the pattern someone else's problem.
+**Consequence for B-9:** the PITR probe creates a genuinely disposable cluster.
+B-9 says destroy it **immediately once the window is recorded**, and this finding
+is why that clause is load-bearing rather than tidy.
+**Sample:** 1 org, 4 clusters, 2 orphans.
