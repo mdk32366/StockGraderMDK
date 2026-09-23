@@ -703,3 +703,50 @@ recovery. The gap between detection and recovery was two deliveries, during whic
 D4 accepted the P-1..P-3 move, and the Builder carried it as an open judgment
 call until D6 arrived. **A lost document does not only delay work; it can leave a
 question open that has in fact been answered.**
+
+### F-next/accruals-formulation-collides-with-growth-block - The two accruals methods disagree exactly where §4.1 is looking
+**Date:** 2026-09-23 - **By:** Planner, verifying OPEN-13 (F-E)
+**Claim:** two accruals methods are in general use - **Sloan's balance-sheet
+differencing** (the original, `ACC = (ΔCA − ΔCash) − (ΔCL − ΔSTD − ΔTP) − DEP`,
+scaled by **average** total assets) and the **cash-flow method** (earnings minus
+operating cash flow, both from the cash flow statement). **They disagree, and
+they disagree most for companies with acquisitions, divestitures or discontinued
+operations** - a balance-sheet difference reads **an acquired subsidiary's
+working capital as if the company had generated it.**
+**Why that is not a tolerable margin here:** those are **exactly** the companies
+§4.1's organic-versus-acquired proxy exists to catch. A roll-up would take a
+**distorted accruals ratio from the integrity gate** and a **goodwill discount
+from the growth block** - two parts of the model measuring the same underlying
+fact, **with one of them doing it wrongly.** The error is not random across the
+universe; it is concentrated in the population the model is most trying to
+discriminate.
+**Artifact:** Sloan 1996 (The Accounting Review 71(3), 289-315), verified
+2026-09-23; the divergence is a property of the two definitions, not an empirical
+claim needing a sample.
+**Recommendation (Planner):** use the **cash-flow formulation** for the gate, and
+**record it as a deliberate departure from Sloan's original rather than an
+implementation shortcut.** The balance-sheet version is the historical
+definition; **the cash-flow version is the one that survives contact with
+acquisitive companies**, and this universe is full of them.
+**Owner ruling required - it changes §4.3's stated basis.** Tracked as OPEN-17.
+
+### F-next/accruals-anomaly-decayed - The gate's justification was a return claim; it should be an accounting-quality claim
+**Date:** 2026-09-23 - **By:** Planner, verifying OPEN-13 (F-F)
+**Claim:** published work reports the accruals anomaly generated excess returns
+for roughly four decades but **weakened after 2002**, with one line of argument
+attributing the decline to the spread of analyst cash-flow forecasts.
+**What it breaks, precisely:** nothing operational. The lineage calls Sloan *"the
+most operationally important result in the literature"* - **a claim about return
+prediction**, and if the premium has decayed that claim is **weaker than
+stated.** The design is unaffected; **the stated reason for the design is not.**
+**The better argument, and §4.3 should be written on it:** accruals-driven
+earnings **reverse**, and a buy-and-hold model **has no business rating a company
+highly on earnings that are about to reverse - whether or not the market still
+pays for the distinction.** That is an **accounting-quality** argument, not a
+**factor** argument.
+**Why the distinction is worth the edit:** a gate justified as a factor is
+falsified when the factor decays; a gate justified on accounting quality is not.
+**We would have kept the gate either way** - but for a stated reason that had
+quietly stopped being true, which is how a register loses its value even while
+every entry in it stays technically defensible.
+**Action:** edit lineage §5 and §9's third axiom. Tracked as OPEN-18.

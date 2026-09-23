@@ -28,7 +28,7 @@ Sets / submissions metadata) · **P** = price vendor (unchosen, testplan OPEN-9)
 
 | Variable | Source | Notes |
 |---|---|---|
-| Gross profitability (GP ÷ assets) | E | Primary metric. **Cleanest sourcing in the whole model.** |
+| Gross profitability (GP ÷ assets) | E | Primary metric. **Cleanest sourcing in the whole model.** **Denominator is book value of TOTAL ASSETS, not book equity** (Novy-Marx, JFE 108(1), 2013, verified 2026-09-23). Several later papers use book equity and get a different factor - §4.2 must say total assets explicitly or the normalization layer gets built against the wrong one. |
 | ROIC | E | NOPAT and invested capital both derivable. |
 | WACC | **flat rate** | Ruling 9 — not sourced. **Condition: the ROIC-WACC spread is never surfaced as an absolute figure.** |
 | Cash conversion (OCF ÷ NI) | E | |
@@ -38,7 +38,7 @@ Sets / submissions metadata) · **P** = price vendor (unchosen, testplan OPEN-9)
 
 | Variable | Source | Notes |
 |---|---|---|
-| Accruals ratio (Sloan) | E | Balance-sheet and cash-flow formulations **differ**; the definition is unverified in lineage §11. See OPEN-13. |
+| Accruals ratio (Sloan) | E | **Verified 2026-09-23** (The Accounting Review 71(3), 1996): the original is **balance-sheet differencing scaled by AVERAGE total assets**. **But the formulation is an open owner ruling** - the two methods disagree most for acquisitive companies, which is exactly what §4.1's organic-vs-acquired proxy targets. See **OPEN-17**. |
 | Beneish M-Score | E | All eight ratios are statement-derived. |
 | Altman **Z'** | E | Ruling 11. Book value of equity - **no price dependency in the gate**, which is the point of choosing Z'. |
 | Auditor change | E | Auditor name and firm ID are tagged on the 10-K cover page **in recent years**. A change is a year-over-year comparison; earlier years need a different path. |
@@ -94,7 +94,17 @@ same shape, different dataset - and **it will pass every test that does not
 check for it specifically.** Store the as-traded close and the adjustment
 factors separately.
 
-**7.2 — Delisted coverage.** §5.1's point-in-time property exists so a backtest
+**7.2 — Delisted coverage. PARTLY ANSWERED 2026-09-23.** EODHD documents a
+`delisted=1` flag and ~60,000 delisted US symbols (2026-09), with availability
+tiered by delisting date - pre-2018 is end-of-day only. **That tiering does not
+bite us:** we need only prices from the vendor, fundamentals come from EDGAR
+under ruling 4, and EDGAR keeps a dead company's filings permanently. **The
+architecture makes the vendor's main limitation irrelevant - an argument for the
+architecture, not only for the vendor.** Tiingo's position is **unestablished**;
+only forum commentary was found, recorded as anecdote. **§7.1 remains unanswered
+by either vendor and is the disqualifying one.** See OPEN-9.
+
+**Original statement of 7.2:** §5.1's point-in-time property exists so a backtest
 reads what was knowable. A vendor that drops delisted names **hands back
 survivorship bias through the door ruling 5 closed.** Ask it in the operative
 form: *does a delisted ticker's history stay retrievable after delisting* - not
@@ -117,11 +127,29 @@ public.
 **Non-equity weight (D-028's floor):** N-PORT's per-position asset category
 supports this directly. **Best-sourced part of the fund design.**
 
-**The gap - expense ratio and turnover.** D-027 states **cost is the strongest
-single predictor of long-run fund outcomes**, and it is the one variable with
-**no established free source.** Not in N-PORT. It lives in the prospectus fee
-table and the annual report's financial highlights; N-CEN *may* carry some of it.
-**Unverified, and not asserted.** Tracked as testplan OPEN-12.
+**Expense ratio and turnover - ANSWERED 2026-09-23, and `N-CEN` was the wrong
+guess.** N-CEN Data Sets exist and are free, but N-CEN is a census of fund
+**operations** - service providers, auditors, custodians, board and compliance
+structure, ETF authorized-participant data. **Not fees, not turnover.**
+
+They live in **Financial Highlights** (485BPOS prospectus, N-CSR shareholder
+report) as a multi-year table of expense ratio and portfolio turnover -
+**HTML/prose, not structured data** - and in **Inline XBRL** under the SEC's
+Tailored Shareholder Reports rule (Item 27A of N-1A), **which is the structured
+path and is recent.**
+
+**Recent years are cheap. History is expensive.** A current expense ratio comes
+from tagged data; a ten-year series means parsing Financial Highlights tables out
+of prospectuses and shareholder reports, **per share class, across filers with no
+common layout.**
+**Consequence for D-027's pre-registration:** the honest null - *does look-through
+quality add anything over expense ratio and turnover alone?* - **needs the
+historical series**, the expensive half. The look-through half is cheap because
+N-PORT is structured. **So the cheap work and the validating work are not the
+same work**, and building the cheap half first yields a fund score whose central
+question stays untested indefinitely. Owner's sequencing call: **testplan
+OPEN-19**. Tagged-data coverage depends on a compliance date that is
+**unconfirmed**: OPEN-20.
 
 ---
 
@@ -149,5 +177,13 @@ load-bearing for this map:**
 - the exact **Novy-Marx gross-profitability** definition (§2 above), and
 - **Sloan's accruals** formulation (§3 above).
 
-Until verified, §2 and §3 rest on the Planner's recollection — **the same class
-of claim the register exists to stop.** Tracked as testplan OPEN-13.
+**Both VERIFIED 2026-09-23 against primary sources. OPEN-13 is closed.** Neither
+changed the design; **both changed what the design must say.** Novy-Marx pinned
+the denominator to total assets; Sloan's verification surfaced **F-E**, a
+formulation problem that is now an owner ruling (**OPEN-17**), and **F-F**, which
+leaves §4.3 intact but **replaces its justification** (**OPEN-18**).
+
+**The eight remaining citations in lineage §11 are still unverified** and are
+**not load-bearing for this map.** They stay unverified until something rests on
+them, and TDD §12 still requires verification before any reaches a user-facing
+surface.
