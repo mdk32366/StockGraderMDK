@@ -352,3 +352,64 @@ cost real time and one of them produced an unexplained account on a production
 cluster.
 **Resolution:** D-033. **Sample:** 2 losses, opposite directions, same day.
 
+### F-next/backup-cadence-observable - The rolling schedule is running on this cluster, and it is hourly
+**Date:** 2026-09-23 - **By:** Builder, backup-strategy block §3
+**Claim:** `fly mpg backup list d1zj5omk443ryqkv --all` returns **21 completed
+backups**, not one. The schedule is observably running on *this* cluster, at a
+cadence the documentation did not state:
+
+| Cadence | Evidence |
+|---|---|
+| Full, daily | `20260922-192041F` at 19:20:41Z; `20260923-000148F` at 00:01:48Z |
+| Differential, every 6 h | `...-060053D` at 06:00:53Z, `...-120226D` at 12:02:26Z |
+| Incremental, hourly | 01:03Z through 14:04Z, one per hour, no gaps |
+
+**Artifact:** verbatim output in `REPORT-Code-2026-09-23-...-backup-mechanics.md`.
+**What this changes:** B-2's stated rationale - "the alternative is depending on
+whenever the rolling schedule last happened to fire" - is weaker than written.
+The schedule fires hourly, so worst-case unguarded exposure is ~60 minutes, not
+an unknown. **B-2 still stands**, because a pre-risk checkpoint you took is a
+recovery point you can name, and ~60 minutes of a bulk load is still a real loss.
+The argument for it is now *deliberateness*, not *absence*.
+**What surprised us:** the ID format is a **chain**, not a set.
+`20260923-000148F_20260923-140422I` names its parent full backup. Incrementals
+and differentials are not independently restorable artifacts; they depend on the
+full they are rooted in. **Consequence for B-6:** when a full ages out at 10
+days, its dependents presumably age out with it, so retention is not "10 days of
+hourly points" but "whatever chains still have a living root." Unverified - we
+have not watched an expiry - and it is the kind of thing that is discovered at
+the worst possible moment. Flagged, not claimed.
+**Sample:** 1 cluster, 1 listing, ~38 h of history.
+
+### F-next/pitr-available-window-invisible - PITR exists on this binary; its window does not
+**Date:** 2026-09-23 - **By:** Builder, backup-strategy block §3
+**Claim:** the installed `flyctl v0.4.102` **does** support point-in-time
+restore. `fly mpg restore --help` documents `--pitr-time` (RFC3339, mutually
+exclusive with `--backup-id`), resolving the question §3.4 asked: the
+documentation page was incomplete, the binary is not.
+**The gap:** the same help text says PITR *"requires the cluster's PITR recovery
+window to cover this time"* - and **no `fly mpg` subcommand reports that window.**
+`fly mpg status` shows ID, name, org, region, status, disk, replicas and direct
+IP, and nothing about recovery. `fly mpg --help` lists no command that would.
+**Why it matters:** a PITR restore is therefore a **guess that is validated only
+by attempting it.** You learn whether your recovery point was reachable at the
+moment you need it to be reachable. That is the same shape as F-015 - a state
+that looks available until the one moment it is load-bearing.
+**Consequence:** `--backup-id` against a listed, `completed` backup is the
+verifiable path and should be the default. PITR is the finer-grained tool whose
+availability we cannot confirm in advance.
+**Sample:** 1 binary, 1 `--help`, 1 negative sweep of `fly mpg --help`.
+
+### F-next/restore-name-flag - `fly mpg restore` takes `-n/--name`; the drill did not use it
+**Date:** 2026-09-23 - **By:** Builder, backup-strategy block §3
+**Claim:** `fly mpg restore` accepts `-n, --name` and otherwise assigns *"a
+generated name."* The drill in §4 step 3 does not pass it, so the cutover
+cluster would be born with a generated name.
+**Why it matters:** §4 ends with an old cluster and a new cluster alive at the
+same time, holding the same data, one of them live - and step 3 is a **REDACT**
+step, so the operator is reading around a credential while noting which is which.
+Steps 5-11 then each take a cluster ID. A generated name is one more thing to
+get right under exactly the conditions that produce mistakes.
+**Proposed:** pass `-n stockgrader-db-r1` (or similar) at step 3. Cheap, and it
+makes "which cluster am I on" answerable by reading rather than by remembering.
+**Sample:** static reading of `--help`, 1.

@@ -478,3 +478,60 @@ object - appears in a report **before anything else is done**.
 For infrastructure there is no commit, so work can outrun its record and nothing
 in the documents reveals it. The register is assembled from reports; a chat is
 not a record.
+
+---
+
+## Backup strategy - B-1 to B-8
+
+**Source:** `HANDOVER-Planner-2026-09-23-...-backup-strategy-restore-drill.md` §2,
+received 2026-09-23. **Status: PROPOSED.** Recorded here verbatim in substance so
+the register holds them; the `B-n` labels are the Planner's and numbers are the
+Planner's to assign (D-032 note). Builder annotations are marked **[Builder]**.
+
+**B-1 - Automatic backups are the floor, not the plan.** The rolling schedule
+covers ordinary operation. Everything below is what the schedule does not do.
+**[Builder, F-next/backup-cadence-observable]** the floor is higher than assumed:
+hourly incrementals, 6-hourly differentials, daily fulls, observed on this
+cluster.
+
+**B-2 - A manual full backup before any deliberate act that could destroy data.**
+Before a migration, a bulk load, a cutover, a destroy.
+`fly mpg backup create <CLUSTER_ID> --type full`.
+**[Builder]** rationale amended: the schedule's worst case is ~60 minutes, not
+"unknown". B-2 stands on deliberateness - a checkpoint you took is a recovery
+point you can name - not on the schedule's absence.
+
+**B-3 - A manual full backup immediately after a cutover.** Restore builds a new
+cluster and backup history does not follow it. A restored cluster has no lineage
+until one is made or the schedule fires.
+
+**B-4 - A backup that exists is not a backup that restores.** Recovery table row
+4 stays **Never** until a restore is driven end to end including cutover. Re-run
+after the ticker load, when row counts make the data half meaningful.
+
+**B-5 - Recovery is not finished when the data comes back.** It is finished when
+the app points at the new cluster and a live request proves it: `fly mpg attach`,
+**then** `fly secrets deploy`, then verify. F-015 is the scar.
+
+**B-6 - 10-day retention is an expiry, and expiry is silent.** Nothing warns that
+a recovery point has aged out. `fly mpg backup list <CLUSTER_ID> --all` is the
+only way to know; without `--all` it shows 24 hours.
+**[Builder]** backup IDs are **chains** (`<FULL>_<CHILD>`), so expiry of a full
+plausibly expires its dependents. Unverified. Retention is "chains with a living
+root," not "10 days of hourly points."
+
+**B-7 - Off-platform copies are not required today, and the condition that
+requires them is written down.** Everything in `stockgrader` is rebuildable by
+re-running the loader. The first write that is not - anything user-owned,
+anything whose loss is not fixed by a re-run - makes an off-platform dump
+mandatory. Same tripwire that ends the credential deferral.
+
+**B-8 - `stockgrader_scratch` is explicitly out of scope.** It carries the canary,
+which marks it disposable. Not backed up on purpose; not a reason to restore.
+
+**Platform mechanics established 2026-09-23 (read-only, §3):** `fly mpg backup`
+exposes only `create` and `list`. There is **no command to configure cadence or
+retention** - confirmed against the binary, not just the docs. `fly mpg restore`
+supports both `--backup-id` and `--pitr-time`, plus `-n/--name`. `fly mpg destroy`
+takes `-y`. See F-next/pitr-available-window-invisible and
+F-next/restore-name-flag.
