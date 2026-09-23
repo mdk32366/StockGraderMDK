@@ -1009,3 +1009,51 @@ close an exposed password.**
 trade in §5.4 is avoidable. **The replacement goes into the password manager
 BEFORE anything is deleted.**
 **Sample:** 3 `--help` outputs, 1 negative sweep of `fly mpg users`.
+
+### F-next/migration-0001-proven-hermetically - The migration was proven on a local throwaway cluster, not on scratch
+**Date:** 2026-09-23 - **By:** Builder, migration 0001 design block
+**Claim:** migration 0001 and its verification were applied, verified and
+**deliberately broken** against a **local PostgreSQL 18.3 cluster created in the
+scratchpad and destroyed afterwards.** No Fly cluster was touched, no credential
+was needed, and `stockgrader_scratch` was not mutated.
+**Why not scratch, as the handover asked:** testing DDL against scratch needs a
+`schema_admin`, and every `schema_admin` on the live cluster is compromised and
+gated behind OPEN-25/OPEN-27. **D11 §4 also proposes dropping and recreating
+`stockgrader_scratch` as part of OPEN-25** - so a scratch test run now would be
+run against a database about to be replaced. The local cluster gives the same
+evidence with none of that entanglement.
+**What was established:**
+
+| Property | Result |
+|---|---|
+| 0001 applies clean | 5 tables, 8 indexes, 1 extension, 1 ledger row |
+| **Atomicity** - a failure partway leaves nothing | **0 tables** after a deliberately broken run |
+| **Forward-only** - re-running fails loudly | `ERROR: relation "filer" already exists` on the first statement |
+| Verification Parts A, B, C | all pass on a correct schema |
+
+**Every guard was then seen to go red** (F-002's standard, applied to schema):
+
+| Defect injected | Caught by |
+|---|---|
+| The tempting key `UNIQUE(concept, period, unit)` | **A4** |
+| Ticker exclusion constraint dropped | A5 |
+| `filing_date` made nullable | A6 |
+| `fact -> filing` FK dropped | A7 |
+| `instant`-is-a-point check dropped | C4 |
+| **Overwrite-on-amendment** (TDD §13's named defect, via trigger) | **B1** |
+| **Lookahead** - amendment back-dated before its filing | **B1** |
+
+**Two results worth stating precisely rather than rounding up:**
+**The overwrite defect was caught by B1, not B2.** The overwrite deletes the
+original, so the point-in-time query returns NULL before the row-count check runs.
+**Two independent checks cover it**, which is better than the one that was
+designed for it - but the report says which fired, because "B2 caught it" would
+be false.
+**The first trip harness reported all five guards blind.** That was the harness,
+not the guards: `PGBIN` contains a space and unquoted expansion broke every
+`psql` call, so the grep matched nothing and every result read GREEN. **A test
+harness that cannot run reports the same thing as a system with no defects.**
+Fixed by adding a sanity check that the harness itself works before any verdict
+is trusted. Recorded because the failure direction was silent and favourable,
+which is the dangerous combination.
+**Sample:** 1 local cluster, 7 injected defects, 7 caught.
