@@ -414,34 +414,28 @@ get right under exactly the conditions that produce mistakes.
 makes "which cluster am I on" answerable by reading rather than by remembering.
 **Sample:** static reading of `--help`, 1.
 
-### F-next/orders-written-against-handovers - Orders were written against the last handover, not the register
+### F-next/orders-written-against-handovers - A handover is not the register, and orders written against one drift
 **Date:** 2026-09-23 - **By:** Planner, self-recorded in
 `RULING-...-backup-mechanics-section4-amended.md` §1
-**Claim:** the Planner issued three errors in one block, all from the same root -
-writing orders against documents rather than against the register.
+**Claim:** three Planner errors landed in a single block, and all three had the
+same root - **work was planned against documents rather than against the
+register.** The errors themselves are **P-1, P-2 and P-3** in
+`planner-errors.md`; what was learned is here.
 
-- **P-1 - ordered work that was already complete.** The steps 5-6 handover was
-  written from the 2026-09-22 handover, which said steps 5-6 were outstanding.
-  They had been executed and merged in PR-5 the same day. The register was never
-  read before orders were written against it.
-- **P-2 - assigned finding numbers from a document rather than from
-  `findings.md`.** F-018 and F-019 were reserved for content that already had
-  other content.
-- **P-3 - dressed speculation as a finding.** `fly mpg users create` was named a
-  "suspected new offender" when the F-014 amendment had already settled that it
-  prints `Name` and `Role` only. On the strength of that speculation the Planner
-  invented a disposable `sg_a017_test` account **and a carve-out to authorise
-  it** - for a test already run as `builder_a017_probe` that had already held.
-
-**Rules adopted:** orders are written against `decisions.md`, `findings.md`,
-`assumptions.md` and `testplan.md` - **not against the last handover.** A
-handover records what was true when it was written; the register records what is
-true. The `F-next/<short-name>` convention is adopted and the Planner will not
-assign numerals. Both the `fly mpg users create` suspicion and the `sg_a017_test`
-carve-out are **withdrawn**.
-**Why it matters beyond the three instances:** reasoning about what a command
-*probably* does is not a finding, and dressing it as one spends the register's
-credibility - which is the only thing making the other entries worth reading.
+**What was learned.** A handover records what was true **when it was written**.
+The register records what is **true**. The gap between those two is invisible
+from inside the handover, because a handover that has gone stale reads exactly
+like one that has not. Three consequences followed from one root in a single
+morning: work ordered that was already merged, numbers assigned that were already
+taken, and a speculation written up as a finding with a carve-out built on top of
+it.
+**Why it is a finding and not just three mistakes:** the failure is structural.
+Anyone writing from the most recent document will reproduce it, because the most
+recent document is the natural thing to write from and gives no signal that it
+has aged. **The fix is a rule about which artifact is authoritative**, not more
+care.
+**Rules adopted:** orders are written against the register. `F-next/<short-name>`
+replaces Planner-assigned numerals.
 **Sample:** 3 errors, 1 block, 1 root cause.
 
 ### F-next/relay-loss-recurrence - A cited Planner note never arrived; detected by citation again
@@ -531,27 +525,58 @@ in the register's own condition. The assumption was load-bearing and is now
 closed, falsified as intended.
 **Sample:** 2 documents, 1 full reading, 4 defects.
 
-### F-next/manifest-adopted - The Planner's delivery is now reconciled against a manifest
-**Date:** 2026-09-23 - **By:** Planner, `MANIFEST-Planner-2026-09-23-...-delivery.md`
+### F-next/manifest-adopted - Reconciling a delivery against a manifest catches at delivery what citation caught a day late
+**Date:** 2026-09-23 - **By:** Planner (rule), Builder (first reconciliations)
 **Claim:** after three relay defects in two days by three distinct mechanisms,
-the Planner adopted a **delivery manifest**: every Planner delivery is
-accompanied by a list, and **the Builder reconciles what arrived against it
-before applying anything.**
-**The two rules that follow:** a document **not on the manifest was not issued by
-the Planner**; a manifest entry with nothing beside it is **a loss detected at
-delivery rather than at citation.**
-**P-4, self-recorded:** the Planner reissued a ruling record under its
-predecessor's filename with no supersession marker, by editing the delivered
-document in place. The status line changed; nothing else announced that anything
-had. **Rule adopted: filenames are not identity.** A revision carries a revision
-marker in its filename and a supersession block in its body. The §4-amended
-ruling did this correctly and is named the pattern.
-**Reconciliation of the first manifest, by the Builder:** 7 entries, **6 present,
-1 absent as predicted** (entry #3, never delivered, reissued as #7). No
-unaccounted document. **The manifest works** - the absence that took a citation
-to detect yesterday was visible at delivery today.
-**Builder note, one gap:** the manifest **does not list itself.** A manifest that
-goes missing is indistinguishable from a delivery that had none, which is the
-failure the manifest exists to stop, one level up. Cheap fix: the manifest is
-entry #0 on its own list, or carries a document count in its header.
-**Sample:** 1 manifest, 7 entries, 1 predicted absence confirmed.
+the Planner adopted a **delivery manifest**, and it worked on its first run.
+**The rule:** every Planner delivery carries a manifest; the Builder reconciles
+what arrived against it **before applying anything.** A document **not on the
+manifest was not issued**; a manifest entry with nothing beside it is **a loss
+detected at delivery rather than at citation.**
+
+**Evidence, three reconciliations:**
+
+| Manifest | Entries | Result |
+|---|---|---|
+| D1 | 7 | 6 present, 1 absent **as predicted** (#3, never delivered), nothing unaccounted |
+| D2 (r2 of D1) | 9 | 8 present, same predicted absence, nothing unaccounted |
+| D3 | 3 | all present, nothing unaccounted |
+
+**What was learned, and it is the point:** yesterday the same absence took **a
+citation in a later document** to detect - the note was missed until a ruling
+referred to it. Today it was visible **at delivery, before a line was applied.**
+The defect did not change; the detection moved earlier, which is the only thing
+that was ever wrong with it.
+
+**Second thing learned - self-reference is the weaker guard.** A manifest that
+lists itself still cannot report its own absence if it never arrives. **Continuity
+is what works:** each manifest names the previous one, so a missing manifest shows
+up as a gap in the next. Adopted as the rule rather than left as r2's side effect.
+The Planner's self-omission is **P-5**, not a finding - a guard's own artifact is
+the first thing outside its coverage.
+
+**Third - the document count is a real cross-check, and it caught something on
+its first use.** See `F-next/manifest-count-double-counts`.
+**Sample:** 3 manifests, 19 entries, 1 predicted absence confirmed 3 times.
+
+### F-next/manifest-count-double-counts - The cumulative document count double-counts carried-forward entries
+**Date:** 2026-09-23 - **By:** Builder, reconciling D3
+**Claim:** D3 states *"Cumulative Planner documents issued 2026-09-23: **12**.
+D1 listed 7, D2 listed 9 including itself and D1, D3 adds 3."* **The correct
+figure is 11 issued, 10 on disk.**
+**The arithmetic:** D2's 9 entries already contain D1's 7 plus D1's manifest and
+D2 itself. D3's three entries are the ruling, D3's own manifest, and **D2 carried
+forward as the previous-manifest entry** - which D2 had already counted. `9 + 3`
+therefore counts D2 twice.
+**Artifact:** directory listing of Planner documents dated 2026-09-23, filtered
+of Code documents: **10 files.** 11 issued minus #3, never delivered.
+**Why it matters, and why it is small:** the entry lists reconcile **perfectly** -
+every document accounted for in all three manifests. Only the cumulative
+arithmetic is wrong. **This is the count doing exactly what the Planner said it
+was for:** *"a cross-check against the entry list, not a substitute for it."* It
+disagreed with the entry list on its first outing and the entry list was right.
+**Proposed fix, one line:** the previous-manifest entry is **continuity, not a
+new document**, and is excluded from the delivery's count. Otherwise every
+carried-forward entry inflates the cumulative by one per delivery, and the error
+compounds rather than staying constant.
+**Sample:** 3 manifests, 1 discrepancy, off by 1.

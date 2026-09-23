@@ -703,26 +703,50 @@ to **SIC-as-is** if either holds:
 
 Recorded as **testplan OPEN-11** so the fallback has a trigger rather than a hope.
 
-### D-next/delivery-manifest - Every Planner delivery carries a manifest; filenames are not identity
-**Status:** ADOPTED by the Planner 2026-09-23, `MANIFEST-Planner-2026-09-23-...-delivery.md`
-**Choice:** every Planner delivery is accompanied by a **manifest**, and the
-Builder **reconciles what arrived against it before applying anything.**
+### D-next/delivery-manifest - One manifest per delivery, numbered; continuity is the guard
+**Status:** ADOPTED 2026-09-23, **AMENDED the same day** by
+`RULING-Planner-2026-09-23-...-manifest-scheme-and-pr6.md` §2.
+**Choice:** every Planner delivery carries a manifest, and the Builder
+**reconciles what arrived against it before applying anything.**
 - A document **not on the manifest was not issued by the Planner.**
 - A manifest entry with **nothing beside it is a loss**, detected at delivery
   rather than at citation.
 - **A revision gets a new filename and says so in the body**, naming what it
   supersedes and what changed.
 
+**Naming: `MANIFEST-Planner-<date>-D<n>.md`, one per delivery, numbered by
+delivery and never revised by date.** The r/r2 chain was already awkward and
+**would have become the same-name problem again by the third revision of a single
+day's manifest** - the control reproducing the defect it was written to catch.
+
+**Each manifest carries:**
+- the documents in **its own delivery** only
+- the **previous manifest as an entry, by name**
+- a **document count** for the delivery
+- issue times where recorded, and the words *not recorded* where not - *a blank
+  reads as an absence of the document rather than of the timestamp*
+
+**Continuity is the guard, not self-reference.** A manifest that lists itself
+still **cannot report its own absence if it never arrives.** Each manifest naming
+the previous one means a missing manifest appears as a **gap in the next**. The
+document count is cheap redundancy alongside it.
+**Builder amendment, proposed:** the previous-manifest entry is **continuity, not
+a new document**, and is excluded from the delivery's count - otherwise the
+cumulative inflates by one per delivery. See
+`F-next/manifest-count-double-counts`.
+
 **Forced by:** three relay defects in two days by three distinct mechanisms -
-F-020 (lost in both directions), `F-next/relay-loss-recurrence` (lost, detected
-only by a later citation), `F-next/same-name-revision` (silently superseded under
-the same filename). **Sequence numbers (D-033) catch the first. Nothing caught
-the third, because nothing was absent.**
-**Why the filename rule is separate:** a revision that reuses its predecessor's
-name is indistinguishable from a duplicate download, and **the `(1)` suffix the
-browser adds means the opposite of what it appears to mean.**
+F-020 (lost both directions), `F-next/relay-loss-recurrence` (lost, detected only
+by a later citation), `F-next/same-name-revision` (silently superseded under the
+same filename). **D-033's sequence numbers catch the first. Nothing caught the
+third, because nothing was absent.**
 **Relationship to D-033:** complementary, not a replacement. D-033 numbers
-documents so a gap is visible; the manifest makes the gap visible **at delivery**.
+documents so a gap is visible; the manifest makes it visible **at delivery**.
 Both stay.
-**First reconciliation:** 7 entries, 6 present, 1 absent as predicted, nothing
-unaccounted. See `F-next/manifest-adopted`.
+**Reciprocal, Builder-adopted:** Code deliveries carry a manifest too. D-033
+already numbers both directions, and both F-020 losses went one way each - **a
+rule that guards one direction guards whichever direction failed most recently.**
+**Today's deliveries:** D1 (first manifest), D2 (its r2), D3. Retroactive, and
+**nothing is renamed** - the mapping is stated in D3.
+**Reconciliations to date:** D1 7 entries, D2 9, D3 3. One predicted absence,
+confirmed three times. Nothing unaccounted. See `F-next/manifest-adopted`.
