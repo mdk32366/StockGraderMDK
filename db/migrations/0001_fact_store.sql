@@ -8,26 +8,19 @@
 --  RUN AS: a schema_admin. A `writer` is refused CREATE TABLE by design
 --  (A-017, D-031), so this cannot run as the application account. See OPEN-27.
 --
---  LOCKING NOTE — deliberate departure from D-021's literal wording.
---  D-021 says "session advisory lock". This uses pg_advisory_xact_lock, which
---  is TRANSACTION-scoped. Reason: the app connects through pgbouncer
---  (F-next/app-connects-via-pgbouncer). A session-scoped pg_advisory_lock is
---  unreliable under transaction pooling — the session a lock is taken on is not
---  guaranteed to be the session the next statement runs on. A transaction-scoped
---  lock is held for exactly the transaction that holds the migration, which is
---  the unit D-021 already specifies, and it releases on COMMIT or ROLLBACK
---  without an explicit unlock that a crash could skip.
---  This is stricter than D-021, not looser. Recorded rather than done quietly.
+--  NO TRANSACTION CONTROL IN THIS FILE. No BEGIN, no COMMIT, no ROLLBACK, no
+--  SAVEPOINT. The runner (db/migrate.py) owns the transaction and takes the
+--  advisory lock, and it REFUSES any migration file containing those keywords.
+--
+--  That refusal exists because of PharmFoldMDK §3.1, cited in D-021: a migration
+--  chain silently rolled itself back because a statement ran before the
+--  transaction the tool owned. That happens when the file and the tool both
+--  believe they own the transaction. Exactly one of them may.
 --
 --  THIS MIGRATION CREATES NO PRICE TABLES. The vendor is unchosen and two
 --  disqualifying properties are unanswered (OPEN-9). A price schema written
 --  before the vendor is known would be written to the wrong shape.
 -- ============================================================================
-
-BEGIN;
-
--- Lock key 20260001: arbitrary, project-scoped, one per migration number.
-SELECT pg_advisory_xact_lock(20260001);
 
 -- Needed for the EXCLUDE constraint on filer_ticker (btree equality inside a
 -- GiST exclusion constraint). Requires schema_admin.
@@ -232,22 +225,12 @@ COMMENT ON TABLE fact IS
 
 
 -- ----------------------------------------------------------------------------
---  schema_migration — the runner''s own ledger
+--  NOTE: schema_migration is NOT created here.
 --
---  D-021 requires our own runner. The runner needs somewhere to record what it
---  has applied, and that record belongs in the database it applied them to —
---  not in a file that can travel separately from the schema it describes.
+--  The ledger belongs to the runner (db/migrate.py), not to any migration. Two
+--  reasons. A migration that creates the ledger cannot be recorded in the ledger
+--  until after it has created it, which is a bootstrap knot. And a migration
+--  that records its own application can record it wrongly - the runner writes
+--  the version, the name and the file's real sha256 in the same transaction as
+--  the DDL, so the record and the change succeed or fail together.
 -- ----------------------------------------------------------------------------
-CREATE TABLE schema_migration (
-    version         integer     PRIMARY KEY,
-    name            text        NOT NULL,
-    applied_at      timestamptz NOT NULL DEFAULT now(),
-    -- Checksum of the migration file as applied. A migration whose file has
-    -- changed since it ran is a different migration wearing the same number.
-    sha256          text        NOT NULL
-);
-
-INSERT INTO schema_migration (version, name, sha256)
-VALUES (1, '0001_fact_store', 'SET-BY-RUNNER');
-
-COMMIT;

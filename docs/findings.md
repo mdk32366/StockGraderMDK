@@ -1115,3 +1115,70 @@ direction today, and it is the direction that **erodes trust in the check
 itself**, which is how a real shortfall later gets waved through as another
 counting artifact.
 **Sample:** 1 folder, 3 suffixed files, 2 meanings.
+
+### F-next/guard-fired-on-its-own-correct-file - The transaction-control guard's first act was a false positive
+**Date:** 2026-09-23 - **By:** Builder, building the migration runner
+**Claim:** the runner refuses any migration or verification file containing
+transaction control - the guard D-021's PharmFoldMDK §3.1 rationale demands.
+**The first time it ran, it rejected 0001's own verification file**, which is
+correct, on `END;`.
+**Why it was wrong:** the `END;` was the terminator of a PL/pgSQL
+`BEGIN ... EXCEPTION ... END;` block inside a `DO $$ ... $$` body - **block
+structure, not transaction control.** At top level PostgreSQL does treat `END`
+as a synonym for `COMMIT`, so the keyword genuinely is ambiguous; the context is
+what disambiguates it.
+**Fix:** strip **dollar-quoted bodies** before scanning, alongside comments. A
+`$$ ... $$` body is precisely the construct in which `BEGIN`, `END` and
+`EXCEPTION ... END;` appear legitimately, so removing it leaves only top-level
+statements - where those keywords can only mean transaction control.
+**Why this is recorded rather than quietly fixed.** The failure direction was
+**false positive: a correct file refused.** That reads as the safe direction and
+it is not. **A guard that cries wolf on correct work gets switched off**, and a
+switched-off guard protects nothing - so a false positive on day one is how a
+real protection is lost by month three. The hermetic test
+`test_plpgsql_block_is_not_mistaken_for_transaction_control` exists to hold the
+line in that direction specifically, and it was written **before** the defect
+appeared without anticipating this particular case.
+**Caught by:** `test_the_real_migration_files_contain_no_transaction_control`,
+which asserts the shipped files satisfy their own runner. That test is the one
+that turns "the guard works" into "the guard works on what we actually ship."
+**Sample:** 1 guard, 1 false positive, 1 file.
+
+### F-next/migration-runner-proven - The runner is built and every guard has been seen red
+**Date:** 2026-09-23 - **By:** Builder, OPEN-28
+**Claim:** `db/migrate.py` implements D-021. Proven end to end against a local
+PostgreSQL 18.3 cluster created in the scratchpad and destroyed after - **no Fly
+cluster, no credential, no `stockgrader_scratch`.**
+
+**Behaviour established:**
+
+| Property | Evidence |
+|---|---|
+| `status` / `plan` are read-only; `apply` is explicit | `plan` is the safe default posture and prints what would run |
+| Applies 0001 | 5 tables, ledger row carries the **real** sha256, not the placeholder |
+| Idempotent | second `apply` reports *nothing to apply* |
+| **Verification fixtures leave no trace** | `SELECT count(*) FROM filer` = **0** after a successful apply |
+| **A failed verification takes the migration with it** | deliberate `RAISE EXCEPTION` in verify: **0 tables, 0 ledger rows** |
+| **A changed migration file is refused** | appended one comment line; runner reported recorded vs on-disk sha256 and stopped |
+| **Transaction control is refused before connecting** | `COMMIT;` appended to 0001; refused while pointed at an unreachable DSN |
+| Forward-only, gaps, duplicate versions, bad filenames | 21 hermetic tests |
+
+**The savepoint arrangement is the part worth naming.** The verification runs
+inside `SAVEPOINT verification`, which is rolled back afterwards: **the fixtures
+vanish and the DDL survives to COMMIT.** A failed check raises before that
+rollback, so the whole transaction unwinds and the migration goes with it.
+**That makes "the migration ran" and "the schema is right" the same claim** -
+which is D-005's shape applied to schema, and the thing D-021 was written to get.
+
+**Deliberate departures from D-021's letter, both stricter:**
+- `pg_advisory_xact_lock` rather than session-scoped - pooler-safe, and released
+  by COMMIT or ROLLBACK with no unlock for a crash to skip.
+- **The ledger belongs to the runner, not to 0001.** A migration that creates the
+  ledger cannot be recorded until after it creates it, and a migration that
+  records its own application can record it wrongly. The runner writes version,
+  name and real checksum **in the same transaction as the DDL.**
+
+**Suite: 22 -> 43 tests**, all hermetic. **The DB-dependent behaviour above is
+not in the gate** and belongs to the non-hermetic track; a hermetic green is not
+evidence that a migration applies.
+**Sample:** 1 runner, 1 local cluster, 7 guard trips.

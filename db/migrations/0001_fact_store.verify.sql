@@ -12,15 +12,16 @@
 --  mode is an empty result nobody reads is the first kind pretending to be the
 --  second.
 --
---  NON-DESTRUCTIVE. Fixtures are inserted inside a transaction that ends in
---  ROLLBACK, so this leaves no trace and can be re-run. CIKs 999000001-3 are
---  synthetic and chosen to be implausible as real filers.
+--  NON-DESTRUCTIVE. This file contains NO transaction control. The runner wraps
+--  it in a SAVEPOINT and rolls back to that savepoint afterwards, so the
+--  fixtures vanish while the migration itself survives to COMMIT. Verification
+--  and migration are therefore atomic together: a failed check takes the
+--  migration down with it.
+--  CIKs 999000001-3 are synthetic and implausible as real filers.
 --
 --  Every check below can be made to fail on purpose; see the report's
 --  "how to trip each one" section. A guard never seen red is not a guard.
 -- ============================================================================
-
-BEGIN;
 
 -- ----------------------------------------------------------------------------
 --  PART A — structural. The objects exist and are the right shape.
@@ -357,6 +358,5 @@ BEGIN
 END $$;
 
 
--- Leave no trace. This script is non-destructive by construction and may be
--- re-run against any database the migration has been applied to.
-ROLLBACK;
+-- No ROLLBACK here. The runner rolls back to its savepoint, which removes the
+-- fixtures above and leaves the migration intact.
