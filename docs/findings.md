@@ -580,3 +580,29 @@ new document**, and is excluded from the delivery's count. Otherwise every
 carried-forward entry inflates the cumulative by one per delivery, and the error
 compounds rather than staying constant.
 **Sample:** 3 manifests, 1 discrepancy, off by 1.
+
+### F-next/d019-counter-fell-behind - The D-019 counter silently fell two runs behind
+**Date:** 2026-09-23 - **By:** Builder, opening PR-6
+**Claim:** the counter read **6 of 10** and was **8** at the time it was read.
+PR-5's two green `windows-setup` runs - `35783781284` (branch) and `35783912646`
+(main, the merge) - completed at 2026-09-22T20:59-21:00Z and were **never
+recorded**, because PR-5 merged after the count line was last written.
+**Artifact:** `gh run list --workflow=gate.yml`, twelve runs, all `success`.
+Recovered from the API, **not from memory or from the merge report.**
+**Why it matters:** this is **F-018's shape in a second place.** The work outran
+its record and **nothing in the document revealed it** - the counter did not read
+"stale", it read "6", which is a number and looks like an answer. D-034 fixed
+this for infrastructure mutations by requiring a report before the next unit of
+work. **The counter has no equivalent**, because merging a PR is not a unit of
+work anyone reports on.
+**The structural rule is not the cause.** The counter is deliberately one behind
+- a committed count cannot include the run validating the commit recording it -
+and that is sound. **Being one behind by design and two behind by accident are
+different things**, and the design conceals the accident: a count that is
+*supposed* to lag does not look wrong when it lags further.
+**Proposed:** the count is recomputed from `gh run list` whenever it is touched,
+rather than incremented from its previous value. One command, and it cannot
+drift.
+**Consequence, favourable:** the true count is **9 of 10**. Promotion to a
+required check is **one green run away** and is an owner ruling.
+**Sample:** 1 counter, 2 missed runs, 1 day.
