@@ -646,10 +646,21 @@ outage rather than a typo.
 *context* is the key plus the matrix dimensions. Anyone reading `gate.yml` gets
 the first and needs the second. The ruling was written from the workflow file,
 which is the natural place to look and the wrong one.
-**Correct string: `windows-setup (PS 5.1)`.** It is brittle in a second way worth
-recording now - **changing the matrix dimension renames the context**, silently
-turning the required check into one that never reports. A PowerShell 7 addition
-to that matrix would do it.
+**Correct string: `windows-setup (PS 5.1)`.** D-019 §2 is corrected accordingly;
+the Planner's error is **P-8**, with the rule that **identifiers a platform
+reports are read from the platform, by query - not inferred from the
+configuration that produces them.**
+
+**The matrix brittleness is a live hazard, not a note.** Changing the matrix
+dimension **renames the context** and silently converts the required check into
+one that never reports - the same permanent-pending block, **arriving later and
+with no change to the protection rule to point at.** Adding PowerShell 7 to that
+matrix does it.
+**GUARD, adopted as an action rather than an observation:** *any change to the
+gate's matrix dimensions requires re-reading the reported contexts and updating
+branch protection **in the same change.*** Recorded as an action because **the
+observation alone will not survive six months** - the person who changes the
+matrix will not be the person who read this.
 **Sample:** 1 workflow, 3 contexts, 1 name mismatch.
 
 ### F-next/continuity-caught-d4 - An entire delivery went missing, and the manifest chain caught it at delivery
@@ -678,3 +689,17 @@ It does not say what was in it. **D4's second document is unknown and must be
 re-sent.** P-6 is also unknown - D5 cites **P-7** as the next error number, so a
 P-6 was recorded somewhere in D4.
 **Sample:** 1 delivery lost, 2 documents, detected at delivery.
+**RESOLVED 2026-09-23, same day.** D4 was re-sent in full in D6 - both documents,
+unchanged, under their original filenames and **marked as re-sends rather than
+counted as newly issued** (the sub-rule that loss forced). P-6 recovered.
+**The recovery was verified by the check D6 stated in advance:** *"expected on
+disk after this delivery: 16. If your count is not 16, one of us has lost
+something else."* **Count run: 16.** First time today the relay has reconciled
+with nothing outstanding.
+**What the episode establishes:** continuity detects the loss and bounds its
+size; it does **not** identify the contents, and the re-send is the only
+recovery. The gap between detection and recovery was two deliveries, during which
+**an acceptance the Planner had already granted sat unanswered on this side** -
+D4 accepted the P-1..P-3 move, and the Builder carried it as an open judgment
+call until D6 arrived. **A lost document does not only delay work; it can leave a
+question open that has in fact been answered.**

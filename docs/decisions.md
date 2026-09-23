@@ -306,9 +306,11 @@ a job guarding one script. That was right then; the counter is what changed it.
 (G-9 / D-013), inside the required `test` job. It stays.
 **IMPLEMENTATION NOT YET APPLIED.** Branch protection is a repository settings
 change, not a commit, and the change was blocked at the Builder's permission
-boundary. The context string to add is **`windows-setup (PS 5.1)`** - **not**
-`windows-setup`, which the ruling names and which would never report. See
-`F-next/required-check-context-name`.
+boundary. **testplan OPEN-14** carries it.
+**Required context: `windows-setup (PS 5.1)`.** The promotion ruling's §2 named
+`windows-setup`, which nothing ever reports; **§2 is superseded and corrected**
+by `RULING-Planner-2026-09-23-...-p7-settled-p8-context-string.md` §1.1. The
+error is **P-8**; the hazard is `F-next/required-check-context-name`.
 
 ### D-024 - Decision status vocabulary, and the rule that keeps it true
 **Status:** PROPOSED 2026-09-22
@@ -750,10 +752,24 @@ day's manifest** - the control reproducing the defect it was written to catch.
 still **cannot report its own absence if it never arrives.** Each manifest naming
 the previous one means a missing manifest appears as a **gap in the next**. The
 document count is cheap redundancy alongside it.
-**Builder amendment, proposed:** the previous-manifest entry is **continuity, not
-a new document**, and is excluded from the delivery's count - otherwise the
-cumulative inflates by one per delivery. See
-`F-next/manifest-count-double-counts`.
+**Counting rule - SETTLED 2026-09-23 (P-6, P-7), the Builder's reading adopted:**
+count new documents in the delivery **including the manifest**, **excluding** the
+carried-forward previous-manifest entry. Cumulative figures count every manifest.
+*The manifest is a document that can be lost - D4 proved it is the loss that
+matters most, because it takes the record of everything else with it. A count
+excluding it would disagree with the disk for precisely the artifact whose
+absence is hardest to detect.*
+Without this the cumulative **inflates by one per delivery** - an error that
+grows rather than staying constant, which is the version that eventually
+persuades someone. See `F-next/manifest-count-double-counts` and P-6.
+
+**Re-sends - sub-rule added 2026-09-23 (D6).** A re-sent document is **listed and
+marked as a re-send, not counted as newly issued** - it was counted when first
+issued, and counting it again would inflate the issued figure and **break the
+comparison with the disk count that just located D4.**
+Re-sends **keep their original filename and content.** This is **not** a
+`same-name-revision` defect: that was a *changed* document reusing an identity.
+**An unchanged document keeping its identity is what identity is for.**
 
 **Forced by:** three relay defects in two days by three distinct mechanisms -
 F-020 (lost both directions), `F-next/relay-loss-recurrence` (lost, detected only

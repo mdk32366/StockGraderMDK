@@ -13,11 +13,14 @@
 what rule came out of it.* Entries are numbered `P-n` by the Planner and are
 self-recorded unless noted.
 
-**Builder note:** P-1 through P-3 were first recorded inside
-`findings.md` as `F-next/orders-written-against-handovers`, before this file
-existed. They are moved here on the ruling's principle. The finding remains, but
-now records *what was learned* rather than enumerating the errors. Reversible if
-the Planner wants them back — say so and they go back.
+**Builder note:** P-1 through P-3 were first recorded inside `findings.md` as
+`F-next/orders-written-against-handovers`, before this file existed. They were
+moved here on the ruling's principle — the Builder's reading, applied further
+than the ruling required.
+**ACCEPTED 2026-09-23** (D4, re-sent in D6): *"You read the principle correctly…
+Not reversed. Do not move them back."* No longer an open judgment call. The
+acceptance was lost with D4 and carried as unanswered for two deliveries;
+recovered with the re-send.
 
 ---
 
@@ -77,14 +80,44 @@ manifest naming the previous one — is the guard rather than self-reference. A
 manifest that never arrives cannot report its own absence, whatever it says
 about itself. See `D-next/delivery-manifest`.
 
-### P-6 — UNKNOWN, recorded as a gap
-**Date:** 2026-09-23 · **not received**
-D5 cites **P-7** as the next Planner error, so a **P-6 was recorded in delivery
-D4** — which never arrived (`F-next/continuity-caught-d4`). Its content is
-unknown.
-**Recorded as a numbered gap rather than skipped**, because a missing number in
-a sequence is evidence and a renumbered sequence destroys it. **[PLANNER] to
-re-send.**
+### P-6 — The cumulative document count double-counted the carried-forward manifest
+**Date:** 2026-09-23 · self-recorded · **RECOVERED 2026-09-23** from D4's
+re-send. Held as a numbered gap for two deliveries.
+D3 stated a cumulative of **12**. The correct figures were **11 issued, 10 on
+disk.** D2's nine entries already contained D2 itself; adding D3's three, one of
+which is D2 carried forward, counts it twice.
+**Rule adopted:** the previous-manifest entry is **continuity, not a new
+document** — listed, not counted.
+**Why it mattered, and it is not the size of the error:** a constant off-by-one
+is a nuisance. **This one compounds**, adding one per delivery, so the figure
+drifts further from the truth the longer the project runs. **An error that grows
+is the version that eventually persuades someone.**
+**Counterpart:** `F-next/manifest-count-double-counts`. The defect is in the
+world (the counting rule); the error is the Planner's. **Both entries are correct
+and they are not duplicates** — which is the distinction this file exists to
+keep.
+**Note on the gap handling:** the numbered-gap approach was confirmed right —
+*a missing number in a sequence is evidence, and renumbering destroys it.*
+
+### P-8 — An operational identifier was specified from the file that defines the job, not the system that reports it
+**Date:** 2026-09-23 · self-recorded, D6
+The D-019 promotion ruling said to require **`windows-setup`**. The real context
+is **`windows-setup (PS 5.1)`**. It was written from `gate.yml`, which carries
+the job *key*; the context is the key **plus the matrix dimensions**, and the
+workflow file does not show that.
+**It had teeth.** GitHub accepts **any string** as a required context, including
+one nothing will ever report — permanently pending, blocking every merge to
+`main` **with no failure to diagnose.** *A job that does not run looks like an
+outage rather than a typo.* Applied, it would have cost hours pointed at the
+wrong layer, **on a day already carrying a cutover.**
+**Caught at the Builder's permission boundary** — *the boundary doing work it was
+not designed for.*
+**Rule adopted:** **identifiers that a platform reports are read from the
+platform, by query — not inferred from the configuration that produces them.**
+**Live hazard, not a note:** changing the matrix dimension renames the context
+and silently converts the required check into one that never reports, arriving
+later with no change to the protection rule to point at. See
+`F-next/required-check-context-name` for the guard.
 
 ### P-7 — A counting rule and its own figure disagreed, inside the artifact whose job is the figure
 **Date:** 2026-09-23 · self-recorded, D5
