@@ -436,16 +436,41 @@ request to the live service proves the new one is in use.** `/healthz` cannot
 prove it, because it touches no database; the first DB-backed endpoint can.
 **Order:** the application credential goes first.
 
-**RULED 2026-09-23 (owner ruling 6) - closure is by destroy, not rotation.**
-The old cluster is destroyed once the ticker load **and** a DB-backed endpoint
-are proven on `stockgrader-db-r1`. **That destroy retires both `stockgradermdk`
-and `fly-user`** rather than either being rotated in place. **This is D-029's
-closure, and it is the honest one - replace, never rotate.** A rotated credential
-is a credential you have to trust the rotation of; a destroyed cluster is a
-credential that has nothing to open.
-**Stated fact, not a hypothetical:** until that destroy, both credentials remain
-**live against the old cluster**. `stockgradermdk` is no longer the app's path
-after the cutover, but it is not dead.
+**~~RULED 2026-09-23 (owner ruling 6) - closure is by destroy, not rotation.~~**
+**VOID, same day.** Ruling 6 held that destroying the old cluster retires both
+exposed credentials, and that this was D-029 closing by replacement. **It is not.**
+
+**`fly mpg restore` carries the role catalogue.** `fly mpg users list
+kzpwm0j1dm204nv3` returns `fly-user` (`schema_admin`), `stockgrader_app`
+(`writer`) and **`stockgradermdk` (`schema_admin`)**. Both credentials
+compromised on 2026-09-22 are **live on the new cluster with their original
+passwords**. The destroy would retire **two copies that no longer matter**.
+See `F-next/restore-carries-compromised-roles`.
+
+**D-029 therefore has no closure path at present.** Stated in those words rather
+than left implied, because it was resting entirely on ruling 6.
+
+**What still stands:** **D-031, in full.** The app connects as `stockgrader_app`
+at `writer`, verified from the connection string's own components. That was real
+work and is untouched. **The defect is the residue the restore carried, not the
+replacement that was made.**
+
+**What became false:** the claim that F-017's over-privilege is not rebuilt on a
+clean cluster. **There is no clean cluster** - a restore is a copy, and the
+over-privileged account came across with the data.
+
+**The risk, neither inflated nor dismissed:** the cluster is on the private
+network and unreachable from the public internet. A credential alone buys nothing
+without Fly organisation access, and anyone holding that does not need the
+credential. **Practical probability of exploitation is low** - and it was low
+this morning, which is why the deferral was sound.
+**What changed is not the probability.** It is that **the register asserted
+something false** - a wrong record is worse than a known risk, because nobody
+re-examines it - **and the remediation acquired a deadline it did not have.**
+
+**Remediation is gated: see `testplan.md` OPEN-25.** It is nearly free while the
+databases hold no owned objects, and becomes a schema-ownership problem the
+moment migration 0001 creates tables.
 `probe_ro`'s resolution is unchanged - delete.
 
 ### D-030 - Credential handling, with a procedure

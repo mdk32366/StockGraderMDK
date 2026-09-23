@@ -893,3 +893,75 @@ one. The scope boundary does not make the pattern someone else's problem.
 B-9 says destroy it **immediately once the window is recorded**, and this finding
 is why that clause is load-bearing rather than tidy.
 **Sample:** 1 org, 4 clusters, 2 orphans.
+
+### F-next/restore-carries-compromised-roles - A restore reproduces the source's security state, not just its data
+**Date:** 2026-09-23 - **By:** owner (`fly mpg users list kzpwm0j1dm204nv3`),
+framed by the Planner. Answers OPEN-24.
+**Claim:** the restored cluster carries the source's **role catalogue**:
+
+```
+ NAME            │ ROLE
+ fly-user        │ schema_admin
+ stockgrader_app │ writer
+ stockgradermdk  │ schema_admin
+```
+
+**Both credentials compromised on 2026-09-22 are live on the production cluster
+with their original passwords.** `stockgrader_app` is the account the drill
+created; the other two came across with the data.
+
+**The general form is the one to keep:** **a restore reproduces the source's
+security state, not just its data. A recovery from a compromise restores the
+compromise.** That is not specific to Fly and it is not specific to credentials -
+it is true of any state the backup captures and nobody thought to enumerate.
+
+**What it makes false, recorded because a wrong register is worse than a known
+risk:**
+- **Ruling 6 is void.** The destroy retires **copies**, not originals.
+- **D-029 has no closure path**, having rested on ruling 6.
+- **The cutover's stated main purpose was not achieved.** The drill report says
+  F-017's over-privilege is not rebuilt on the clean cluster. **There is no clean
+  cluster.**
+
+**What survives untouched: D-031.** The app connects as `stockgrader_app` at
+`writer`, verified from the connection string's components. **The defect is the
+residue, not the replacement.** Those are separable and conflating them would
+discard real work.
+
+**Why the Builder did not catch this:** the drill's step 5 listed **databases**
+and confirmed both came across. Nothing in the written drill listed **users**,
+and the Builder did not add it. The drill was written to prove the data path and
+**verified exactly what it was written to verify.** A restore's blast radius is
+wider than the thing you restored it for, and the check that would have caught it
+is one line - `fly mpg users list` - placed next to the databases listing.
+**Proposed amendment to §4: step 5 lists users as well as databases.**
+
+**Risk, honestly:** the cluster is private-network-only. A credential alone buys
+nothing without Fly organisation access, and anyone with that access does not
+need the credential. **Probability of exploitation is low** and was low this
+morning. **What changed is the deadline, not the risk** - see OPEN-25.
+**Sample:** 1 restore, 3 roles, 2 carried compromises.
+
+### F-next/continuity-caught-d9 - A second delivery lost, detected the same way, and one item reached us only by citation
+**Date:** 2026-09-23 - **By:** Builder, reconciling D10
+**Claim:** **delivery D9 never arrived** - both documents. D10 names
+`MANIFEST-Planner-2026-09-23-...-D9.md` as its previous manifest; it is not on
+this side, and nothing from its delivery is either.
+**Artifact:** D10's stated check - *expected 24 on disk* - **returned 22.** The
+shortfall is exactly D9's two documents. Second loss today, same detection.
+**What D9 carried, inferred and not assumed:** **OPEN-24**, the item asking
+whether the restore carried the role catalogue. The Builder **never held it**.
+It is recorded retroactively in `testplan.md` from D10's citation of it.
+**The thing worth keeping.** OPEN-24 was the right question and somebody asked
+it. **The Builder did not** - the post-drill sweep looked at *clusters* and
+missed *roles*, and the drill's step 5 listed databases only. Had D9 been the
+last delivery of the day, **the register would have carried a false D-029 closure
+path into the ticker load**, with the correcting question sitting in a document
+that never arrived.
+**This is `F-next/relay-loss-recurrence` with consequences attached.** That one
+cost two deliveries of a stale open question. This one would have cost a wrong
+security posture recorded as a right one. **The manifest chain caught both; the
+difference in cost was luck, not guard strength.**
+**Outstanding: [PLANNER] re-send D9 in full** - its manifest and its second
+document, whose identity is unknown to us for the same reason as D4's.
+**Sample:** 2 deliveries lost, 2 detected by continuity, 1 day.
