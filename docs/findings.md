@@ -492,3 +492,66 @@ neither convention has one.
 **Related:** F-020, F-next/relay-loss-recurrence. Three relay defects in two
 days, three distinct mechanisms.
 **Sample:** 1 revision, 1 document, 3 minutes apart.
+
+### F-next/gqs-tdd-defects - Reading the TDD produced four defects a summary had not
+**Date:** 2026-09-23 - **By:** Planner, on first full reading of
+`TDD-growth-score.md` and `growth-model-lineage.md` (closing A-016)
+**Claim:** four defects, none of which had surfaced while the Planner was working
+from the Builder's summary. All four are now ruled; they are recorded here
+because **they are the evidence the rulings rest on**, and because A-016 was
+written to test exactly this.
+
+- **F-A - D-010's condition cited a section that does not exist.** The ruling
+  said *"five open questions in its §17."* The TDD's header says **four** open
+  questions in **§11**, and §11 contains exactly four: R&D capitalization (11.1),
+  sector granularity (11.2), WACC (11.3), size tilt (11.4). **A completeness gate
+  that points at a section which does not exist cannot be checked by anyone but
+  its author.** *(Ruled - reworded, ruling 7.)*
+- **F-B - the TDD was written against a different codebase.** §12's
+  confirm-before-build list asks for `alembic heads`, the existing `finance`
+  agent's tools and module paths, the settings-overlay pattern, and confirmation
+  that `place_stock_order` stays gated. **None of that exists here**, and D-021
+  rejected Alembic outright. **Not a defect in the TDD** - it was written
+  2026-09-09 for the JARVIS-side finance agent. **It is a defect in treating it
+  as build-ready here.** *(Ruled - v4 grounded on this repo, ruling 8.)*
+- **F-C - the TDD's data claim is contradicted by its own valuation block.** §2
+  goal 1 says the score is *"computed per ticker from SEC filings only"* and §5.1
+  names EDGAR as the sole source. But §4.4 ranks on FCF yield, EV/Sales,
+  EV/EBITDA, EV/gross profit and EBIT/EV - **every one needs enterprise value,
+  which needs market cap, which needs a share price.** EDGAR has shares
+  outstanding; it does not have prices. **25% of the score cannot be computed
+  from filings.** *(Ruled - ruling 4.)*
+- **F-D - Altman's Z needs market data too.** The public-firm Z uses market value
+  of equity in its fourth term; Z' substitutes book value. *(Ruled - Z', ruling 11.)*
+
+**Why this is worth its own entry:** A-016 said a summary is not knowing (P8) and
+that no scoring design work should proceed until the Planner had read the
+documents. **The reading produced four defects and four rulings** - including one
+in the register's own condition. The assumption was load-bearing and is now
+closed, falsified as intended.
+**Sample:** 2 documents, 1 full reading, 4 defects.
+
+### F-next/manifest-adopted - The Planner's delivery is now reconciled against a manifest
+**Date:** 2026-09-23 - **By:** Planner, `MANIFEST-Planner-2026-09-23-...-delivery.md`
+**Claim:** after three relay defects in two days by three distinct mechanisms,
+the Planner adopted a **delivery manifest**: every Planner delivery is
+accompanied by a list, and **the Builder reconciles what arrived against it
+before applying anything.**
+**The two rules that follow:** a document **not on the manifest was not issued by
+the Planner**; a manifest entry with nothing beside it is **a loss detected at
+delivery rather than at citation.**
+**P-4, self-recorded:** the Planner reissued a ruling record under its
+predecessor's filename with no supersession marker, by editing the delivered
+document in place. The status line changed; nothing else announced that anything
+had. **Rule adopted: filenames are not identity.** A revision carries a revision
+marker in its filename and a supersession block in its body. The §4-amended
+ruling did this correctly and is named the pattern.
+**Reconciliation of the first manifest, by the Builder:** 7 entries, **6 present,
+1 absent as predicted** (entry #3, never delivered, reissued as #7). No
+unaccounted document. **The manifest works** - the absence that took a citation
+to detect yesterday was visible at delivery today.
+**Builder note, one gap:** the manifest **does not list itself.** A manifest that
+goes missing is indistinguishable from a delivery that had none, which is the
+failure the manifest exists to stop, one level up. Cheap fix: the manifest is
+entry #0 on its own list, or carries a document count in its header.
+**Sample:** 1 manifest, 7 entries, 1 predicted absence confirmed.

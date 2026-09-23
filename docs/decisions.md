@@ -133,9 +133,11 @@ sketch and is superseded.
 **Consequence:** A-007 becomes load-bearing. Point-in-time integrity constrains
 the **first migration**, so the schema must carry it from Phase 1 whether or not
 scoring is built yet -- it is unaffordable to retrofit.
-**Blocking:** see **A-016**. The Planner has not read GQS v3 or
-`docs/finance/growth-model-lineage.md`; everything above is taken from the
-Builder's summary, and a summary is not knowing (P8). GQS covers businesses, not
+**Blocking: LIFTED 2026-09-23.** A-016 is closed - the Planner has read
+`TDD-growth-score.md` and `growth-model-lineage.md` in full. The reading produced
+four defects (`F-next/gqs-tdd-defects`), **one of them in this entry's own
+condition** (F-A, fixed by ruling 7). The variable-to-source map that came out of
+it is `docs/gqs-source-map.md`. GQS covers businesses, not
 funds; the fund score is a separate design -- see D-027.
 
 ### D-011 — Python 3.12 everywhere: local, CI, image
@@ -700,3 +702,27 @@ to **SIC-as-is** if either holds:
   than agrees**.
 
 Recorded as **testplan OPEN-11** so the fallback has a trigger rather than a hope.
+
+### D-next/delivery-manifest - Every Planner delivery carries a manifest; filenames are not identity
+**Status:** ADOPTED by the Planner 2026-09-23, `MANIFEST-Planner-2026-09-23-...-delivery.md`
+**Choice:** every Planner delivery is accompanied by a **manifest**, and the
+Builder **reconciles what arrived against it before applying anything.**
+- A document **not on the manifest was not issued by the Planner.**
+- A manifest entry with **nothing beside it is a loss**, detected at delivery
+  rather than at citation.
+- **A revision gets a new filename and says so in the body**, naming what it
+  supersedes and what changed.
+
+**Forced by:** three relay defects in two days by three distinct mechanisms -
+F-020 (lost in both directions), `F-next/relay-loss-recurrence` (lost, detected
+only by a later citation), `F-next/same-name-revision` (silently superseded under
+the same filename). **Sequence numbers (D-033) catch the first. Nothing caught
+the third, because nothing was absent.**
+**Why the filename rule is separate:** a revision that reuses its predecessor's
+name is indistinguishable from a duplicate download, and **the `(1)` suffix the
+browser adds means the opposite of what it appears to mean.**
+**Relationship to D-033:** complementary, not a replacement. D-033 numbers
+documents so a gap is visible; the manifest makes the gap visible **at delivery**.
+Both stay.
+**First reconciliation:** 7 entries, 6 present, 1 absent as predicted, nothing
+unaccounted. See `F-next/manifest-adopted`.
