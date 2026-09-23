@@ -101,8 +101,11 @@ alternation is only as good as its least-tested branch.
 | ~~OPEN-2~~ | **CLOSED 2026-09-22.** Built on the first deploy: 48 MB image, pushed to `registry.fly.io/stockgradermdk`, running live. It did fail on first deploy -- on `primary_region`, not the image (F-011). | — |
 | ~~OPEN-3~~ | **CLOSED 2026-09-22 by F-008.** Reproduced on the owner's machine: 22/22, egress-blocked. | — |
 | ~~OPEN-4~~ | **CLOSED 2026-09-22 by F-008.** Windows PowerShell 5.1.26100.9444 parsed and ran the fixed `setup.ps1`. | — |
-| OPEN-5 | **Do a full backup's children expire with it?** B-6a. Backup IDs are chains (`<FULL>_<CHILD>`) and children are not independently restorable, so the recovery horizon is bounded by the oldest surviving **full** - but expiry behaviour is unverified. `20260922-192041F` should age out ~2026-10-02. **Run `fly mpg backup list d1zj5omk443ryqkv --all` on 2026-10-03** and record whether its four children went with it. One read-only command. | Confidence in the stated recovery horizon (B-6). |
-| OPEN-6 | **The PITR recovery window is unmeasured.** `--pitr-time` exists but no command reports the window it requires (`F-next/pitr-available-window-invisible`). B-9 proposes measuring it with one deliberate refusal against a throwaway cluster. **Owner's call, optional, and only after the restore drill.** Until then PITR stays unused and `--backup-id` is the only path. | Any use of PITR. |
+| OPEN-7 | **Do a full backup's children expire with it?** B-6a. Backup IDs are chains (`<FULL>_<CHILD>`) and children are not independently restorable, so the recovery horizon is bounded by the oldest surviving **full** - but expiry behaviour is unverified. `20260922-192041F` should age out ~2026-10-02. **Run `fly mpg backup list d1zj5omk443ryqkv --all` on 2026-10-03** and record whether its four children went with it. One read-only command. | Confidence in the stated recovery horizon (B-6). |
+| OPEN-8 | **The PITR recovery window is unmeasured.** `--pitr-time` exists but no command reports the window it requires (`F-next/pitr-available-window-invisible`). B-9 proposes measuring it with one deliberate refusal against a throwaway cluster. **Owner's call, optional, and only after the restore drill.** Until then PITR stays unused and `--backup-id` is the only path. | Any use of PITR. |
+| OPEN-9 | **The price vendor is unchosen, and the deciding question is delisted coverage.** Owner ruling 4 settled *sourcing policy* (SEC is one source among several), **not vendor selection**. A vendor that drops dead names **reintroduces survivorship bias through the door ruling 5 just closed.** Put delisted coverage to **Tiingo** and **EODHD** directly - the question is whether a delisted ticker's history remains retrievable after delisting, not whether the vendor says it has "full history." | Any price ingest; the universe's integrity (ruling 5). |
+| OPEN-10 | **Altman variant unresolved (ruling 11).** Z' (private-firm, book equity) was recommended; *"take Z"* was returned and reads as public-firm Z (market equity). Not assumed either way. | The disqualifier block. |
+| OPEN-11 | **Sector granularity unresolved (ruling 13).** No recommendation existed to accept. Live options: SIC as-is, hand-maintained mapping, per-archetype metric sets. | Per-sector metric selection. |
 
 ## D-019 counter - `windows-setup` consecutive green runs
 
@@ -180,3 +183,25 @@ evidence for anything listed here.
   (closes OPEN-1).
 - *(future)* Live SEC EDGAR fetch with the declared User-Agent (A-004).
 - *(future)* Live price-vendor fetch (A-003 / D-007).
+
+## GQS §13 completeness gate - current state, 2026-09-23
+
+Recorded from `RULING-RECORD-2026-09-23-...-owner-rulings.md` §4. **This is the
+gate that decides whether a scoring build order may issue.** D-010's binding
+condition points here.
+
+| §13 condition | State |
+|---|---|
+| Any §11 question unratified | **OPEN** - 11.1 deferred (ruling 12), 11.2 unresolved (ruling 13) |
+| §5.4 R&D treatment unresolved | **OPEN** - the same question as 11.1 |
+| Eligibility table contains an unlisted class | Believed clear; **confirm in v4** |
+| Any block contains a placeholder metric | **Confirm in v4** |
+| Point-in-time property weakened in build order | Not yet applicable |
+
+**No scoring build order can issue.** Two conditions are open and two are
+unconfirmed.
+
+**Ingest is unaffected and proceeds.** The universe, the point-in-time fact
+store, and the filing-date/accession discipline are the same work whichever way
+the §11 questions land - which is why ruling 5 constrains the first migration
+now rather than waiting on the gate.

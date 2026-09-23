@@ -112,11 +112,22 @@ stock-side design -- its four independently ranked blocks, its integrity gate,
 its `insufficient_data` fourth state, its point-in-time requirement, and its
 attribution of score moves (fundamentals deteriorating versus price rising and
 valuation compressing).
-**Condition, binding:** GQS v3's own header says it is a draft with **five open
-questions in its §17 requiring owner ratification before a build order**. Those
-five are ratified, or **the build order for scoring does not issue**. Adopting a
-draft without answering the questions its own author flagged is how a draft
-becomes doctrine by accident.
+**Condition, binding.** **Reworded by owner ruling 7, 2026-09-23:** it read
+*"five open questions in its §17"*; it now reads **"the four open questions in
+its §11."** Unchanged in substance - it now points at a section that exists.
+Those four are ratified, or **the build order for scoring does not issue**.
+Adopting a draft without answering the questions its own author flagged is how a
+draft becomes doctrine by accident.
+**Superseded by GQS v4 (ruling 8):** v3 is revised to v4 grounded on this repo,
+rather than ported inside a build order. §12's confirm-before-build list is
+rewritten against StockGraderMDK - `alembic heads` removed (D-021 rejected
+Alembic), the `finance` agent and settings-overlay items replaced with this
+repo's equivalents, and §3's `place_stock_order` non-goal becomes **moot rather
+than satisfied**, since no such path exists here.
+**Why not port it inside a build order:** §13 refuses the document for build.
+Carrying the port inside a build order would mean the refusal never formally
+lifts, and **a completeness gate that is routed around once stops being a gate.**
+**Current state: still refused.** See the §13 table in `testplan.md`.
 **Rejected:** the Planner's first-turn placeholder component list, which was a
 sketch and is superseded.
 **Consequence:** A-007 becomes load-bearing. Point-in-time integrity constrains
@@ -401,6 +412,18 @@ request to the live service proves the new one is in use.** `/healthz` cannot
 prove it, because it touches no database; the first DB-backed endpoint can.
 **Order:** the application credential goes first.
 
+**RULED 2026-09-23 (owner ruling 6) - closure is by destroy, not rotation.**
+The old cluster is destroyed once the ticker load **and** a DB-backed endpoint
+are proven on `stockgrader-db-r1`. **That destroy retires both `stockgradermdk`
+and `fly-user`** rather than either being rotated in place. **This is D-029's
+closure, and it is the honest one - replace, never rotate.** A rotated credential
+is a credential you have to trust the rotation of; a destroyed cluster is a
+credential that has nothing to open.
+**Stated fact, not a hypothetical:** until that destroy, both credentials remain
+**live against the old cluster**. `stockgradermdk` is no longer the app's path
+after the cutover, but it is not dead.
+`probe_ro`'s resolution is unchanged - delete.
+
 ### D-030 - Credential handling, with a procedure
 **Status:** PROPOSED 2026-09-22
 **Choice:**
@@ -486,7 +509,9 @@ not a record.
 **Source:** `HANDOVER-Planner-2026-09-23-...-backup-strategy-restore-drill.md` §2,
 received 2026-09-23, **as amended by**
 `RULING-Planner-2026-09-23-...-backup-mechanics-section4-amended.md`.
-**Status: B-1..B-8 RULED 2026-09-23; B-6a and B-9 PROPOSED.** The `B-n` labels
+**Status: B-1..B-8 RATIFIED by owner ruling 2, 2026-09-23** (PROPOSED -> RULED).
+**B-9 APPROVED by owner ruling 3.** B-6a remains an open testplan item (OPEN-7) dated
+2026-10-03. The `B-n` labels
 are the Planner's. B-2, B-6 and B-8 below are the **amended** texts; the
 originals were withdrawn on the Builder's evidence and are described as withdrawn
 rather than deleted.
@@ -533,7 +558,7 @@ and `fly mpg backup list <CLUSTER_ID> --all` is the only way to know. Without
 **B-6a - OPEN ITEM, dated.** Whether a full's children expire with it is
 **unverified**. `20260922-192041F` should age out around 2026-10-02; running
 `fly mpg backup list d1zj5omk443ryqkv --all` on **2026-10-03** answers it for the
-cost of one read-only command. Tracked in `testplan.md`. Flagged rather than
+cost of one read-only command. Tracked as **testplan OPEN-7**. Flagged rather than
 claimed, because this is the class of thing discovered while you need it.
 
 **B-7 - Off-platform copies are not required today, and the condition that
@@ -556,9 +581,9 @@ good direction: the disposability marker travels with the database it marks, so
 `postgres_probe` behaves identically on the restored cluster. Drill step 5
 therefore **expects** scratch to be present; its absence is the surprise.
 
-**B-9 - PROPOSED: measure the PITR window while it is free.**
+**B-9 - APPROVED 2026-09-23 (owner ruling 3): measure the PITR window while it is free.**
 `--pitr-time` requires a recovery window no command reports
-(F-next/pitr-available-window-invisible) - a guess validated only by attempting
+(F-next/pitr-available-window-invisible; testplan OPEN-8) - a guess validated only by attempting
 it, which is F-015's shape. **An invisible property can be made visible by one
 experiment:** a PITR restore at a chosen timestamp either succeeds or is refused,
 and **the refusal names the boundary.** Against a cluster holding nothing, on a
@@ -566,9 +591,9 @@ day nothing is at stake, that is a cheap measurement.
 **Cost, stated:** a restored cluster is provisioned asynchronously and billed
 separately - real money for as long as it exists - and is destroyed immediately
 after the answer is recorded.
-**Owner's call, and optional.** Runs *after* the drill, never interleaved. If
-declined, `F-next/pitr-available-window-invisible` stands as a known unknown and
-PITR stays unused.
+**APPROVED.** Runs *after* the drill completes, **never interleaved**. The probe
+cluster is **destroyed immediately once the window is recorded.** The measured
+boundary is the finding - *a refusal names it as usefully as a success.*
 
 **Platform mechanics established 2026-09-23 (read-only, §3):** `fly mpg backup`
 exposes only `create` and `list`. There is **no command to configure cadence or
@@ -576,3 +601,71 @@ retention** - confirmed against the binary, not just the docs. `fly mpg restore`
 supports both `--backup-id` and `--pitr-time`, plus `-n/--name`. `fly mpg destroy`
 takes `-y`. See F-next/pitr-available-window-invisible and
 F-next/restore-name-flag.
+
+
+---
+
+## Owner rulings, 2026-09-23 - data and model
+
+**Source:** `RULING-RECORD-2026-09-23-StockGraderMDK-owner-rulings.md`. Thirteen
+rulings: eleven ruled, two pending clarification, one recorded as a deferral
+rather than an answer. Drill and infrastructure rulings (1, 2, 3, 6) are applied
+in place above; the data and model rulings are recorded here.
+
+### D-next/cutover-and-stay - Ruling 1: cutover-and-stay. RULED.
+`stockgrader-db-r1` becomes the live cluster and today's ticker load goes onto
+it. The amended §4 runs as written.
+
+### D-next/sourcing-policy - Ruling 4: SEC is one source among several. RULED.
+The TDD's §2 goal 1 (*"from SEC filings only"*) and §5.1's single-source framing
+are **corrected in v4**. Data is taken where it is available.
+**This is a ruling on sourcing policy, not a vendor selection.** The price vendor
+is **still unchosen**, and the deciding question is **delisted coverage** - a
+vendor that drops dead names **reintroduces survivorship bias through a door the
+universe fix (ruling 5) just closed.** Tiingo and EODHD both need that question
+put to them directly before either is picked. Tracked as **testplan OPEN-9**.
+
+### D-next/universe-from-filings - Ruling 5: universe derived from filing history. RULED.
+The historical universe comes from **the fact store's own filing record**, not
+from `company_tickers.json`. The ticker files serve as the **current-day
+identifier crosswalk only.**
+**Constrains the first migration:** the fact store carries **filing dates and
+accessions from the start** - which §5.1 already required for a different reason.
+This is the same class of constraint as D-010's point-in-time requirement:
+unaffordable to retrofit.
+
+### D-next/wacc-flat-v1 - Ruling 9: §11.3 WACC flat rate for v1. RULED.
+**Condition, binding:** the ROIC-WACC spread is **never surfaced as an absolute
+figure** while the flat rate is in force. It is defensible for a **relative
+ranking** and indefensible as an absolute number, and the condition is what keeps
+the two apart.
+
+### D-next/size-tilt-default-off - Ruling 10: §11.4 size tilt available, default off. RULED.
+Enabling it is a **deliberate act** rather than a hidden thumb on the scale.
+
+### D-next/rd-capitalization - Ruling 12: §11.1 R&D capitalization. DEFERRED, NOT RULED.
+The owner agreed it warrants a dedicated session. **§11.1 therefore remains an
+open question, and §5.4 with it.** §13 continues to refuse the TDD for build on
+those two grounds.
+**Recorded as a deferral, not an answer, deliberately** - so that no later reader
+mistakes agreement-to-defer for a ruling.
+
+### PENDING CLARIFICATION - Ruling 11: Altman variant, which Z. NOT RECORDED.
+The Planner recommended **Z'** (private-firm form, book value of equity)
+specifically to keep a disqualifier from moving with the share price, against
+§3's no-price-signals non-goal. The ruling returned was *"take Z"*, which reads
+as the **original public-firm Z** (market value of equity). **Not assumed either
+way.**
+**Ruling 4 changes the calculus:** with a price vendor in the design, market
+value of equity is now cheap to obtain, so the original Z is defensible in a way
+it was not this morning. **The tension that remains is design, not sourcing** - a
+disqualifier that moves with price can disqualify a company on a day its
+fundamentals did not change.
+
+### PENDING CLARIFICATION - Ruling 13: §11.2 sector granularity. NOTHING RECORDED.
+**No recommendation existed to accept.** The Planner set out three options and
+quoted the TDD's warning that Lynch archetypes are the most correct and where the
+build would slip - that is not a recommendation. The ruling *"as recommended"*
+has no referent.
+**Live options:** SIC as-is, a hand-maintained mapping, or per-archetype metric
+sets.
