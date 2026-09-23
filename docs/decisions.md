@@ -528,6 +528,11 @@ mandatory. Same tripwire that ends the credential deferral.
 
 **B-8 - `stockgrader_scratch` is explicitly out of scope.** It carries the canary,
 which marks it disposable. Not backed up on purpose; not a reason to restore.
+**[Builder]** the listing is **cluster-scoped, not database-scoped** - nothing in
+it distinguishes `stockgrader` from `stockgrader_scratch`. Scratch *is* being
+backed up, because backups are taken at the cluster level and scratch lives on
+the cluster. B-8's intent holds (scratch is not a reason to restore); its wording
+claims a platform behaviour the platform does not appear to offer.
 
 **Platform mechanics established 2026-09-23 (read-only, §3):** `fly mpg backup`
 exposes only `create` and `list`. There is **no command to configure cadence or
