@@ -413,3 +413,55 @@ get right under exactly the conditions that produce mistakes.
 **Proposed:** pass `-n stockgrader-db-r1` (or similar) at step 3. Cheap, and it
 makes "which cluster am I on" answerable by reading rather than by remembering.
 **Sample:** static reading of `--help`, 1.
+
+### F-next/orders-written-against-handovers - Orders were written against the last handover, not the register
+**Date:** 2026-09-23 - **By:** Planner, self-recorded in
+`RULING-...-backup-mechanics-section4-amended.md` §1
+**Claim:** the Planner issued three errors in one block, all from the same root -
+writing orders against documents rather than against the register.
+
+- **P-1 - ordered work that was already complete.** The steps 5-6 handover was
+  written from the 2026-09-22 handover, which said steps 5-6 were outstanding.
+  They had been executed and merged in PR-5 the same day. The register was never
+  read before orders were written against it.
+- **P-2 - assigned finding numbers from a document rather than from
+  `findings.md`.** F-018 and F-019 were reserved for content that already had
+  other content.
+- **P-3 - dressed speculation as a finding.** `fly mpg users create` was named a
+  "suspected new offender" when the F-014 amendment had already settled that it
+  prints `Name` and `Role` only. On the strength of that speculation the Planner
+  invented a disposable `sg_a017_test` account **and a carve-out to authorise
+  it** - for a test already run as `builder_a017_probe` that had already held.
+
+**Rules adopted:** orders are written against `decisions.md`, `findings.md`,
+`assumptions.md` and `testplan.md` - **not against the last handover.** A
+handover records what was true when it was written; the register records what is
+true. The `F-next/<short-name>` convention is adopted and the Planner will not
+assign numerals. Both the `fly mpg users create` suspicion and the `sg_a017_test`
+carve-out are **withdrawn**.
+**Why it matters beyond the three instances:** reasoning about what a command
+*probably* does is not a finding, and dressing it as one spends the register's
+credibility - which is the only thing making the other entries worth reading.
+**Sample:** 3 errors, 1 block, 1 root cause.
+
+### F-next/relay-loss-recurrence - A cited Planner note never arrived; detected by citation again
+**Date:** 2026-09-23 - **By:** Builder
+**Claim:** `RULING-...-backup-mechanics-section4-amended.md` §6 cites
+`PLANNER-NOTE-2026-09-23-StockGraderMDK-GQS-variable-source-map.md` and says four
+items in its §7 are ratifiable immediately. **That document has not arrived.**
+The delivery folder holds exactly four documents dated 2026-09-23 - two
+handovers, the Builder's report, and this ruling. No planner note, under that
+name or any other.
+**Artifact:** directory listing filtered to 2026-09-23, and a name search
+returning nothing.
+**Why it matters:** this is **F-020 recurring, in the same direction, by the same
+detection mechanism** - a lost Planner-to-Builder document found only because a
+later document referred to it. D-033 (sequence numbers both directions) was
+ruled to make this visible immediately instead. It is **PROPOSED, not
+implemented**, and this instance is the second data point arguing it should stop
+being proposed.
+**Consequence:** the scoring track's completeness gate cannot be assessed. Three
+of the TDD's §13 conditions are open and the note names which four items would
+clear part of it. Unblocking scoring is waiting on a document that does not
+exist on this side of the relay.
+**Sample:** 2 losses, same direction, 2 days.

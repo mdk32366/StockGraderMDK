@@ -481,12 +481,15 @@ not a record.
 
 ---
 
-## Backup strategy - B-1 to B-8
+## Backup strategy - B-1 to B-9
 
 **Source:** `HANDOVER-Planner-2026-09-23-...-backup-strategy-restore-drill.md` §2,
-received 2026-09-23. **Status: PROPOSED.** Recorded here verbatim in substance so
-the register holds them; the `B-n` labels are the Planner's and numbers are the
-Planner's to assign (D-032 note). Builder annotations are marked **[Builder]**.
+received 2026-09-23, **as amended by**
+`RULING-Planner-2026-09-23-...-backup-mechanics-section4-amended.md`.
+**Status: B-1..B-8 RULED 2026-09-23; B-6a and B-9 PROPOSED.** The `B-n` labels
+are the Planner's. B-2, B-6 and B-8 below are the **amended** texts; the
+originals were withdrawn on the Builder's evidence and are described as withdrawn
+rather than deleted.
 
 **B-1 - Automatic backups are the floor, not the plan.** The rolling schedule
 covers ordinary operation. Everything below is what the schedule does not do.
@@ -495,11 +498,14 @@ hourly incrementals, 6-hourly differentials, daily fulls, observed on this
 cluster.
 
 **B-2 - A manual full backup before any deliberate act that could destroy data.**
-Before a migration, a bulk load, a cutover, a destroy.
-`fly mpg backup create <CLUSTER_ID> --type full`.
-**[Builder]** rationale amended: the schedule's worst case is ~60 minutes, not
-"unknown". B-2 stands on deliberateness - a checkpoint you took is a recovery
-point you can name - not on the schedule's absence.
+**AMENDED 2026-09-23** on the Builder's argument. Before a migration, a bulk
+load, a cutover, a destroy: `fly mpg backup create <CLUSTER_ID> --type full`.
+**Original rationale withdrawn.** It read *"the alternative is depending on
+whenever the rolling schedule last happened to fire"* - but the schedule fires
+hourly (F-next/backup-cadence-observable), so worst-case unguarded exposure is
+~60 minutes, not an unknown. **B-2 now stands on deliberateness: a checkpoint you
+took is a recovery point you can name**, and an hour of a bulk load is a real
+loss.
 
 **B-3 - A manual full backup immediately after a cutover.** Restore builds a new
 cluster and backup history does not follow it. A restored cluster has no lineage
@@ -513,12 +519,22 @@ after the ticker load, when row counts make the data half meaningful.
 the app points at the new cluster and a live request proves it: `fly mpg attach`,
 **then** `fly secrets deploy`, then verify. F-015 is the scar.
 
-**B-6 - 10-day retention is an expiry, and expiry is silent.** Nothing warns that
-a recovery point has aged out. `fly mpg backup list <CLUSTER_ID> --all` is the
-only way to know; without `--all` it shows 24 hours.
-**[Builder]** backup IDs are **chains** (`<FULL>_<CHILD>`), so expiry of a full
-plausibly expires its dependents. Unverified. Retention is "chains with a living
-root," not "10 days of hourly points."
+**B-6 - Retention is whatever chains still have a living root.**
+**REWRITTEN 2026-09-23.** The original read *"10-day retention is an expiry, and
+expiry is silent"* and assumed ten days of hourly recovery points. That is not
+the shape. **Backup IDs are chains** - an incremental or differential names the
+full it is rooted in (`<FULL>_<CHILD>`) and is **not independently restorable**.
+**The recovery horizon is bounded by the oldest *full* backup still present, not
+by the oldest listed ID.**
+The silence clause survives: nothing warns that a recovery point has aged out,
+and `fly mpg backup list <CLUSTER_ID> --all` is the only way to know. Without
+`--all` it shows 24 hours.
+
+**B-6a - OPEN ITEM, dated.** Whether a full's children expire with it is
+**unverified**. `20260922-192041F` should age out around 2026-10-02; running
+`fly mpg backup list d1zj5omk443ryqkv --all` on **2026-10-03** answers it for the
+cost of one read-only command. Tracked in `testplan.md`. Flagged rather than
+claimed, because this is the class of thing discovered while you need it.
 
 **B-7 - Off-platform copies are not required today, and the condition that
 requires them is written down.** Everything in `stockgrader` is rebuildable by
@@ -526,13 +542,33 @@ re-running the loader. The first write that is not - anything user-owned,
 anything whose loss is not fixed by a re-run - makes an off-platform dump
 mandatory. Same tripwire that ends the credential deferral.
 
-**B-8 - `stockgrader_scratch` is explicitly out of scope.** It carries the canary,
-which marks it disposable. Not backed up on purpose; not a reason to restore.
-**[Builder]** the listing is **cluster-scoped, not database-scoped** - nothing in
-it distinguishes `stockgrader` from `stockgrader_scratch`. Scratch *is* being
-backed up, because backups are taken at the cluster level and scratch lives on
-the cluster. B-8's intent holds (scratch is not a reason to restore); its wording
-claims a platform behaviour the platform does not appear to offer.
+**B-8 - `stockgrader_scratch` is never a reason to restore.**
+**REWRITTEN 2026-09-23.** The original said scratch was *"explicitly out of
+scope... not backed up on purpose."* **That claimed a platform behaviour that
+does not exist.** Backups are **cluster-scoped**; scratch lives on the cluster
+and is therefore backed up, and nothing in the listing distinguishes the two
+databases. The intent survives unchanged - scratch carries the canary, which
+marks it disposable, and it is never a reason to restore anything - but the
+wording must not assert an exclusion the platform does not offer.
+
+**B-8a - A cluster restore brings scratch across, canary included.** This is the
+good direction: the disposability marker travels with the database it marks, so
+`postgres_probe` behaves identically on the restored cluster. Drill step 5
+therefore **expects** scratch to be present; its absence is the surprise.
+
+**B-9 - PROPOSED: measure the PITR window while it is free.**
+`--pitr-time` requires a recovery window no command reports
+(F-next/pitr-available-window-invisible) - a guess validated only by attempting
+it, which is F-015's shape. **An invisible property can be made visible by one
+experiment:** a PITR restore at a chosen timestamp either succeeds or is refused,
+and **the refusal names the boundary.** Against a cluster holding nothing, on a
+day nothing is at stake, that is a cheap measurement.
+**Cost, stated:** a restored cluster is provisioned asynchronously and billed
+separately - real money for as long as it exists - and is destroyed immediately
+after the answer is recorded.
+**Owner's call, and optional.** Runs *after* the drill, never interleaved. If
+declined, `F-next/pitr-available-window-invisible` stands as a known unknown and
+PITR stays unused.
 
 **Platform mechanics established 2026-09-23 (read-only, §3):** `fly mpg backup`
 exposes only `create` and `list`. There is **no command to configure cadence or
