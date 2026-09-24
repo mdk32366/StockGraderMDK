@@ -1839,3 +1839,92 @@ route, not a third identity.
 finding**, because it discriminates between the two hypotheses: something about
 the path, or something about the name.
 **Sample:** 2 failures, 1 file, 3 of 4 companions delivered.
+
+### F-next/archive-hash-is-a-build-id-not-a-change-detector - OPEN-44, and the mechanism is simpler than the hypothesis
+**Date:** 2026-09-24 - **By:** Builder, answering OPEN-44
+**Claim:** `fetch_log`'s response-level hash **cannot function as a change
+detector for `submissions.zip`** - and not for the reason proposed.
+**The hypothesis was rebuild nondeterminism** - zip member ordering, embedded
+timestamps, compression differences making the bytes differ when the data does
+not. **The actual mechanism is simpler and unavoidable:** the archive is a
+**daily snapshot of a growing dataset**. New filings land every business day, so
+**its contents genuinely change every night.**
+**Measured, 24 hours apart:**
+
+| | Content-Length | Last-Modified |
+|---|---|---|
+| 2026-09-23 | 1,565,081,455 | Wed, 23 Sep 2026 04:31:05 GMT |
+| 2026-09-24 | **1,565,294,470** | Thu, 24 Sep 2026 04:31:44 GMT |
+
+**+213,015 bytes overnight.**
+**This reframes Q1 rather than answering it.** We cannot observe whether the
+archive's hash changes when its contents are unchanged, **because its contents
+are never unchanged.** The question has no accessible case.
+**And that is the stronger result.** A response-level hash of a daily-rebuilt
+archive is **structurally always-changing**, so it is **a build identifier, not a
+change detector**. `fetch_content_change` would fire on the primary source every
+single night, correctly, and *a finding that always fires is not a finding.*
+**Q2 answers itself from that: the member is the right unit.** A per-filer JSON
+inside the archive **does** stay byte-identical when that filer does not file, so
+a member-level hash carries the signal the response-level one structurally
+cannot. It is also the unit a `filing` row actually derives from.
+**Not fixed by making the view quieter**, per the instruction - and that
+instruction now has teeth, because the detector would be firing *correctly*.
+Suppressing it would discard a true signal to silence a true-but-useless one.
+**Two cheap facts for the design:** the response carries an **`ETag`**
+(`"d203f56a…-187"`, multipart form) - a build identity obtainable **without
+downloading** - and **`Accept-Ranges: bytes`**, so ranged requests are possible.
+**Sample:** 2 HEAD requests, 24 hours apart, 1 growing archive.
+
+### F-next/current-columns-that-never-update - OPEN-45, and the case does not arise for a worse reason
+**Date:** 2026-09-24 - **By:** Builder, answering OPEN-45
+**Claim:** slice 1's loader uses **`ON CONFLICT (cik) DO NOTHING`**, so it
+**never updates** `filer.current_name`, `current_sic` or `metadata_as_of`.
+**So OPEN-45's dilemma does not arise**, and `source_fetch_id` is internally
+consistent: the provenance points at the fetch that produced the values beside
+it, and neither ever changes. There is no misattribution.
+**But the reason is the defect the Planner named in the same breath:** *a
+`current_` column that never updates is its own problem.*
+**`metadata_as_of` is the worst of the three, and it is worth separating from the
+other two.** `current_name` and `current_sic` going stale is ordinary staleness.
+**`metadata_as_of` exists specifically to bound the currency claim** - 0001's
+comment says *"without this, current is an unbounded claim"* - and a frozen
+`metadata_as_of` does not merely go stale, it **asserts a bound that is false**.
+It would permanently claim the date of **first sight** while the values beside it
+age indefinitely. **A column whose job is to say how old something is, lying
+about how old it is**, is worse than no column.
+**Not fixed here**, because the fix is a loader decision with a provenance
+consequence and both belong to the same ruling: if `current_*` becomes an upsert,
+**OPEN-45's dilemma arrives immediately** and `source_fetch_id` must be ruled to
+either follow the update or stay at creation. Recorded as testplan OPEN-46 so the
+two are decided together rather than the upsert being added and the provenance
+question surfacing afterwards.
+**Sample:** 1 loader, 3 `current_*` columns, 0 updates.
+
+### F-next/i-confounded-my-own-experiment - The R2 trial moved two variables
+**Date:** 2026-09-24 - **By:** Planner (D20 §1), accepted by Builder
+**Claim:** I wrote that *"if R2 arrives where the original twice did not, that is
+itself the finding, because it discriminates between the two hypotheses:
+something about the path, or something about the name."* **It does not
+discriminate.**
+**R2 changed two things, not one.** The prepended header block makes it a
+different file - different length, different hash - **as well as** a different
+filename. So its arrival is equally consistent with *the name was the problem*
+and with *something about that exact file was the problem*.
+**The clean versions I did not run:** the **original filename with the header
+block added**, or **R2's filename with the body untouched**. Either isolates one
+variable. I ran neither, and the design error was in the same message that
+claimed the discrimination.
+**Why it is recorded when the conclusion is probably right.** That is precisely
+why: **a correct conclusion from a confounded test is the one nobody
+re-examines.** The result reads as settled, gets cited, and the confound is
+invisible from everywhere downstream.
+**This is the instrument pattern in a new place - the experiment rather than the
+instrument.** Every previous instance was a measuring device that could not
+report the condition it existed to detect. This is a **test design** that could
+not distinguish the hypotheses it was built to distinguish, **while appearing
+to**. n=1 against a prior of two failures.
+**Recorded as suggestive with the confound named**, per the ruling. The exception
+stays one-time and the next re-send keeps its filename - which is also the
+cleaner trial if one is ever needed.
+**Sample:** 1 experiment, 2 variables, 1 conclusion held loosely.
