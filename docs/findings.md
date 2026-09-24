@@ -2101,3 +2101,120 @@ fully specified in D20** - a delivery held in hand - so it does not rest on any
 citation. It is done. **OPEN-48, 49 and 50 are not started**, because their terms
 exist only as three-word summaries in another document.
 **Sample:** 1 delivery lost, 2 documents, 1 handover unknown.
+
+### F-next/coverage-measurement-45-does-not-fit - OPEN-51's measurement, and it says stop
+**Date:** 2026-09-24 - **By:** Builder, OPEN-51 §1
+**Claim:** **45 quarters does not fit.** One quarter loaded into a local cluster
+with 0001 and 0002 applied:
+
+| | |
+|---|---|
+| 2026q2 facts loaded | **3,369,002** |
+| `fact` table | 697.8 MB |
+| `fact` indexes | **1,113.6 MB** |
+| All tables + indexes | **1,814.1 MB** |
+| Bytes per fact row, incl. indexes | **565** |
+
+**The scaled estimate is 124.4 GB against a 15 GB cluster — short by roughly
+8x.** Per D22 §4 this is **report and stop**.
+
+**AND THE NAIVE MULTIPLICATION UNDERSTATES IT BY 56%, which is the finding
+inside the finding.** `1,814 MB x 45 = 79.7 GB` is wrong. Summing the actual
+archive bytes for the 45 quarters in the window (2015q2-2026q2) gives
+**4,242,443,105 bytes against 2026q2's 60,419,016 - a ratio of 70.22, not 45.**
+**2026q2 is one of the smallest quarters in the window**, so measuring it and
+multiplying by the quarter *count* silently assumes quarters are interchangeable.
+They are not.
+**This is OPEN-51's own argument one level in.** The ruling said *loading 45
+quarters to find out where we sit is measuring by doing the expensive thing.*
+Correct - and **measuring one unrepresentative quarter and multiplying by a count
+is measuring the wrong thing cheaply**, which produces a number that looks like
+the answer and is 56% low. The fix cost 45 HEAD requests.
+
+**WHERE THE BYTES GO, and it changes the options:**
+
+| Index | Size | % of fact indexes |
+|---|---|---|
+| **`fact_one_per_filing`** | **765 MB** | **68.7%** |
+| `fact_entity_concept_idx` | 181 MB | 16.2% |
+| `fact_pkey` | 72 MB | 6.5% |
+| `fact_concept_period_idx` | 46 MB | 4.2% |
+| `fact_consolidated_idx` | 25 MB | 2.2% |
+| `fact_accession_idx` | 25 MB | 2.2% |
+
+**Indexes are 61% of total storage, and one constraint is 42% of everything.**
+`fact_one_per_filing` is a nine-column unique index, and **it is the single
+largest object in the database by a wide margin.**
+**It is also the least negotiable thing in the schema.** It is what makes
+overwrite-on-amendment unavailable rather than discouraged - A4 exists to stop a
+future migration removing it. **So the largest storage cost and the central
+correctness guarantee are the same object**, and the §4 preference order does not
+currently mention indexes at all.
+**Not proposing a change** - but the order of preference was written before
+anyone knew that 42% of the bill is one constraint, and **the cheaper levers may
+be the four indexes below it (277 MB, 15%), which are performance choices rather
+than correctness ones.**
+**Sample:** 1 quarter, 3.37M facts, 45 archive sizes.
+
+### F-next/0002-omits-the-fact-table - The provenance migration does not cover the table it was ordered for
+**Date:** 2026-09-24 - **By:** Builder, during OPEN-51's measurement
+**Claim:** **0002 adds `source_fetch_id` to `filer`, `filer_ticker` and `filing`.
+It does not add it to `fact`.** Discovered because the measurement's `COPY` into
+`fact` failed: *column "source_fetch_id" of relation "fact" does not exist*.
+**And verification A5 does not catch it**, because A5 iterates
+`ARRAY['filer','filer_ticker','filing']` - **the same three tables**. So the
+check written to assert *an unprovenanced row is not representable* **passes
+while every `fact` row is unprovenanced**.
+**The irony is exact and worth stating plainly.** D16 §2.1 ordered 0002 **before**
+the fact slice on the reasoning that *the fact slice is where the volume arrives;
+in the other order the largest body of data this project holds becomes the part
+that can never be traced.* **0002 as written leaves precisely that gap.** The
+migration built to stop the fact table being untraceable does not reach the fact
+table.
+**Why it survived review:** 0002 was written against slice 1's three tables,
+which were the tables that existed *in the loader*. `fact` existed in the schema
+and had no loader, so it was invisible to the question *which tables does the
+loader write?* - which is the question I was actually answering. **The right
+question was *which tables hold data?***
+**This is the instrument pattern in the guard's scope rather than its logic** -
+tenth instance. A5 is correctly written and correctly passing; it simply does not
+look where the problem is. **A guard's blind spot is not usually in what it
+checks but in what it enumerates.**
+**Requires 0003**, not an amendment to 0002: 0002 has been applied to local
+clusters and, more importantly, the habit argument from D16 §2.4 applies with
+more force each time. **No fact data exists anywhere**, so the refusal-to-backfill
+block will pass trivially - which is the same cheap-now-impossible-later window
+0002 itself was ordered inside.
+**Sample:** 1 migration, 4 data tables, 3 covered.
+
+### F-next/fsds-violates-its-own-documented-key - And DO NOTHING would have been silent data loss
+**Date:** 2026-09-24 - **By:** Builder, during OPEN-51's measurement
+**Claim:** FSDS `num.txt` documents its unique key as *(adsh, tag, version,
+ddate, qtrs, uom, segments, coreg)*. **Real data violates it.** 2026q2 holds
+**3,608,711 rows across 3,608,679 distinct key tuples - 32 collisions.**
+**31 of the 32 carry DIFFERENT VALUES.**
+
+```
+0001628280-26-034133  DerivativeAssetFairValueGrossLiability  20260331
+    -> values -3,123,000 and 706,000
+    -> values  1,591,000 and 645,000
+```
+
+**So `ON CONFLICT DO NOTHING` on 0001's key would be silent data loss** - keeping
+one value and discarding a genuinely different one, with no record, in the schema
+built to make exactly that impossible.
+**I nearly recommended it on n=1.** The first collision I hit was the one exact
+duplicate - identical on every field including value - and it reads as harmless
+deduplication. **The population says the opposite: 31 of 32 disagree.** Same
+error as the confounded R2 experiment: generalising a mechanism from the first
+instance that presented.
+**The distinguishing axis appears to be lost in FSDS's own extraction, not in
+our mapping.** The 64 rows sharing that adsh/tag/ddate carry distinct `segments`
+of 42-134 characters, so truncation is not the cause here - **OPEN-49's terms
+(in the lost D21) may bear on it and I have not assumed they do.**
+**What the loader must do, and it is not DO NOTHING:** detect the collision,
+**assert the colliding rows agree on value**, and **fail loudly when they do
+not** - 31 rows per quarter is small enough to report individually and far too
+important to drop. For this measurement the 32 were **skipped and counted**,
+which is acceptable for a sizing probe and would not be acceptable for a load.
+**Sample:** 3,608,711 rows, 32 collisions, 31 disagreeing.
