@@ -902,3 +902,94 @@ comfortably inside the 10 req/s bound. **The per-CIK endpoint is wrong as a
 universe source and fine as an incremental detail source** - ruling it out for
 one use does not rule it out for the other.
 **Run-phase acceptance test:** testplan OPEN-33.
+
+
+### D-next/fact-sources - OPEN-36 RULED: the Financial Statement Data Sets
+**Status:** RULED 2026-09-24 (D17 §2).
+
+| Data | Source |
+|---|---|
+| XBRL facts, dimensions, per-fact entity | **Financial Statement Data Sets** (`num.txt`, `sub.txt`) |
+| `filing.sic_at_filing` | FSDS `sub.txt.sic` - **but NOT until OPEN-37 establishes it is as-filed** |
+| Recency layer over the FSDS lag | **companyfacts - DEFERRED, gated on OPEN-38** |
+
+**Decided by one measurement: 60.7%.** `segments` is populated on 2,189,835 of
+3,608,711 `num.txt` rows. Choosing companyfacts *"would not lose a rare edge
+case - it would discard the majority of the facts filers publish, invisibly,
+because what remains looks like a complete consolidated dataset."*
+**Filtering data you have is a decision; not having it is a ceiling.**
+
+**This is ruling 5 one level down, and the register would contradict itself to
+decide otherwise.** The ticker files were rejected not for inconvenience but
+because they are **structurally incapable** of representing a company that
+stopped trading. companyfacts is **structurally incapable** of representing a
+dimension or a second entity. Same shape, same answer.
+**Why that is worse than untested:** **no ingested row could ever contradict
+A8.** The schema would be right and *unable to be wrong* - the instrument
+pattern arriving as a **data source** rather than as code.
+
+**The cadence cost is real and bounded.** FSDS lags ~50 days; companyfacts is
+nightly. **The lag bites only at the live edge, and the live edge does not
+exist** - no DB-backed endpoint, no scoring build order, run phase gated five
+ways. It does not bite the **backtest** at all, which is what the point-in-time
+property was built for.
+**And the two directions are not symmetrical:**
+- **Adding recency later is additive** - a companyfacts layer over a complete
+  store covers the unpublished quarter.
+- **Adding completeness later is a re-ingest** - nothing retrofits dimensions or
+  entity onto rows whose source never had them.
+Same asymmetry as provenance, filing dates and `entity_cik`. **Cheap now,
+impossible later** - and this is the historical store.
+
+**companyfacts is deferred, not rejected, and the gate is recorded as a
+condition:** if a recency layer is wanted, **OPEN-38 must be answered first.**
+If companyfacts returns co-registrant facts under the requested CIK, using it
+would inject wrong-entity rows into a store chosen for correctness.
+**Omission would be tolerable; mislabelling is not.**
+
+### D-next/delisting-eligibility - Companies that have stopped trading
+**Status:** RULED 2026-09-24 (owner, recorded in D19 §2).
+**Choice:** **out of scope for output, in scope for validation.**
+
+**It is an explicit eligibility rule, not an emergent one**, belonging in §5.3
+beside the financials and REITs exclusions. *An exclusion that happens by
+accident - no recent filings, no current price - stops happening the moment
+something upstream changes, and nothing announces that it has stopped.*
+
+**The signal is current listing, and the source is the one we rejected for the
+universe.** `company_tickers.json` contains only currently listed companies.
+**That property is a defect when building a historical universe and precisely
+the right tool for asking whether something is listed today.** Same file,
+opposite verdict, depending on the question - recorded explicitly because the
+register already carries a ruling rejecting it and that must not be read as a
+blanket judgement.
+**Do not infer delisting from absence of filings.** A filer can go quiet and
+resume; a company can deregister and still trade; a late filer is not a dead one.
+**Absence of a filing is absence of evidence.**
+
+**THE TRAP, and it is why this is a ruling rather than a note.** Eligibility
+must be evaluated **as of the scoring date, not as of today.** If the rule is
+*exclude companies not currently listed*, a 2014 backtest excludes every company
+that died between 2014 and now - **and survivorship bias walks straight back in
+through the eligibility gate**, after being kept out of the universe at real
+cost. The universe would be correct, the fact store would be correct, ruling 5
+would have done its job, **and the validation would still be wrong** - the bias
+entering at the last step, in the one component built to enforce correctness.
+
+**So there are two rules, and they are not the same rule:**
+- **Output, today:** exclude filers not currently listed. `company_tickers.json`
+  answers it.
+- **Validation, as of D:** exclude filers not listed **at D**. **We cannot
+  currently answer this at all.**
+
+**What we do not have:** `filer_ticker.valid_from` is an observation date, not a
+listing start (OPEN-35), and **there is no delisting date anywhere in the
+store.** As-of listing status is not derivable from anything we hold - see
+testplan OPEN-43.
+
+**What does not change:** the point-in-time property has **two** justifications
+and survivorship is only one. The other is **restatement lookahead** - reading a
+2018 balance sheet as restated in 2021, for a company alive today. **0001's key,
+the amendment history, 0002 and the runner all stand regardless.** The Lehman
+fixture stays as it is: it proves the machinery, and this ruling is about what
+**leaves** the machinery, not what enters it.

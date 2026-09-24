@@ -1744,7 +1744,98 @@ migration/`schema_admin` collision and nothing cited it.
 OPEN-36 resolved to FSDS; OPEN-39 concerns whether `coreg` resolves to a CIK; and
 three establishments gate the fact-slice handover. **Everything else in D17 is
 unknown.**
-**[PLANNER] Re-send D17 in full.** Until it arrives, any fact-slice work would be
-built on a citation, and the entries it produced would need marking provisional
-per the rule that finding already established.
+**RESOLVED 2026-09-24.** D17 re-sent in full in D19, both documents unchanged.
+**The gap was held for one delivery and cost nothing**, because no work was
+started on the citation - which is what the numbered gap was for.
+**What the document contained that the citation did not:** OPEN-39's **three
+possibilities** and the fact that **§2's ruling rests on two pillars, only one of
+which is established** - so under possibility (3) co-registrant facts are
+*refused* rather than ingested, a much narrower outcome than the citation implied.
+**That is `citations-are-lossy-recovery` confirmed a second time**, and on the
+same axis: the citation carried the decision and not the conditions attached to
+it.
 **Sample:** 1 delivery lost, 1 ruling known only by citation.
+
+### F-next/same-file-opposite-verdict - `company_tickers.json` is wrong for one question and right for the other
+**Date:** 2026-09-24 - **By:** owner ruling via D19 §2.2, recorded by Builder
+**Claim:** the register rejected `company_tickers.json` as a universe source
+because it holds **only currently listed companies** (P-10, measured: 8,049 CIKs,
+Lehman/Sears/BB&B/Enron absent). **The delisting eligibility ruling adopts the
+same file for the opposite reason.**
+**The property did not change; the question did.** *Current-only* is a **defect**
+when asked *which companies existed in 2014* and is **exactly the right
+instrument** when asked *is this company listed today*.
+**Why it is recorded rather than left to be noticed:** the register contains a
+ruling that rejects this file, stated forcefully and with measurements. Someone
+reading that entry alone will take it as a blanket judgement on the source -
+and the correct reading is that a source is fit or unfit **relative to a
+question**, never in itself. Two rulings now point in opposite directions on one
+file and **both are right**.
+**Related:** `F-next/an-instrument-can-be-promoted-without-being-changed` - there
+the question changed under a fixed instrument and made it inadequate; here the
+question changed and made a rejected instrument correct. **Same mechanism, both
+directions.**
+**Sample:** 1 file, 2 rulings, 0 changes to the file.
+
+### F-next/bias-can-re-enter-at-the-last-gate - Survivorship removed from the universe can return through eligibility
+**Date:** 2026-09-24 - **By:** Planner, D19 §3
+**Claim:** ruling 5 keeps survivorship bias out of the **universe** at real cost -
+the bulk archive, the CIK keying, the Lehman proof. **An eligibility rule of
+*exclude companies not currently listed*, applied to a backtest, puts all of it
+back.** A 2014 validation would exclude every company that died between 2014 and
+now.
+**The shape is what makes it worth a finding rather than a fix:** the universe
+would be correct, the fact store would be correct, ruling 5 would have done its
+job exactly as designed - **and the answer would still be wrong.** The bias
+enters **at the last step, in the component built to enforce correctness**, and
+every upstream guard would report success.
+**It generalises past this instance:** a property enforced everywhere upstream
+can be destroyed by one downstream filter, and **upstream correctness offers no
+protection at all** - it is precisely what makes the result look trustworthy.
+**The rule therefore has two forms that are not the same rule:** exclude
+not-listed-today for **output**; exclude not-listed-**at-D** for **validation**.
+**We can answer the first and not the second.**
+**Consequence, recorded rather than deferred:** until as-of listing status
+exists, **any backtest must state in its own output which eligibility rule
+produced it.** *A validation result that does not state which eligibility rule
+produced it is not interpretable* - and putting that in a document beside the
+result is not the same as putting it in the result.
+**Sample:** 1 ruling, 1 trap, 0 upstream guards that would have caught it.
+
+### F-next/one-file-failed-twice-by-the-same-route - The loss is not well modelled as random
+**Date:** 2026-09-24 - **By:** Planner (D19 §1), confirmed by Builder
+**Claim:** `REPORT-Code-2026-09-24-...-0002-provenance.md` has failed to arrive
+**twice**, and **documents issued alongside it arrived both times.**
+
+| Delivery | Contents | Arrived |
+|---|---|---|
+| D12 | manifest + **this report** | manifest only |
+| D14 | 2 new documents + **this report as R1** | both new documents only |
+
+**Three of the four other documents in those two deliveries came through.** One
+file has failed twice on a path that carried everything beside it.
+**That is no longer well modelled as random loss**, and the register should not
+record it as bad luck when the evidence points at something about the file or its
+identity.
+**The file is intact on the Builder's side** - 9,317 bytes, unchanged since
+issue, sha256 `ea34493de76bc6de…`. **So the failure is in delivery, not in
+authorship or storage.**
+
+**Resolution taken: D19 §1 option 2, a marked identity exception.** Re-issued as
+`...-0002-provenance-R2.md`, body byte-identical, carrying a header block that
+states it supersedes nothing and explains why the name differs.
+**Why breaking the rule is the right way to serve it.** The re-send rule holds
+that an unchanged document **keeps** its identity, because *identity is what
+makes a re-send recoverable* - the distinction drawn against
+`same-name-revision`, where a **changed** document reused one. **Here the
+identity is itself what appears to be failing.** Breaking it **visibly and once**,
+with the reason attached, serves the rule's purpose better than a third attempt
+down the same path would.
+**Recorded as an exception with its reason, not as a new convention.** The next
+re-send keeps its filename. If a fourth delivery attempt is needed, the fallback
+is the content pasted directly rather than delivered as a file - a different
+route, not a third identity.
+**And if the R2 arrives where the original twice did not, that is itself the
+finding**, because it discriminates between the two hypotheses: something about
+the path, or something about the name.
+**Sample:** 2 failures, 1 file, 3 of 4 companions delivered.
