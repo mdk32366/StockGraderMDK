@@ -1558,3 +1558,107 @@ cost a migration. It is an argument for the local throwaway cluster being
 0002 and rolled it back with the ledger unwritten. **Per-migration atomicity,
 demonstrated by accident on a real failure** rather than by an injected one.
 **Sample:** 1 reserved word, 9 references, 1 execution to find it.
+
+### F-next/companyfacts-cannot-exercise-the-schema - The convenient source makes two columns permanently trivial
+**Date:** 2026-09-24 - **By:** Builder, establishing the fact-slice sources (D16 §3)
+**Claim:** the XBRL **Company Facts / Company Concept** API - and therefore
+`companyfacts.zip`, which the SEC documents as containing exactly that data -
+**carries no dimensions and no per-fact entity identifier.**
+**Artifact:** `companyconcept/CIK0000320193/us-gaap/AccountsPayableCurrent.json`,
+fetched 2026-09-24. The union of every per-fact key across all 142 facts is:
+
+```
+accn, end, filed, form, fp, frame, fy, start, val
+```
+
+| D16 §3 requirement | companyfacts |
+|---|---|
+| Dimensions | **ABSENT** |
+| Per-fact entity identifier | **ABSENT** - CIK appears once, at the top level: the one you asked for |
+| Accession per fact | present (`accn`) |
+| Filing date per fact | present (`filed`) |
+| Amendment history | **present, and rich** - see below |
+
+**This is precisely the trap D16 §3.1 named**, confirmed rather than feared:
+*a source that returns only consolidated, no-dimension facts keyed by the CIK you
+asked for would make `dimensions` and `entity_cik` permanently trivial - the
+schema right and the data unable to exercise it.*
+`entity_cik` would equal the requested CIK on every row. `dimensions` would be
+`'{}'` on every row. **A8 and the co-registrant fixture would remain the only
+evidence for OPEN-29's fix forever**, because no ingested row could ever
+contradict them.
+
+**Worse than missing, on one point.** 61,122 facts in a single quarter belong to
+a **co-registrant** rather than the filer (see the FSDS finding). Whether
+companyfacts excludes those or returns them attributed to the requested CIK is
+**unestablished** - and if it is the latter, the source does not merely omit the
+distinction, it records the wrong entity. Not asserted; flagged.
+
+**What it IS good for.** Amendment history is present and exactly the shape
+§5.1 needs: **18 of 69 periods are reported by more than one accession**, each
+with its own `accn`, `filed` and `form`. Apple's FY2009 `AccountsPayableCurrent`
+appears under a 10-K (2009-10-27), a 10-K/A (2010-01-25) and three subsequent
+10-Qs - five separate assertions of one period, distinguishable by filing date.
+**That is the point-in-time property available as data.**
+**Size/cadence:** 1,409,389,023 bytes, `Last-Modified: Thu, 24 Sep 2026
+04:24:14 GMT` - refreshed nightly, like `submissions.zip`.
+**Sample:** 1 concept, 142 facts, 9 distinct keys.
+
+### F-next/fsds-carries-dimensions-and-coregistrants - The source that can exercise the schema
+**Date:** 2026-09-24 - **By:** Builder, establishing the fact-slice sources
+**Claim:** the **Financial Statement Data Sets** carry everything companyfacts
+does not. Measured on `2026q2.zip` (60,419,016 bytes), not read from
+documentation:
+
+| Field | Where | Populated |
+|---|---|---|
+| `segments` - **dimensions** | `num.txt` | **2,189,835 of 3,608,711 rows = 60.7%** |
+| `coreg` - **per-fact entity** | `num.txt` | **61,122 rows = 1.69%** |
+| `sic` - **per-SUBMISSION SIC** | `sub.txt` | **7,524 of 7,714 = 97.5%** |
+| `nciks` / `aciks` - co-registrant CIKs | `sub.txt` | 131 submissions have `nciks > 1` |
+| `adsh`, `filed`, `period`, `form` | `sub.txt` | present |
+| `prevrpt` - superseded flag | `sub.txt` | 3 rows |
+
+Example `segments` values: `EquityComponents=CommonStock;`,
+`EquityComponents=AdditionalPaidInCapital;`.
+Example co-registrant submission: `adsh=0000004904-26-000034 cik=4904 nciks=8`
+with seven additional CIKs.
+
+**60.7% is the number that settles §3.1.** Ingesting from companyfacts would not
+lose a rare edge case - **it would discard the majority of the facts filers
+publish**, and it would do so invisibly, because what remains looks like a
+complete consolidated dataset. v1 filters `dimensions = '{}'` by design, but
+**filtering data you have is a decision; not having it is a ceiling.**
+
+**THE COST, and it is real: cadence.** `2026q2.zip` covers filings from
+2026-04-01 to 2026-06-30 and was published **2026-08-19** - a **~50-day lag**
+from quarter end. Against `companyfacts.zip`, refreshed **nightly**.
+So the two sources trade completeness against freshness, and **neither dominates**:
+- FSDS: complete, quarterly, ~50 days stale at publication
+- companyfacts: nightly, and structurally incapable of carrying dimensions or
+  co-registrants
+
+**Not proposing a design** - that is the Planner's, and P-10 is what happens when
+sources are chosen without citing the ruling they satisfy. Reported as the
+trade-off the handover has to resolve.
+**Sample:** 1 quarterly set, 3,608,711 fact rows, 7,714 submissions.
+
+### F-next/sic-at-filing-has-a-source-after-all - OPEN-32's open half, answered
+**Date:** 2026-09-24 - **By:** Builder, establishing the fact-slice sources
+**Claim:** OPEN-32 closed the slice-1 question - the submissions document carries
+SIC at **entity level only**, so `filing.sic_at_filing` stays NULL there - and
+left one half open: *whether per-filing SIC exists in the filing header or in the
+Financial Statement Data Sets.* **It is in the FSDS.**
+`sub.txt` carries **`sic` per submission**, populated on **7,524 of 7,714 rows
+(97.5%)** in 2026q2, alongside `adsh` - so it joins directly to `filing.accession`.
+**The Planner's third hypothesis was the right one**, and it was worth listing as
+a hypothesis rather than guessing: the answer was neither of the first two.
+**Consequence:** `sic_at_filing` is **fillable**, but **not from slice 1's ruled
+source**. It stays NULL until an FSDS-based load exists, and the column remains
+honestly empty rather than wrong in the meantime - which is exactly why leaving
+it NULL was right rather than merely cautious.
+**Not yet established:** whether `sub.txt.sic` is the SIC *as filed* or the
+filer's SIC *as of extract time*. The 97.5% population rate says the field is
+real; it does not say which of those two it means, and **that distinction is the
+entire reason the column exists.** Must be established before it is populated.
+**Sample:** 1 quarterly set, 7,714 submissions.
