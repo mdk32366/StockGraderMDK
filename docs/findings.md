@@ -1397,3 +1397,76 @@ question is not *does it pass* but **what would it do if the new claim were
 false.** `/healthz` would return 200 against a dead database, which is how we
 know Row 4 was never proven.
 **Sample:** 5 instruments, 4 defects, 1 promotion.
+
+### F-next/slice1-proves-ruling-5-end-to-end - The dead filer is in the universe and absent from the crosswalk
+**Date:** 2026-09-23 - **By:** Builder, ingest slice 1
+**Claim:** slice 1 is built and proven on a local PostgreSQL 18.3 cluster,
+destroyed after. **No Fly cluster, no credential, no `stockgrader_scratch`.**
+**The proof that matters is ruling 5 working end to end**, with a fixture shaped
+like the case that motivated it. CIK **806085** (Lehman Brothers Holdings) has a
+10-K filed 2008-01-29 and **no ticker row**:
+
+```
+2008 10-K universe, keyed on CIK alone: [806085]
+Lehman rows in the ticker crosswalk:    0
+```
+
+**The filer is in the universe and absent from the crosswalk, simultaneously.**
+That is the whole design in one result: the universe comes from filing history,
+so a company that stopped trading is still in the year it filed; and the ticker
+file's current-only nature - the thing that would have caused the bias - **costs
+nothing**, because it is used only as an identifier crosswalk.
+
+Had slice 1 been built on the handover's original inputs, that row could not
+exist and the query would have returned an empty 2008 universe **without
+erroring**.
+
+**Also proven:**
+
+| Property | Result |
+|---|---|
+| **Double-ingest idempotency** | run 1 and run 2 both `{filer: 2, filing: 3, filer_ticker: 1}` - identical |
+| **`sic_at_filing` honestly NULL** | 0 filings carry one; `filer.current_sic` populated (3571, 6211) |
+| **Scheme refusal, live** | an ISO 17442 LEI identifier is **refused**, not coerced |
+
+**Idempotency is the schema's, not the loader's.** Every insert is
+`ON CONFLICT DO NOTHING` against a real constraint, so re-running changes nothing
+as a property of the keys rather than of bookkeeping in the client.
+
+**Schema change this forced, and it is worth recording as a design consequence
+rather than a fix:** `filer_ticker` gained
+`PRIMARY KEY (cik, ticker, valid_from)`. **`ON CONFLICT` requires a unique index
+and an EXCLUDE constraint is not one**, so without it a re-run raises instead of
+being a no-op - and idempotency would have had to be faked in the client, which
+is the wrong place for it. The two constraints now do different jobs: the PK
+forbids the same pairing starting twice, the EXCLUDE forbids one ticker
+resolving to two CIKs at once. **Range overlap is not equality and neither
+constraint can express the other.**
+
+**NOT claimed, per the handover's §5:** **this does not exercise A8.** Slice 1
+writes no facts, so `entity_cik` is never written here. A8 and the co-registrant
+fixture remain the only evidence for OPEN-29's fix.
+**Sample:** 1 local cluster, 2 filers, 3 filings, 4 proofs.
+
+### F-next/ticker-crosswalk-has-no-start-dates - `valid_from` is an observation date, not a beginning
+**Date:** 2026-09-23 - **By:** Builder, ingest slice 1
+**Claim:** `company_tickers.json` records which ticker a CIK has **today**. It
+carries **no start date**. So `filer_ticker.valid_from` is stamped with the date
+the pairing was **observed**, and `valid_to` is NULL because it is current.
+**The consequence, stated now rather than discovered by a wrong backtest:** a
+historical ticker lookup against these rows **returns nothing before the first
+observation**. Asking *"which CIK was SYNTH in 2014?"* of crosswalk data first
+seen in 2026 is a question the data cannot answer, and the schema will correctly
+say so rather than guess.
+**Why stamping the observation date is right and inventing a start is not:** a
+plausible `valid_from` - the filer's first filing, say - would be **indis-
+tinguishable from a real one** and would make the range constraint enforce a
+history we made up. An honestly narrow range is recoverable when a real source
+arrives; a fabricated one is not, because nothing marks it as fabricated.
+**Consequence for the design, and it is reassuring rather than alarming:** this
+is exactly why **ruling 5 keys the universe on CIK.** Nothing in the point-in-
+time path depends on historical ticker resolution. The gap is real and it is
+outside the load-bearing path.
+**Open:** recovering true ticker validity ranges needs a source we do not have.
+Not needed by slice 1 and not pretended.
+**Sample:** 1 ticker file, 0 start dates.

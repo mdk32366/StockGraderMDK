@@ -128,6 +128,8 @@ alternation is only as good as its least-tested branch.
 | ~~OPEN-31~~ | **RULED 2026-09-23 (D15).** `filer` + `filing` from **`submissions.zip`** (all filers, full history); `filer_ticker` from `company_tickers*.json` as the **current-day crosswalk only**. §3's intent unchanged, its inputs replaced. Planner error recorded as **P-10**. | - |
 | ~~OPEN-32~~ | **ANSWERED 2026-09-23. `sic_at_filing` has NO source in slice 1 and stays NULL.** The submissions document carries SIC **at entity level only** (`sic`, `sicDescription` - the filer's *current* classification). Its 16 per-filing columns carry **none**. Entity SIC maps to `filer.current_sic`, where it is honest. **Filling `sic_at_filing` from it would put today's classification in a column whose name asserts it is not today's, invisibly and permanently.** Still unestablished and not needed by slice 1: whether per-filing SIC exists in the filing header or the Financial Statement Data Sets. See `F-next/sic-at-filing-has-no-source-in-slice-1`. | - |
 | OPEN-33 | **[RUN PHASE] Acceptance test for `submissions.zip`, stated as pass/fail rather than as a claim.** The archive is correct for our purpose if **CIK 806085 (Lehman Brothers Holdings) is present with filings ending in 2008.** That is the property ruling 5 needs, testable, rather than trusting what *"all filers"* means. | Whether the ruled source actually delivers the historical universe. |
+| OPEN-34 | **D-023 requires recording fetch provenance and there is nowhere to put it.** D-023: *every fetch records source URL, retrieval timestamp, and a hash of the payload*, on the reasoning that raw filings are not stored because accession plus hash makes any row re-derivable. **The client produces all three** (`ingest.edgar.Fetch`) **and 0001 has no table to persist them in.** Until there is one, re-derivability rests on EDGAR being unchanged rather than on anything we recorded. Needs a `fetch` table in a later migration - out of slice 1's ruled scope, so raised rather than added. | D-023 being implemented rather than designed. |
+| OPEN-35 | **Ticker validity ranges before first observation are unavailable.** `filer_ticker.valid_from` is the date the pairing was **observed**, not the date it began - `company_tickers.json` carries no start date (`F-next/ticker-crosswalk-has-no-start-dates`). Historical ticker resolution therefore returns nothing before first observation. **Not on the load-bearing path** - ruling 5 keys the universe on CIK - and not pretended. Recovering true ranges needs a source we do not have. | Any historical ticker-based lookup. |
 
 ## D-019 counter - RETIRED 2026-09-23. `windows-setup` is a required check.
 
@@ -259,3 +261,9 @@ now rather than waiting on the gate.
   non-hermetic. They were proven against a local PostgreSQL 18.3 cluster, which
   is **not** the platform's version and **not** through a pooler. A hermetic
   green in the gate is not evidence that a migration applies.
+- *(future)* **Ingest slice 1 loading into Postgres.** Parsing, the rate limit,
+  403 handling and the scheme refusal are hermetic and in the gate (21 tests).
+  **Loading and double-ingest idempotency are not** - they were proven against a
+  local PostgreSQL 18.3 cluster, which is neither the platform's major version
+  (OPEN-30) nor behind a pooler (OPEN-21). A hermetic green is not evidence that
+  ingest loads.

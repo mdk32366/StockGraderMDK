@@ -80,6 +80,20 @@ CREATE TABLE filer_ticker (
     valid_from  date        NOT NULL,
     valid_to    date        NULL,
     CONSTRAINT filer_ticker_range_sane CHECK (valid_to IS NULL OR valid_to > valid_from),
+
+    -- The two constraints do different jobs and both are needed.
+    --
+    -- This primary key forbids the SAME (cik, ticker) starting twice on the
+    -- same day. It also gives ingest a conflict target: `ON CONFLICT DO
+    -- NOTHING` requires a unique index, and an EXCLUDE constraint is not one.
+    -- Without it, re-running the loader raises instead of being a no-op, and
+    -- idempotency would have to be faked by the client — which is the wrong
+    -- place for it.
+    CONSTRAINT filer_ticker_pk PRIMARY KEY (cik, ticker, valid_from),
+
+    -- This forbids one ticker resolving to two CIKs at the same instant, while
+    -- permitting reassignment over time. The primary key cannot express that;
+    -- range overlap is not equality.
     CONSTRAINT filer_ticker_no_overlap EXCLUDE USING gist (
         ticker WITH =,
         daterange(valid_from, valid_to, '[)') WITH &&
