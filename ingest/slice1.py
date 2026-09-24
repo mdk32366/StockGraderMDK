@@ -11,6 +11,14 @@ Enron are all absent. A universe seeded from them cannot contain a company that
 stopped trading, which is the survivorship bias ruling 5 exists to close. They
 are the identifier crosswalk and nothing else (P-10).
 
+PROVENANCE
+----------
+Every row written here carries the fetch it was derived from (0002,
+`source_fetch_id`, NOT NULL). The fetch is recorded first, in the same
+transaction as the rows it produces, so a failure takes both. D-023's claim -
+that raw filings need not be stored because accession plus hash makes any row
+re-derivable - is true of this data rather than aspirational.
+
 IDEMPOTENCY IS THE SCHEMA'S, NOT THIS MODULE'S
 ----------------------------------------------
 Every insert is `ON CONFLICT DO NOTHING` against a real constraint. Re-running
@@ -195,15 +203,55 @@ def parse_company_tickers(document: bytes | str, *, as_of: date) -> list[TickerR
 # Loading. Every statement is ON CONFLICT DO NOTHING against a real constraint.
 # ---------------------------------------------------------------------------
 
-def load_filers(cur, filers) -> int:
-    rows = [(f.cik, f.current_name, f.current_sic, f.current_sic_desc, f.metadata_as_of)
+def record_fetch(cur, fetch) -> int:
+    """Record a retrieval and return its fetch_id.
+
+    Takes an ``ingest.edgar.Fetch`` - the client already produced D-023's three
+    required values and, before 0002, had nowhere to put them.
+
+    **Called before the rows it provenances, in the same transaction.** If the
+    load fails, the fetch row goes with it. A fetch row without the data it
+    produced is merely untidy; data without its fetch row is unprovenanced
+    forever, because re-fetching produces a new fetch rather than evidence of
+    the old one.
+
+    ``ON CONFLICT DO NOTHING`` on (url, retrieved_at) makes re-recording the
+    same retrieval a no-op, so the loader stays idempotent. Note what it does
+    **not** collapse: the same URL fetched at a different moment is a different
+    event and gets its own row, whether or not the payload changed. That is the
+    point of the key.
+    """
+    cur.execute(
+        """
+        INSERT INTO fetch_log (url, retrieved_at, sha256, content_bytes)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (url, retrieved_at) DO NOTHING
+        RETURNING fetch_id
+        """,
+        (fetch.url, fetch.retrieved_at, fetch.sha256, len(fetch.body)),
+    )
+    row = cur.fetchone()
+    if row is not None:
+        return row[0]
+    # DO NOTHING suppresses RETURNING, so this retrieval was already recorded.
+    cur.execute(
+        "SELECT fetch_id FROM fetch_log WHERE url = %s AND retrieved_at = %s",
+        (fetch.url, fetch.retrieved_at),
+    )
+    return cur.fetchone()[0]
+
+
+def load_filers(cur, filers, *, fetch_id: int) -> int:
+    rows = [(f.cik, f.current_name, f.current_sic, f.current_sic_desc,
+             f.metadata_as_of, fetch_id)
             for f in filers]
     if not rows:
         return 0
     cur.executemany(
         """
-        INSERT INTO filer (cik, current_name, current_sic, current_sic_desc, metadata_as_of)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO filer (cik, current_name, current_sic, current_sic_desc,
+                           metadata_as_of, source_fetch_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
         ON CONFLICT (cik) DO NOTHING
         """,
         rows,
@@ -211,17 +259,18 @@ def load_filers(cur, filers) -> int:
     return len(rows)
 
 
-def load_filings(cur, filings) -> int:
+def load_filings(cur, filings, *, fetch_id: int) -> int:
     rows = [(f.accession, f.cik, f.form_type, f.filing_date,
-             f.period_of_report, f.is_amendment)
+             f.period_of_report, f.is_amendment, fetch_id)
             for f in filings]
     if not rows:
         return 0
     cur.executemany(
         """
         INSERT INTO filing (accession, cik, form_type, filing_date,
-                            period_of_report, is_amendment, sic_at_filing)
-        VALUES (%s, %s, %s, %s, %s, %s, NULL)
+                            period_of_report, is_amendment, sic_at_filing,
+                            source_fetch_id)
+        VALUES (%s, %s, %s, %s, %s, %s, NULL, %s)
         ON CONFLICT (accession) DO NOTHING
         """,
         rows,
@@ -229,8 +278,9 @@ def load_filings(cur, filings) -> int:
     return len(rows)
 
 
-def load_tickers(cur, tickers) -> int:
-    rows = [(t.cik, t.ticker, t.exchange, t.valid_from, t.valid_to) for t in tickers]
+def load_tickers(cur, tickers, *, fetch_id: int) -> int:
+    rows = [(t.cik, t.ticker, t.exchange, t.valid_from, t.valid_to, fetch_id)
+            for t in tickers]
     if not rows:
         return 0
     # Conflict target is filer_ticker_pk (cik, ticker, valid_from). The EXCLUDE
@@ -238,8 +288,9 @@ def load_tickers(cur, tickers) -> int:
     # is why 0001 carries both.
     cur.executemany(
         """
-        INSERT INTO filer_ticker (cik, ticker, exchange, valid_from, valid_to)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO filer_ticker (cik, ticker, exchange, valid_from, valid_to,
+                                  source_fetch_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
         ON CONFLICT (cik, ticker, valid_from) DO NOTHING
         """,
         rows,

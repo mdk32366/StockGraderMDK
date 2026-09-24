@@ -1470,3 +1470,91 @@ outside the load-bearing path.
 **Open:** recovering true ticker validity ranges needs a source we do not have.
 Not needed by slice 1 and not pretended.
 **Sample:** 1 ticker file, 0 start dates.
+
+### F-next/0002-provenance-keyed-on-the-event - A fetch is a moment, not a property of a URL
+**Date:** 2026-09-24 - **By:** Builder, migration 0002 (OPEN-34)
+**Claim:** `fetch_log` is keyed on **`(url, retrieved_at)`**. Not `(url)`, and
+not `(url, sha256)`.
+**`(url)` is the key that looks right** - one row per thing we fetched - and it
+is 0001's defect in a new table. It permits exactly one row per URL, so a second
+fetch can only be stored by overwriting the first, **destroying the history of
+retrievals and with it the only evidence of when a payload changed.**
+**`(url, sha256)` is subtler and also wrong.** It collapses repeated identical
+fetches into one row, discarding the most useful thing an unchanged re-fetch
+tells you: **the resource was still unchanged at a later moment.** That is not a
+duplicate. It is a second observation, and it **bounds the window in which a
+change did not happen.**
+
+**What the chosen key makes impossible:**
+1. **Losing a retrieval by re-fetching.** Every fetch is an event; every event
+   gets a row.
+2. **Answering *what did this URL contain?* as though that were a property of
+   the URL.** It is a property of a **moment**, and the schema will only answer
+   it that way.
+3. **Two fetches being indistinguishable.** Same URL, same bytes, different
+   instant - two rows, correctly.
+
+**The two cases D16 §2.5 asked about, and which is a finding - proven, not
+argued:**
+
+| Case | Result | Finding? |
+|---|---|---|
+| Same URL, **same** payload, twice | 2 rows, 1 distinct hash, **0 flagged** | **No.** Evidence of non-change. |
+| Same URL, **different** payload | 2 rows, 2 distinct hashes, **surfaced** | **YES.** |
+
+**The second is the finding because it retroactively falsifies D-023.** *Accession
+plus hash makes any row re-derivable* becomes **false** for every row derived
+from the superseded payload - that payload no longer exists anywhere. The
+`fetch_content_change` view surfaces it.
+
+**Deliberately a view, not a constraint or a trigger.** A changed payload is a
+**real-world event, not corruption.** A constraint rejecting it would simply stop
+us recording the truth, and a trigger would have to decide what to do at write
+time when the only correct answer is *tell a human*.
+**Sample:** 1 URL, 3 retrievals, 2 payloads, 1 finding.
+
+### F-next/0002-refuses-to-backfill - The migration encodes its own unretrofittability
+**Date:** 2026-09-24 - **By:** Builder, migration 0002
+**Claim:** 0002 adds `source_fetch_id` as **NULL**, inspects for rows that have
+none, and **RAISES if any exist** - taking the whole migration down with it.
+It never backfills.
+**Why refusing is the only honest option.** A provenance row describes a fetch:
+its URL, its moment, and the hash of what came back. **Once a fetch has happened
+unrecorded, that record cannot be reconstructed** - not from the database, not
+from EDGAR, not from anything, because **re-fetching produces a new fetch rather
+than evidence of the old one.** Any value invented here would be **a fabricated
+fetch behind real data, indistinguishable from a real one forever after** - the
+same class as a fabricated ticker `valid_from` (OPEN-35) and the same class as
+filling `sic_at_filing` from the entity's current SIC (OPEN-32).
+**Why it is worth encoding rather than asserting.** D16 §2.1's argument for
+doing provenance *before* the fact slice is that it is unretrofittable. **A
+comment saying so is a claim; a migration that stops rather than improvise is the
+property.** Proven live: dropping the NOT NULL, inserting one legacy row and
+re-running the block returns
+*"0002 REFUSES TO BACKFILL: 1 row(s) exist that were loaded before provenance was
+recorded."*
+**NOT NULL is the other half.** After the check passes, the columns are set NOT
+NULL on all three tables, so **an unprovenanced row stops being representable** -
+not discouraged, not conventionally avoided, **impossible**.
+**Sample:** 1 refusal block, 1 injected legacy row, 1 refusal.
+
+### F-next/fetch-is-a-reserved-word - The table name was caught by running it, not by reading it
+**Date:** 2026-09-24 - **By:** Builder, migration 0002
+**Claim:** `CREATE TABLE fetch` is a **syntax error** in PostgreSQL. `FETCH` is
+a reserved word (`FETCH FIRST n ROWS`), so the table cannot be named that without
+quoting every reference to it forever. Renamed **`fetch_log`**.
+**Why it is recorded at all:** the file had been written, read back, and
+reviewed - the name appeared in a heading, a table definition, three foreign
+keys, a view, two indexes and a comment block - and **nothing about it looked
+wrong**, because it is the obviously correct English word for the thing. The
+error surfaced **the first time the migration was executed**, at
+`LINE 89: CREATE TABLE fetch (`.
+**The general form:** **reserved-word collisions are invisible to review and
+instant under execution**, and they get more expensive the later they are found -
+this one cost a rename before any data existed; found after ingest it would have
+cost a migration. It is an argument for the local throwaway cluster being
+*cheap* rather than merely *available*.
+**Incidental confirmation:** the runner applied 0001, committed it, then failed
+0002 and rolled it back with the ledger unwritten. **Per-migration atomicity,
+demonstrated by accident on a real failure** rather than by an injected one.
+**Sample:** 1 reserved word, 9 references, 1 execution to find it.
