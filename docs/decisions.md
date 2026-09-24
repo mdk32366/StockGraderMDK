@@ -852,6 +852,18 @@ already numbers both directions, and both F-020 losses went one way each - **a
 rule that guards one direction guards whichever direction failed most recently.**
 **Today's deliveries:** D1 (first manifest), D2 (its r2), D3. Retroactive, and
 **nothing is renamed** - the mapping is stated in D3.
+
+**Date convention - RATIFIED 2026-09-24 (D18 §2).** **The count keys on the date
+in the filename, not on arrival.** D16's documents are dated 2026-09-23 and count
+against the 23rd although they arrived on the 24th. Both sides apply it.
+*Recorded because two parties computing the same figure by different rules is how
+a real shortfall gets explained away as a convention mismatch.*
+**A delivery sequence does not reset at a date boundary.** D16 -> D17 and
+D11 -> D12 both cross one; a predecessor manifest carrying a different date is
+not a loss.
+**Every manifest states the expected distinct count in advance**, and the
+receiving side runs it. That expectation - not the count - is what has twice
+caught a Builder method error. See `F-next/an-expectation-is-what-makes-a-count-a-check`.
 **Reconciliations to date:** D1 7 entries, D2 9, D3 3. One predicted absence,
 confirmed three times. Nothing unaccounted. See `F-next/manifest-adopted`.
 

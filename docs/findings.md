@@ -557,6 +557,23 @@ the first thing outside its coverage.
 
 **Third - the document count is a real cross-check, and it caught something on
 its first use.** See `F-next/manifest-count-double-counts`.
+
+**Fourth - the chain has now handled three DISTINCT failure modes**, and the
+third is the one that shows it degrades well rather than only working intact:
+
+| Mode | Instance | What survived |
+|---|---|---|
+| **Whole-delivery loss** | D4, D9, D17 | Only the *fact* of a gap. Size derived from a later cumulative; D4's second document was never identified until re-sent. |
+| **Cited-document loss** | `relay-loss-recurrence` | The citation, which is lossy - D9 §3 was never cited and was the most consequential item in it. |
+| **Manifest survives payload** | D12 (Code -> Planner) | **The missing document, named by filename, with no inference at all.** |
+
+**The third is the best failure of the three** and it is worth saying why: the
+manifest outlived the delivery it described. *A guard that fails gracefully is
+worth more than one that only works intact*, and this is the first evidence the
+chain does.
+**It is also the first loss in the Code -> Planner direction today.** The three
+before it all went Planner -> Code, which had begun to look like a property of
+the relay rather than of chance. It is not.
 **Sample:** 3 manifests, 19 entries, 1 predicted absence confirmed 3 times.
 
 ### F-next/manifest-count-double-counts - The cumulative document count double-counts carried-forward entries
@@ -1662,3 +1679,72 @@ filer's SIC *as of extract time*. The 97.5% population rate says the field is
 real; it does not say which of those two it means, and **that distinction is the
 entire reason the column exists.** Must be established before it is populated.
 **Sample:** 1 quarterly set, 7,714 submissions.
+
+### F-next/an-expectation-is-what-makes-a-count-a-check
+**Date:** 2026-09-24 - **By:** Planner, sharpening the Builder's two near-misses
+**Claim:** the delivery count has now caught **the Builder's method twice** -
+once a duplicate-classification loop that returned 8 against 3 candidates, once a
+filename filter that returned 56 against 36 by sweeping in a different day's
+documents. **Neither was caught by the count. Both were caught by the count
+disagreeing with a figure stated in advance.**
+**The general form, and it is stronger than the argument for counting:**
+**a count with no prior expectation cannot catch a method error.** It runs, it
+produces a number, the number looks like an answer, and **nothing disputes it**.
+The expectation is what converts a measurement into a check - it supplies the
+second opinion that a single measurement structurally cannot.
+**This is the seventh instance of the instrument pattern** and the second in
+which the failing instrument was **the Builder's own verification method** rather
+than the thing being verified. Both times the method **ran cleanly**. Both times
+the output was well-formed. **A filter that runs cleanly still returns a
+number.**
+**Rule, now standing on both sides:** every manifest states the expected figure
+in advance; the receiving side runs the count and compares. It costs one line and
+has earned its place twice.
+**Sample:** 2 method errors, 2 caught by disagreement with a prior expectation,
+0 caught by the count alone.
+
+### F-next/review-and-execution-catch-disjoint-defects - PROVISIONAL
+**Date:** 2026-09-24 - **By:** Planner, pairing two Builder findings
+**Claim, offered as provisional and recorded as such:** two defects found on the
+same day are invisible to opposite methods, and **neither review nor execution
+alone would have caught both.**
+
+| Defect | Invisible to | Caught by |
+|---|---|---|
+| **B1's tautology** - `filing_date <= D AND filing_date > D` | **Execution.** It ran clean and proved nothing; every run passed. | **Reasoning** about what the predicate could ever evaluate to. |
+| **`CREATE TABLE fetch`** - reserved word | **Review.** Nine readings across a heading, a table, three FKs, a view, two indexes and a comment block. It is the obviously correct English word. | **Execution**, instantly, on the first run. |
+
+**Why the pairing is a stronger claim than either finding alone.** Each on its
+own reads as an argument for more care of one kind. Together they say something
+else: **the two methods have disjoint blind spots**, and a process that leans on
+either exclusively will keep one of these classes permanently. A review culture
+never finds the reserved word; a run-it-and-see culture never finds the
+tautology, because it passes.
+**Status: provisional.** Recorded here rather than promoted to doctrine because
+it rests on two instances one day apart, and a pattern with n=2 is a hypothesis
+with a good story. It earns promotion if a third defect lands cleanly on either
+side of the split.
+**Sample:** 2 defects, 2 methods, 0 overlap.
+
+### F-next/open-39-unknown-recorded-as-a-gap
+**Date:** 2026-09-24 - **By:** Builder, reconciling D18
+**Claim:** D18 §5 states *"OPEN-36 stands - the Financial Statement Data Sets,
+conditioned on **OPEN-39** (`coreg` resolvable to a CIK), with §5's
+establishments before the fact-slice handover: `prevrpt` recorded never filtered,
+the `ddate`/`qtrs` period derivation established against documentation, and the
+archive's earliest quarter."*
+**That ruling is in D17, which never arrived.** OPEN-36 has therefore been
+**ruled in the Builder's favour** - FSDS chosen - and the Builder **has not seen
+the ruling**, only D18's citation of it.
+**Recorded as a numbered gap rather than acted on.** OPEN-39's text is unknown;
+so are the precise terms of §5's three establishments. **Working from the
+citation is exactly `F-next/citations-are-lossy-recovery`** - D9 §3 held the
+migration/`schema_admin` collision and nothing cited it.
+**What the citation does give us**, and it is enough to know what is missing:
+OPEN-36 resolved to FSDS; OPEN-39 concerns whether `coreg` resolves to a CIK; and
+three establishments gate the fact-slice handover. **Everything else in D17 is
+unknown.**
+**[PLANNER] Re-send D17 in full.** Until it arrives, any fact-slice work would be
+built on a citation, and the entries it produced would need marking provisional
+per the rule that finding already established.
+**Sample:** 1 delivery lost, 1 ruling known only by citation.
