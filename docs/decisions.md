@@ -1006,3 +1006,62 @@ and survivorship is only one. The other is **restatement lookahead** - reading a
 the amendment history, 0002 and the runner all stand regardless.** The Lehman
 fixture stays as it is: it proves the machinery, and this ruling is about what
 **leaves** the machinery, not what enters it.
+
+
+### D-next/coverage-window - OPEN-51: the 45 most recent FSDS quarters
+**Status:** RULED 2026-09-24 (owner, recorded in D22).
+**Choice:** the fact slice loads the **45 most recent FSDS quarters** - roughly
+2015q1 through 2026q2 - trimming the oldest end of the archive's usable range.
+**Measurement comes first regardless:** one quarter into a local cluster, table
+and index sizes taken, multiplied by 45, **reported before 45 are loaded.**
+
+**Why measure first:** *loading 45 quarters to find out where we sit is measuring
+by doing the expensive thing.* The asymmetry is at the failure end - **a
+measurement costs an hour; a load that does not fit costs deleting from a
+database that already holds the data.** With the figure in hand, 45 is **a
+decision rather than an experiment.**
+
+**Why the OLDEST quarters are the right ones to drop**, recorded because *recent
+data is more useful* is the weaker argument and would not survive scrutiny:
+- **The archive cannot supply 2008 under any option.** It begins 2009q1 and is
+  not usable until ~2011q4 (OPEN-42), so **every available window is entirely
+  post-crisis.** No choice here buys the event a durability model would most want
+  to have seen - **a property of the source, not of this ruling.**
+- **The fifteen dropped quarters (~2011q4-2014q4) are the benign recovery
+  years** - the weakest available test of whether a growth-quality score
+  identifies companies that survive stress. **The 2015-16 industrial and energy
+  recession and the 2020 drawdown both sit INSIDE the 45.**
+- So **the marginal validation value of the dropped quarters is lower than their
+  row count suggests.** Storage is the occasion, not the reason.
+
+**THE CONDITION - coverage is recorded as data.** *Which quarters are loaded must
+be answerable from the store*, not from memory or a handover.
+**Without it:** someone runs a 2013 backtest against a store beginning in 2015
+and gets **a well-formed, nearly empty answer that looks like a result** - code
+correct, query valid, coverage the thing nobody stated. That is **OPEN-42's
+nominal-versus-usable problem arriving from our own choice** rather than the
+SEC's phase-in, and it is the **ninth instrument**.
+1. **Loaded quarters are rows**, with per-quarter fact counts, so the store
+   answers *what does this cover?* directly.
+2. **Any validation states its window in its own output**, not beside it. *A
+   validation result that does not carry its coverage is not interpretable, and
+   the one that silently has none is worse than an error.*
+
+**This does not weaken *store, don't filter*.** That rule still governs
+everything **inside** the loaded window - `prevrpt`, dimensions, superseded
+facts. **The coverage boundary is a load decision recorded as data, not a filter
+applied to data we hold**, and that distinction is what keeps it honest: *we are
+not hiding quarters we have, we are recording which ones we took.*
+
+**If the measurement says 45 does not fit: report and stop.** Order of
+preference: (1) narrow the **concept** set to the TDD's §4 blocks plus a margin;
+(2) increase the disk; (3) **not** narrowing dimensions.
+**Reversibility is what separates (1) from (3).** FSDS quarterly archives are
+**immutable once published** - now measured, see
+`F-next/open-44-answered-per-source` - and re-readable indefinitely, so a narrow
+concept set **can be widened later from an archive that has not changed.**
+Discarding the 60.7% of dimensioned rows would leave a store **indistinguishable
+from the companyfacts one we rejected**, and OPEN-36 would have bought nothing.
+**The same reversibility applies to the window:** quarters not loaded today can
+be loaded later from the same unchanged archives, **so 45 is a starting position,
+not a permanent bound.**

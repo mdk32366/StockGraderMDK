@@ -2040,3 +2040,64 @@ the backtest's reach by nearly three years** - the TDD requires ≥3 years of
 filing history for eligibility, so a validation dated 2010 would run on a
 fraction of the market and **look like a validation**.
 **Sample:** 1 readme, 3,608,711 rows, 11 quarters probed.
+
+### F-next/open-44-answered-per-source - The hash works for the fact source and not for the universe source
+**Date:** 2026-09-24 - **By:** Builder, OPEN-44's fetch-twice test
+**Claim:** `fetch_log`'s response-level hash is **a valid change detector for the
+Financial Statement Data Sets and not for `submissions.zip`.** The Planner's
+per-source hypothesis is confirmed, and the split is clean.
+
+| Source | Test | Result |
+|---|---|---|
+| **FSDS `2026q2.zip`** | fetched twice, 3s apart | **60,419,016 bytes and sha256 `d7c815395cd420cf…` both times - IDENTICAL** |
+| **`submissions.zip`** | measured 24h apart | **1,565,081,455 -> 1,565,294,470 bytes - CHANGED** |
+
+**So the rebuild-nondeterminism hypothesis is refuted for FSDS.** No per-request
+recompression, no member reordering, no embedded timestamps moving. The response
+is **byte-deterministic**, which is what the hypothesis actually doubted.
+
+**And that makes `fetch_content_change` correct on the primary fact source.** A
+changed hash on a quarterly archive is **not routine noise - it would mean the
+SEC republished that quarter**, which is exactly the event D-023's
+re-derivability claim is about. **The detector fires on the source that matters
+and stays quiet as designed.**
+
+**The precise claim, because two things are easy to conflate.** This proves the
+**response is deterministic**, not that the archive **will never be republished**.
+The first is what the nondeterminism hypothesis doubted and is now settled. The
+second is the thing the detector exists to catch, and it remains possible - which
+is the point of keeping the detector rather than a reason to doubt it.
+**Three seconds is a weak interval for a durability claim and a sufficient one
+for a determinism claim**, and only the second was being tested.
+
+**Consequence for the design:** the member-level hashing question
+(OPEN-44 Q2/Q3) applies **only to `submissions.zip`**, whose response hash is a
+**build identifier**. FSDS needs nothing - the response *is* the unit, because
+the unit does not move.
+**Sample:** 1 archive fetched twice, 1 archive measured across a rebuild.
+
+### F-next/d21-lost-fact-slice-handover-unknown
+**Date:** 2026-09-24 - **By:** Builder, reconciling D22
+**Claim:** **delivery D21 never arrived** - both documents. D22's check expected
+**48 distinct**; **46** are on disk, and the shortfall is exactly D21's two.
+**What it carried, inferred from D22's citations and not assumed:**
+`HANDOVER-Planner-2026-09-24-...-fact-slice.md` - the fact-slice handover itself -
+plus **OPEN-47 through OPEN-50**. D22 answers *"§5 of"* that handover and cites
+**§4.3** (*store, don't filter*) and **§5**'s order of preference.
+**What the citations give us:** OPEN-48 concerns `version` and filer extension
+tags, OPEN-49 `segments` truncation, OPEN-50 `adsh` formatting; §5's preference
+order is concept-narrowing, then disk, **not** dimension-narrowing.
+**What they do not give us:** the precise questions, their falsification
+conditions, §4's rules, and whatever else the handover contains that nothing
+cited - **which is the exact shape of `citations-are-lossy-recovery`.** D9 §3
+held the most consequential item in that document and nothing cited it; D17 held
+OPEN-39's three possibilities and the two-pillar condition, and the citation
+carried neither.
+**Third whole-delivery loss today** (D4, D9, D17, D21 - fourth overall), and the
+count caught it against a stated expectation as every previous one was.
+**[PLANNER] Re-send D21 in full.**
+**What proceeds meanwhile, and why only this:** **OPEN-44's fetch-twice test was
+fully specified in D20** - a delivery held in hand - so it does not rest on any
+citation. It is done. **OPEN-48, 49 and 50 are not started**, because their terms
+exist only as three-word summaries in another document.
+**Sample:** 1 delivery lost, 2 documents, 1 handover unknown.
