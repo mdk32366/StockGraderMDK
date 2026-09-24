@@ -1928,3 +1928,115 @@ to**. n=1 against a prior of two failures.
 stays one-time and the next re-send keeps its filename - which is also the
 cleaner trial if one is ever needed.
 **Sample:** 1 experiment, 2 variables, 1 conclusion held loosely.
+
+### F-next/coreg-is-a-marker-not-an-identifier - OPEN-39 is possibility (3), and OPEN-36 loses a pillar
+**Date:** 2026-09-24 - **By:** Builder, establishing OPEN-39
+**Claim:** FSDS `num.txt.coreg` is **a free-text label with no reliable path to a
+CIK.** It is a per-fact entity **marker**, not a per-fact entity **identifier**.
+
+**Documentation** (`readme.htm`, authoritative): *"coreg - coregistrant of the
+parent company registrant (if applicable)"*. **No mention of CIK.**
+
+**Measured on 2026q2, 61,122 coreg rows across 990 distinct labels:**
+
+| Test | Result |
+|---|---|
+| Values that are numeric (could be a CIK) | **0 of 990** |
+| Submissions with coreg facts that have **any `aciks`** to resolve against | **81 of 1,297 = 6.2%** |
+| Submissions with coreg facts and **no `aciks` at all** | **1,216 = 93.8%** |
+| Rows under **opaque sequence codes** (`EBP001`, `EBP002`…) | **21,064 = 34.5%** |
+
+**Possibility (2) - resolution against `sub.txt.aciks` - fails on availability,
+not on matching.** For **93.8%** of the submissions there is nothing to resolve
+against: no additional CIKs are listed at all. The mapping does not have a
+failure rate; **it has no domain.**
+
+**And a third of the rows are beyond any resolution in principle.** `EBP001`
+through `EBP0nn` are within-filing sequence labels - almost certainly employee
+benefit plans numbered by the filer. They have **no external referent of any
+kind**, so no lookup table anywhere could resolve them.
+
+**CONSEQUENCE 1 - the scheme-refusal rule applies, and it is the rule working.**
+`entity_cik` is `bigint NOT NULL REFERENCES filer`. Slice 1 established that an
+identifier under another scheme **makes ingest fail rather than be coerced**. A
+`coreg` label is exactly that. So **co-registrant facts are REFUSED** - roughly
+**1.69% of facts** - rather than attributed to the parent's CIK, which is what
+coercion would mean and what `F-next/entity-missing-from-fact-key` was written to
+prevent.
+**That is a narrower outcome than OPEN-36 assumed**, and it is a deliberate
+refusal rather than an emergent rejection rate - which is why the ruling asked
+for it to be reported rather than discovered.
+
+**CONSEQUENCE 2 - OPEN-36 rests on ONE pillar, and the record must say so.**
+The ruling was argued on dimensions **and** a per-fact entity. **The second does
+not hold.** The first does, decisively - 60.7% - and FSDS remains correct
+against companyfacts on that basis alone. But *"the decision record should say
+which of the two pillars it rests on"* was the right instruction and the answer
+is: **dimensions.**
+
+**CONSEQUENCE 3, and it is uncomfortable:** `entity_cik` will be **trivially the
+filer's CIK on every ingested row** - which is the exact condition that
+disqualified companyfacts. **The difference is that here it is a refusal we chose
+and can see**, not a silence we could not detect: the refused rows are countable,
+and `fetch_log` plus the loader's rejection path make them visible. **A known
+1.69% gap is a different object from an invisible misattribution.**
+**Sample:** 1 quarterly set, 61,122 coreg rows, 990 labels, 0 CIKs.
+
+### F-next/fsds-field-semantics-established - OPEN-40, 41 and 42, from the documentation
+**Date:** 2026-09-24 - **By:** Builder, establishing D17 §5
+**Source:** `readme.htm` inside `2026q2.zip` - **the archive's own
+documentation**, per the instruction not to infer the encoding from samples.
+
+**OPEN-40 - `prevrpt`, and the Planner's reading is confirmed verbatim.**
+> *"Previous Report. TRUE indicates that the submission information was
+> subsequently amended."* BOOLEAN (1 true, 0 false).
+
+**So `prevrpt=1` marks the ORIGINAL that was later amended** - not the amendment,
+and not a defective row. **It flags precisely the value that was knowable at the
+time**, which is the thing a point-in-time store exists to hold.
+**Filtering on it would delete the original and keep only the restatement**,
+implementing the latest-value trap with the platform's assistance. **Store the
+flag; never exclude on it.** Recorded as documented fact rather than inference.
+
+**OPEN-41 - the period derivation, established not inferred.**
+> *"ddate - period end date"*, *"qtrs - duration in number of quarters"*
+
+Observed distribution over 3,608,711 rows confirms the encoding:
+
+| `qtrs` | rows | meaning |
+|---|---|---|
+| **0** | **1,980,167 (54.9%)** | **instant** - balance-sheet points |
+| 1 | 974,152 | one quarter |
+| 4 | 515,012 | annual |
+| 2, 3 | 139,017 | two and three quarters |
+| 5 | 54 | five quarters |
+
+**Derivation onto 0001's columns:**
+- `period_end` = `ddate`
+- `period_type` = `'instant'` if `qtrs = 0` else `'duration'`
+- `period_start` = `ddate` when instant (0001's `period_start = period_end`
+  convention); otherwise `ddate` minus `qtrs` quarters
+
+**`qtrs = 0` being the largest bucket is the corroboration that matters** - it is
+what a balance-sheet-heavy dataset should look like, and an encoding read the
+wrong way round would have put the majority of rows in the wrong period type.
+
+**OPEN-42 - the archive begins 2009q1, and that is not the usable bound.**
+
+| Quarter | Size |
+|---|---|
+| 2008q4 and earlier | **404 - does not exist** |
+| 2009q1 | 13,540 bytes - effectively empty |
+| 2009q2 | 144,894 |
+| 2009q4 | 4,050,938 |
+| 2010q4 | 14,679,781 |
+| **2011q4** | **64,306,658** |
+| 2012q2 | 80,075,771 |
+| 2013q2 | 96,917,655 |
+
+**The nominal start is 2009q1 and the useful start is ~2011q4**, as XBRL
+mandate phase-in completed. **Reporting the nominal date alone would overstate
+the backtest's reach by nearly three years** - the TDD requires ≥3 years of
+filing history for eligibility, so a validation dated 2010 would run on a
+fraction of the market and **look like a validation**.
+**Sample:** 1 readme, 3,608,711 rows, 11 quarters probed.

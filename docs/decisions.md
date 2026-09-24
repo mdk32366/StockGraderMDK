@@ -941,6 +941,19 @@ property was built for.
 Same asymmetry as provenance, filing dates and `entity_cik`. **Cheap now,
 impossible later** - and this is the historical store.
 
+**WHICH PILLAR THIS RESTS ON - established 2026-09-24, and it is one of the
+two.** The ruling was argued on dimensions **and** a per-fact entity identifier.
+**OPEN-39 establishes that the second does not hold:** `coreg` is free text with
+no path to a CIK - 0 of 990 values numeric, 93.8% of carrying submissions have no
+`aciks` to resolve against, 34.5% of rows use opaque within-filing codes.
+**So this decision rests on DIMENSIONS ALONE (60.7%)**, which is decisive on its
+own, and the record says so rather than leaving a withdrawn argument standing.
+**Consequence:** co-registrant facts are **refused** under the scheme rule
+(~1.69% of facts) rather than coerced to the parent's CIK. `entity_cik` will be
+trivially the filer's CIK on every ingested row - **the same condition that
+disqualified companyfacts, but as a chosen, countable refusal rather than an
+invisible misattribution.** See `F-next/coreg-is-a-marker-not-an-identifier`.
+
 **companyfacts is deferred, not rejected, and the gate is recorded as a
 condition:** if a recency layer is wanted, **OPEN-38 must be answered first.**
 If companyfacts returns co-registrant facts under the requested CIK, using it
