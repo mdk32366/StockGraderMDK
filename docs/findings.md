@@ -2218,3 +2218,134 @@ not** - 31 rows per quarter is small enough to report individually and far too
 important to drop. For this measurement the 32 were **skipped and counted**,
 which is acceptable for a sizing probe and would not be acceptable for a load.
 **Sample:** 3,608,711 rows, 32 collisions, 31 disagreeing.
+
+### F-next/open-48-49-50-answered - The three establishments, both quarters
+**Date:** 2026-09-24 - **By:** Builder, D21 §4.2 and D24 §4
+**Measured on 2015q2 and 2026q2**, per the instruction that one quarter is not a
+sample.
+
+**OPEN-48 - extensions are distinguishable, and the rule is documented.**
+`readme.htm`: *"version - if a standard tag, the taxonomy of origin, otherwise
+**equal to adsh**."* So `version = adsh` **is** the extension marker - no
+heuristic needed.
+
+| | 2015q2 | 2026q2 |
+|---|---|---|
+| num.txt rows | 2,588,598 | 3,608,711 |
+| **standard** | 2,399,976 (**92.7%**) | 3,300,989 (**91.5%**) |
+| **extension** | 188,622 (**7.3%**) | 307,722 (**8.5%**) |
+| distinct standard tags | 4,490 | 5,044 |
+
+**The split is stable across eleven years - and it moves the OPPOSITE way to the
+hypothesis.** D24 §4.1 expected *"the early quarters plausibly carry a higher
+extension share than the recent ones"* as taxonomies mature. **Measured: 7.3%
+then, 8.5% now.** Filers extend slightly **more**, not less. The prediction was
+reasonable and wrong, which is why it was measured on two quarters rather than
+assumed from one.
+
+**OPEN-49 - `segments` is NOT truncated.** A hard cap would show a **large spike
+at one exact length**. There is none: max 440 in 2026q2 with **1 row at it**, and
+383/384/395/402/403 carrying 1-4 rows each, against a mean of **6,100 rows per
+distinct length**. The tail decays smoothly to a single row. 2015q2's max is
+**448** - a *different* value, which a fixed limit could not produce.
+**So the jsonb parse cannot silently produce a well-formed-but-wrong dimension
+from a truncated string.** The refuse-rather-than-default-to-`'{}'` rule still
+stands for malformed input; it simply has no truncation population to catch.
+
+**OPEN-50 - `adsh` matches slice 1's accession format exactly.** **0 failures**
+against `^\d{10}-\d{2}-\d{6}$` across **8,212** submissions in 2015q2 and
+**7,714** in 2026q2. The FK will not see a formatting disagreement.
+**Sample:** 2 quarters, 6.2M fact rows, 15,926 submissions.
+
+### F-next/tier-1-does-not-fit-and-neither-does-any-concept-cut
+**Date:** 2026-09-24 - **By:** Builder, D24 §4 measurement
+**Claim:** **tier 1 does not fit, and the concept lever cannot close the gap
+either.** Report and stop per D24 §3.
+
+**Tier 1 retains 91.5% of rows**, so it removes **8.5%**:
+**124.4 GB x 0.915 = ~114 GB against a 15 GB cluster.** Still **7.6x over**.
+
+**And the concept curve says no allowlist reaches 15 GB.** To fit, the store must
+retain **<= 12.1%** of all rows:
+
+| Concept allowlist | Share of all rows | Estimated size |
+|---|---|---|
+| top **1** tag | 4.5% | ~5.7 GB |
+| top **5** tags | **16.7%** | **~20.7 GB** - already over |
+| top 10 | 26.3% | ~32.8 GB |
+| top 30 | 38.8% | ~48.2 GB |
+| top 50 | 46.9% | ~58.3 GB |
+
+**Fitting 15 GB means roughly three or four concepts in total.** GQS needs
+**dozens**. So the lever D24 §4.1 identified as *"the only one with the range"*
+**does not have the range** - not because the reasoning was wrong, but because
+the distribution is flatter than a concept cut needs.
+
+**Every lever, now priced:**
+- **Window** - five quarters fits; useless for validation (D23 §4)
+- **Dimensions** - refused on principle, and would leave ~49 GB anyway
+- **Indexes** - 15% at best; `fact_one_per_filing` is 42% and non-negotiable
+- **Concepts** - needs ~3 tags to fit; **measured here**
+- **Disk** - the only lever with 8x in it
+
+**So the honest conclusion is that 15 GB cannot hold a usable fact store under
+any narrowing**, and the four analysis rounds did not waste effort - **each one
+removed a lever that looked plausible until it was priced.**
+
+**AND THE COST COMPARISON MAKES IT SMALLER THAN IT SOUNDS.** Going to 150 GB
+Basic is **$80/month against today's $42 - about $38 more.**
+`F-next/cluster-plan-fee-is-per-cluster` establishes roughly **$120/month of idle
+spend** across the retained `stockgrader-db` and the two PharmFoldMDK orphans.
+**Destroying the three idle clusters pays for the disk three times over.** The
+storage decision is not the expensive item on this bill and has not been for some
+time.
+**Sample:** 2 quarters, 5,044 distinct standard tags, 5 levers priced.
+
+### F-next/cluster-plan-fee-is-per-cluster - Ruling 6's "costs little" is wrong, and by more than the decision it was beside
+**Date:** 2026-09-24 - **By:** Planner (D24 §2), from Fly's published pricing
+**Claim:** **each MPG cluster carries its own plan fee.** The plan sets CPU and
+memory **for a cluster**, so four clusters means four plan fees. `fly mpg list`
+shows **four ready clusters**: `stockgrader-db-r1` (live), `stockgrader-db`
+(retained, holding nothing), and the two PharmFoldMDK restore orphans.
+**Approximately $41/month for the retained old cluster** at Basic with 10 GB, and
+**approximately $38 each plus storage** for the orphans - **on the order of
+$120/month of idle spend.**
+**Ruling 6 says the old cluster *"holds nothing and costs little."* The second
+half is wrong.** The ordering of its destroy does not change - it still waits on
+the ticker load and a DB-backed endpoint, and that ordering was right for
+credential reasons - **but it should stop being described as cheap.**
+**The comparison that makes it sting:** $120/month of idle clusters **exceeds the
+entire storage decision** two deliveries were spent analysing, where going from
+15 GB to 150 GB costs **$38/month more**.
+**And it explains the orphans' survival.** `F-next/orphaned-restore-clusters-
+already-exist` recorded two PharmFoldMDK clusters nobody destroyed. At a
+rounding-error storage cost they were invisible; **the plan fee is what makes
+them expensive, and the plan fee is the part that does not scale down with an
+empty disk.**
+**B-9's destroy condition is now financial as well as procedural.** An orphaned
+probe cluster is **$38/month indefinitely at any size** - which is precisely why
+the two next door survived unnoticed.
+**Sample:** 4 clusters, 1 published price list.
+
+### F-next/the-first-case-to-present-is-not-a-sample
+**Date:** 2026-09-24 - **By:** Planner (D23 §3.5), generalising two Builder errors
+**Claim:** twice in one day the Builder drew a mechanism from **the first
+instance that happened to present**, and twice the population said otherwise.
+
+| Instance | First case suggested | Population said |
+|---|---|---|
+| FSDS key collisions | an exact duplicate - harmless deduplication | **31 of 32 disagree on value** - `DO NOTHING` is silent data loss |
+| The R2 re-send | the filename was the problem | **confounded** - name and bytes both changed |
+
+**A third, from the Planner's side, points the same way:** D24 §4.1 predicted
+early quarters would carry a **higher** extension share as taxonomies mature.
+**Measured: 7.3% in 2015q2 against 8.5% in 2026q2 - the opposite direction.**
+**The general form:** the first case to present is selected by **encounter
+order**, not by representativeness, and encounter order correlates with nothing.
+It is the sampling version of the instrument pattern - **the observation is
+accurate and the inference from it is not**, and nothing about the observation
+signals which.
+**Rule:** a mechanism inferred from one instance is a hypothesis with a good
+story. **Count the population before recommending the handling** - it cost one
+query each time, and each time it reversed the recommendation.
+**Sample:** 3 predictions from first instances, 3 reversed by counting.
