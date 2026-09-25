@@ -3133,3 +3133,133 @@ for the real layout.
 header, almost certainly an embedded tab in `footnote`. They parse harmlessly
 because the extra field is beyond every column the loader reads. Noted, not
 acted on.
+
+---
+
+### F-031 — 3.37 million facts are in a real Fly cluster, and the counts are identical across two major versions
+
+**Established 2026-09-25.** The first load of real SEC data into
+`stockgrader_scratch` on `kzpwm0j1dm204nv3`, PostgreSQL **16.15**.
+
+**Every counter reproduces the local run on 18.3 exactly:**
+
+| | Local 18.3 | Fly 16.15 |
+|---|---|---|
+| facts seen | 3,608,711 | **3,608,711** |
+| facts loaded | 3,368,813 | **3,368,813** |
+| refused — co-registrant | 61,134 | **61,134** |
+| refused — no value | 178,555 | **178,555** |
+| refused — filing absent | 0 | **0** |
+| collapsed duplicates | 14 | **14** |
+| quarantined | 195 | **195** |
+| extension facts | 259,489 | **259,489** |
+| accounting | BALANCED | **BALANCED** |
+
+**Same bytes, same code, same answer across two major versions.** Nothing in the
+loader is environment-dependent, and the divergence that would have stopped the
+work did not occur.
+
+**This retires the largest unvalidated assumption in the project.** Four
+migrations, the runner, the EDGAR client, slice 1's patterns and the fact loader
+had been proven only on local throwaway clusters that were then deleted.
+
+---
+
+**The period derivation is correct on 3,368,813 real rows.**
+
+```
+duration   1,460,152    rows collapsed to a point: 0
+instant    1,908,661    rows collapsed to a point: 1,908,661
+```
+
+**A clean 100% / 0% split.** Every `qtrs=0` row became an instant with
+`period_start = period_end`; no duration collapsed. OPEN-41 warned that an
+off-by-one-quarter error here is **silent** and poisons every growth metric in
+§4.1 — and that a sample-inferred encoding *would look right on the samples it
+was inferred from*. This is the derivation meeting 3.4M rows rather than a
+fixture, and it holds.
+
+**The quarantine caught the case the register documented.** `fact_collision`
+holds 195 rows. `DerivativeAssetFairValueGrossLiability` carries competing
+values including **-3,123,000 and 706,000** and **645,000 and 1,591,000** — the
+exact pairs recorded in `F-next/fsds-violates-its-own-documented-key` when the
+collision was first measured. **Both sides are stored.** `ON CONFLICT DO NOTHING`
+would have kept one and discarded the other with no record.
+
+**`coverage_window` reports `2026q2..2026q2`, 1 quarter, 0 gaps**, refused
+239,689 — which is 61,134 + 178,555 exactly.
+
+---
+
+### F-032 — the Basic write path is the constraint, and it is index maintenance
+
+**Established 2026-09-25, by a load that stalled for roughly three quarters of
+an hour.**
+
+The first proxy load died mid-`executemany` (connection closed). The second,
+using COPY for the facts, reached the fact insert and then appeared to hang.
+
+**`pg_stat_database` could not answer why, and I misread it.** `tup_inserted`
+read 0 and I took that as *nothing has happened*. **Those counters are flushed
+at transaction boundaries**, so for an uncommitted transaction they report
+essentially nothing regardless of the work done. The probe could not answer the
+question it was asked, and the conclusion drawn from it was wrong.
+
+**`pg_locks` answered it.** The transaction held `RowExclusiveLock` on `fact`
+and on **all seven** of its indexes:
+
+```
+fact_pkey                fact_one_per_filing      fact_accession_idx
+fact_concept_period_idx  fact_consolidated_idx    fact_entity_concept_idx
+fact_source_fetch_idx
+```
+
+**Seven index structures maintained per row, 3.4M rows, on 1 GB of shared-CPU
+instance.** Locally that phase costs ~50 s because the indexes sit in RAM. On
+Basic they do not, so each insert becomes random I/O.
+
+**This is OPEN-57's question arriving on the WRITE path.** Both previous attempts
+to settle Basic's adequacy measured **reads** — a point-in-time query. Neither
+touched ingest. The tier's first real constraint showed up somewhere nobody was
+looking, and it showed up in a disposable database on quarter one of forty-five.
+
+**The fix follows from OPEN-57's own evidence:** an index **build** is cheap —
+1,075 MB in 15.4 s even under a 1 GB cgroup — while **maintenance during insert**
+is not. So `--defer-indexes` drops `fact`'s five query indexes for the load and
+rebuilds them after. `fact_pkey` and `fact_one_per_filing` are **not**
+deferrable: without the latter the insert has no conflict arbiter and duplicate
+facts become representable, which is the one thing 0001 exists to prevent.
+
+**It did eventually complete without the fix**, and every counter matched. So
+this is a cost finding, not a correctness one — but at ~45 minutes per quarter it
+is **~34 hours for 45 quarters**, against ~2 hours at local speed.
+
+---
+
+### F-033 — three probes reported confidently on work that had not happened
+
+**Recorded together because they are one shape, all on 2026-09-25.**
+
+1. **`tup_inserted = 0`** read as *nothing inserted*, when the counter simply is
+   not flushed mid-transaction. See F-032.
+2. **An index drop-and-rebuild check printed `DEFINITIONS IDENTICAL`** while the
+   rebuild had crashed on a syntax error. It compared a file to itself and
+   reported agreement.
+3. **The red-test harness's precondition** hardcoded `"applied 3 migration"`;
+   when 0004 arrived it reported `SETUP FAILED` on every case rather than
+   silently passing — **the one of the three that failed safe**, because the
+   check asserted a specific expectation instead of a mere absence of error.
+
+**The pattern, and it is the project's oldest:** *a check that cannot run
+reports the same thing as a system with no defects.* Previously recorded for a
+`psql` harness broken by an unquoted path with a space, and for A2's scope, and
+for A5's proxy.
+
+**What distinguishes (3) from (1) and (2) is worth stating.** It compared against
+a **stated expectation** and failed loudly when reality moved. The other two
+compared a thing to itself, or read a counter whose semantics were assumed. **A
+probe that cannot fail is not evidence**, and the way to tell the difference is
+to ask what result would have made it complain.
+
+The index check now prints the intermediate count — 7 indexes, then 2, then 7 —
+so the drop is **proven to have happened** before the comparison is trusted.
