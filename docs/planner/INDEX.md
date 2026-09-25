@@ -92,11 +92,12 @@ Code-authored reports and manifests are delivered to the owner's Downloads folde
 | 2026-09-22 | 13 |
 | 2026-09-23 | 36 |
 | 2026-09-24 | 16 |
-| 2026-09-25 | 16 |
-| **Total** | **81** |
+| 2026-09-25 | 17 |
+| **Total** | **82** |
 
 | Type | Count |
 |---|---|
+| CLOSEOUT | 1 |
 | HANDOVER | 9 |
 | MANIFEST | 31 |
 | NOTE | 1 |
@@ -112,6 +113,7 @@ Every entry links to its file. This is the only navigable route in.
 
 ### 2026-09-25
 
+- [CLOSEOUT-r2-Planner-2026-09-25-StockGraderMDK-planner-half-and-prework.md](CLOSEOUT-r2-Planner-2026-09-25-StockGraderMDK-planner-half-and-prework.md) - CLOSEOUT, 17,237 bytes
 - [HANDOVER-Planner-2026-09-25-StockGraderMDK-block-narrowed-to-build.md](HANDOVER-Planner-2026-09-25-StockGraderMDK-block-narrowed-to-build.md) - HANDOVER, 4,213 bytes
 - [HANDOVER-Planner-2026-09-25-StockGraderMDK-final-block-before-checkpoint.md](HANDOVER-Planner-2026-09-25-StockGraderMDK-final-block-before-checkpoint.md) - HANDOVER, 3,384 bytes
 - [MANIFEST-Planner-2026-09-25-StockGraderMDK-D25.md](MANIFEST-Planner-2026-09-25-StockGraderMDK-D25.md) - MANIFEST, 2,192 bytes
