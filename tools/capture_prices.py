@@ -144,15 +144,32 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\ncaptured={captured} refused={refused} "
           f"bars_with_same_day_guarantee={same_day} out={args.out}")
 
-    # The count that matters is same_day, not captured. A run that wrote files
-    # but carried no same-day bar has not advanced the point-in-time series,
-    # and the difference is invisible in a file count.
+    # THREE OUTCOMES, THREE EXIT CODES, AND THE MIDDLE ONE IS THE POINT.
+    #
+    # On a schedule this runs ~250 times a year and about nine of those fall on
+    # market holidays, when the provider serves yesterday's bar and no same-day
+    # bar exists. Collapsing that into the failure code would cry wolf nine
+    # times a year, and the predictable consequence is that somebody stops
+    # reading the alert -- at which point a real provider failure is invisible.
+    #
+    # Collapsing it into success is worse: "the market was closed" and "the
+    # provider is serving stale data" would then be indistinguishable, which is
+    # the exact conflation this module warns about everywhere else.
+    #
+    #   0  captured, and at least one bar carries the as-traded guarantee
+    #   3  captured, but no same-day bar. A holiday looks like this. So does a
+    #      stale provider. The caller must decide, and CANNOT do so silently.
+    #   1  captured nothing. Unambiguous failure.
     if captured and same_day == 0:
-        print("WARNING: no bar carried the as-traded guarantee. Either the "
-              "market was closed, or the provider is serving stale data, and "
-              "those are not the same thing.", file=sys.stderr)
+        print("NO SAME-DAY BAR (exit 3). Either the market was closed, or the "
+              "provider is serving stale data, and those are not the same "
+              "thing. Data was written; the point-in-time series did not "
+              "advance.", file=sys.stderr)
+        return 3
+    if not captured:
+        print("CAPTURED NOTHING (exit 1).", file=sys.stderr)
         return 1
-    return 0 if captured else 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -3594,3 +3594,41 @@ D-036 rulable in the first place: a close observed on date D stays true whoever
 is later paid to serve it, so **a provider change invalidates no captured row** —
 it only interrupts capture, and an interruption is visible where a silent
 adjustment is not.
+
+### F-042 — the capture filename omitted the symbol, and a collision overwrote silently
+
+**Established 2026-09-25, by the Builder**, caught by a test written for
+something else entirely — the runner's exit codes.
+
+`write_capture` named files `{provider}-{sha256[:12]}-{stamp}`, with
+**no symbol**. Two captures in the same second with byte-identical payloads
+therefore produced **one file instead of two**, and the second overwrote the
+first **with no error and no count** — a capture vanishing with no evidence it
+ever arrived.
+
+**Shipped.** It is in PR-9 and PR-10, both merged.
+
+**Why it never fired in production, and why that is not a defence.** Two
+symbols' payloads differ because the symbol is *inside* the JSON, so the hash
+differs, so the names differ. **The scheme was correct by accident.** It relied
+on an incidental property of a third party's response format rather than on
+anything we assert, and a provider that ever returned a symbol-free body — or a
+second provider added later — would have broken it silently.
+
+**This is `fact`'s uniqueness key one layer out**, and 0001's own comment says
+it best: without the entity identifier two co-registrants are
+*indistinguishable, and `ON CONFLICT DO NOTHING` discards the second while
+calling it idempotency.* Here the filesystem played the role of the constraint
+and the overwrite played the role of the discard. **A schema that cannot
+represent the distinction cannot refuse it** — and a filename is a schema.
+
+**How it was caught, which is the part worth keeping.** A test asserting that
+*one refused symbol does not abort the others* fed three symbols, two of which
+returned the same fixture payload, and expected two files. It got one. **The
+test was not looking for this**, and no test that used realistic per-symbol
+payloads could have found it, because realistic payloads are exactly what hides
+it. **The fixture was unrealistic in the one way that mattered.**
+
+**Fixed:** the symbol leads the filename. A regression test writes two
+byte-identical payloads for two symbols in the same second and asserts two
+files survive.

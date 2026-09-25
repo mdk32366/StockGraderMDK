@@ -233,3 +233,29 @@ def test_yahoo_non_json_is_refused():
         YahooChartProvider().parse(
             "AAPL", b"<!DOCTYPE html><html><body>verify your browser</body></html>",
             captured_on=date(2026, 9, 25))
+
+
+def test_two_symbols_with_identical_payloads_do_not_overwrite(tmp_path):
+    """F-042. The filename must carry the symbol.
+
+    Before the fix the name was provider + payload-hash + second, so two
+    captures in the same second with byte-identical payloads produced one file
+    instead of two -- a silent overwrite, a capture vanishing with no evidence
+    it arrived. In production the payloads differ because the symbol is inside
+    the JSON, which made the old scheme correct BY ACCIDENT. This asserts it is
+    correct by construction.
+    """
+    from ingest.prices import RawCapture, write_capture
+
+    body = b"identical"
+    at = datetime(2026, 9, 25, 19, 0, 0, tzinfo=timezone.utc)
+    for sym in ("AAPL", "MSFT"):
+        cap = RawCapture.of(f"https://example/{sym}", body, "p", retrieved_at=at)
+        bar = DailyBar(symbol=sym, trade_date=date(2026, 9, 25), open=None,
+                       high=None, low=None, close=1.0, volume=None,
+                       captured_same_day=True)
+        write_capture(tmp_path, cap, [bar])
+
+    names = sorted(p.name for p in tmp_path.glob("*.json"))
+    assert len(names) == 2, f"a capture was overwritten: {names}"
+    assert names[0].startswith("AAPL-") and names[1].startswith("MSFT-")
