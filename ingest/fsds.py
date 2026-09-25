@@ -64,7 +64,7 @@ _DDATE = re.compile(r"^\d{8}$")
 #: that fell back to `'{}'` would instead record a confident, wrong "no
 #: dimensions" for every row it failed to read — which is OPEN-49's shape, a
 #: malformed input parsed into something valid.
-_SEGMENT_PAIR = re.compile(r"^([^=;]+)=([^=;]*)$")
+_SEGMENT_PAIR = re.compile(r"^([^=;]+)=(.*)$", re.S)
 
 #: FSDS marks a filer extension tag by setting `version` equal to `adsh`.
 #: Documented in readme.htm, so no heuristic is needed (OPEN-48). Extensions are
@@ -121,16 +121,50 @@ def _canonical_dimensions(d: dict) -> str:
 def parse_segments(raw: str | None) -> dict:
     """Turn FSDS `segments` into a dimensions mapping, or refuse.
 
-    Empty means genuinely no dimensions, which is a real and common state and is
-    the ONLY case that yields ``{}``. Anything present but unreadable raises.
+    **The grammar is NOT documented.** `readme.htm` says only *"segments - XBRL
+    tags used to represent axis and member reporting"* - no delimiter, no
+    format. It was established by measurement against 2,189,835 real values in
+    2026q2, and that is recorded here because a reader will otherwise assume it
+    came from the specification.
+
+    The shape is ``axis=member`` pairs joined by ``;``, with one complication
+    that is FSDS's and not ours: **member values contain bare `amp;`**, the
+    wreckage of an HTML entity whose ampersand was stripped during the SEC's own
+    extraction. `Dun & Bradstreet` arrives as `Dun amp; Bradstreet`, so the
+    delimiter character occurs *inside* values.
+
+    A semicolon therefore only ends a pair when what follows begins another one.
+    A fragment with no ``=`` cannot be a new pair, so it is rejoined to the
+    previous member. Without that, 12,503 rows per quarter - 0.57% of values
+    with dimensions - were refused, concentrated in exactly the filers whose
+    holdings carry ampersands in their names.
+
+    The `amp;` is **preserved, not repaired.** `store, don't filter`: what
+    arrives is what FSDS asserted, and un-escaping it would be a correction we
+    cannot justify per-row. Every value carries the same mangling, so the store
+    stays internally consistent and the distortion is recorded rather than
+    silently patched.
+
+    Empty means genuinely no dimensions - a real and common state, and the ONLY
+    case that yields ``{}``. Anything present but unreadable raises.
     """
     if raw is None:
         return {}
     text = raw.strip()
     if not text:
         return {}
+
+    # Rejoin fragments that cannot be pairs. See the docstring: `;` is both the
+    # delimiter and a character occurring inside member values.
+    fragments: list[str] = []
+    for piece in text.rstrip(";").split(";"):
+        if fragments and "=" not in piece:
+            fragments[-1] = fragments[-1] + ";" + piece
+        else:
+            fragments.append(piece)
+
     out: dict[str, str] = {}
-    for part in text.rstrip(";").split(";"):
+    for part in fragments:
         part = part.strip()
         if not part:
             continue

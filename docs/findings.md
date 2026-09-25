@@ -2867,3 +2867,75 @@ first real use, in a case its author had not anticipated, which is the strongest
 evidence available that it was worth writing. It would have been entirely
 reasonable to ship the counters without the CHECK — they were individually
 correct — and the gap would have shipped with them.
+
+---
+
+### F-026 — the `segments` grammar is NOT documented, and the data carries a broken HTML entity
+
+**Established 2026-09-25 by measurement against 2015q2 and 2026q2.**
+
+**The question was "confirm the grammar against `readme.htm`". It cannot be
+confirmed, because `readme.htm` does not state it.** In full, the documentation
+of the field is:
+
+> *"segments — XBRL tags used to represent axis and member reporting"*
+
+No delimiter. No format. No example. **The same readme that settles `version`,
+`ddate`, `qtrs` and `coreg` precisely says nothing about how `segments` is
+encoded** — so the loader's grammar was established from data whether anyone
+intended that or not, and the code now says so rather than implying a
+specification exists.
+
+**That is the finding, and it changes what the parser's refusal counter is
+for.** With a documented grammar, a refusal means bad data. With an undocumented
+one, a refusal means **either** bad data **or** a wrong reading, and the two are
+not separable from inside the loader.
+
+---
+
+**The measurement then found a real defect, at 12,503 rows per quarter.**
+
+| | 2015q2 | 2026q2 |
+|---|---|---|
+| `num.txt` rows | 2,588,598 | 3,608,711 |
+| non-empty `segments` | 1,066,226 (**41.2%**) | 2,189,835 (**60.7%**) |
+| accepted *before* the fix | — | 2,177,332 (**99.43%**) |
+| **accepted after** | **1,066,226 (100%)** | **2,189,835 (100%)** |
+
+Row counts reproduce the register's earlier figures exactly, which is a check on
+the fetch as well as on the parser.
+
+**The cause: FSDS's own extraction leaves bare `amp;` inside member values** —
+the wreckage of an HTML entity whose ampersand was stripped.
+
+```
+InvestmentIdentifier=Dun amp; Bradstreet Corporation, First lien senior secured loan;
+InvestmentIdentifier=8th Avenue Food amp; Provisions, Inc., First lien senior secured loan 1;
+InvestmentIdentifier=Cube Industrials Buyer, Inc. and Cube Aamp;D Buyer Inc., ...
+```
+
+**So the delimiter character occurs inside the values it delimits.** Splitting
+on `;` cut `Dun & Bradstreet` in half and refused the row.
+
+**The fix is structural rather than a special case:** a semicolon ends a pair
+only when what follows begins another one. A fragment containing no `=` cannot
+be a new pair, so it rejoins the previous member. That is derived from the
+grammar's own shape and needs no list of known-bad strings.
+
+**The mangling is PRESERVED, not repaired.** `store, don't filter`: un-escaping
+`amp;` to `&` is a correction that cannot be justified per row, and every value
+carries the same distortion, so the store stays internally consistent. The
+distortion is recorded here instead of silently patched — and because dimensions
+are part of `fact_one_per_filing`, patching some rows and not others would
+manufacture false distinctions in the uniqueness key.
+
+**What is still not established**, and it follows directly from the first
+paragraph: whether a member value may legitimately contain `=`. If one does, the
+rejoin would mis-split it. **Zero occurrences across 3,256,061 real values in
+two quarters eleven years apart** — which is strong evidence and is not the same
+as a specification. Noted rather than closed.
+
+**The third instance of the same shape this sitting.** OPEN-60's A2 enumerated a
+schema; A5 tested a proxy; this assumed a documented grammar existed. Each was
+reasonable, each was wrong in the same direction: **a stated basis that turns out
+to be narrower than the thing it is standing in for.**

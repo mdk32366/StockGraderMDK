@@ -335,3 +335,54 @@ def test_collapsed_duplicates_are_a_category_not_a_gap():
 
     assert counts.seen == (len(loadable) + collapsed + len(quarantined)
                            + counts.refused_coreg + counts.refused_malformed)
+
+
+# ---------------------------------------------------------------------------
+# The `segments` grammar, established by MEASUREMENT. readme.htm documents only
+# "XBRL tags used to represent axis and member reporting" - no delimiter, no
+# format. Verified against 2015q2 and 2026q2: 3,256,061 non-empty values, 100%
+# accepted. One quarter is not a sample, so both are cited.
+# ---------------------------------------------------------------------------
+
+def test_semicolon_inside_a_member_does_not_split_the_pair():
+    """FSDS leaves bare `amp;` in member values - the wreckage of an HTML
+    entity whose ampersand its own extraction stripped. So the delimiter
+    character occurs INSIDE values, and a semicolon only ends a pair when what
+    follows begins another one.
+
+    Real value from 2026q2. Before this was handled, 12,503 rows per quarter
+    were refused, concentrated in the filers whose holdings carry ampersands.
+    """
+    got = parse_segments(
+        "InvestmentIdentifier=Dun amp; Bradstreet Corporation, "
+        "First lien senior secured loan;")
+    assert got == {
+        "InvestmentIdentifier":
+            "Dun amp; Bradstreet Corporation, First lien senior secured loan"
+    }
+
+
+def test_the_mangled_entity_is_preserved_not_repaired():
+    """`store, don't filter`. Un-escaping `amp;` to `&` would be a correction we
+    cannot justify per row, and every value carries the same mangling, so the
+    store stays internally consistent with the distortion recorded rather than
+    silently patched."""
+    got = parse_segments("InvestmentIdentifier=Cast amp; Crew LLC;")
+    assert "amp;" in got["InvestmentIdentifier"]
+    assert "&" not in got["InvestmentIdentifier"]
+
+
+def test_multiple_axes_still_split_correctly():
+    """Real value from 2015q2. The rejoin must not swallow a genuine second
+    pair - that would silently merge two dimensions into one."""
+    got = parse_segments(
+        "LegalEntity=Subsidiaries;EquityComponents=RetainedEarnings;")
+    assert got == {"LegalEntity": "Subsidiaries",
+                   "EquityComponents": "RetainedEarnings"}
+
+
+def test_a_fragment_with_no_axis_is_still_refused():
+    """The rejoin must not turn every malformed value into an accepted one. A
+    leading fragment that is not a pair has nothing to rejoin to."""
+    with pytest.raises(FactRefused):
+        parse_segments("no pairs here at all")
