@@ -69,15 +69,62 @@ exercise is for, and `--volume-size` is a create-time flag with a default of 10 
 a typo yields a 10 GB cluster that looks fine until it does not. **Verify it
 before anything else is built on it.**
 
-### 2.3 Create the schema-admin role
+### 2.2a Create the databases — **the step this runbook originally omitted**
 
-`fly mpg users create` prints **only Name and Role — no password, no connection
-string** (F-014's amendment). That is the safe half of the tooling, and it is why
-the app and migration roles are made this way rather than taken from `create`'s
-output.
+**A new cluster has `fly-db` and nothing else.** D-009 records that `stockgrader`
+was *"created deliberately, not the `fly-db` default"*, and phase-0 §5.3 created
+`stockgrader_scratch` separately. **Neither exists on a fresh cluster.** The
+first issue of this runbook went straight from create to migrations, which would
+have failed. F-043.
 
-Make the migration role the same way `stockgrader_schema_admin` was made on the
-current cluster, and keep `fly mpg attach` out of this — **`attach` leaks too**.
+**Pass the cluster ID explicitly.** Omitting it turns a read-only command into a
+blocking interactive picker — the same family as the `fly mpg connect` ban.
+
+```
+fly mpg databases create <CLUSTER_ID> -n stockgrader_scratch
+fly mpg databases create <CLUSTER_ID> -n stockgrader
+fly mpg databases list   <CLUSTER_ID>
+```
+
+**Create BOTH, even though only scratch holds data.** OPEN-1's real-cluster proof
+is that `stockgrader` and `stockgrader_scratch` *"sit on the same cluster, same
+host, same port, and were probed by the same user - nothing but the canary table
+distinguishes them."* That is what makes it proof of **positive identity** rather
+than a hostname check. **With scratch alone, the new cluster cannot reproduce
+it** — and the old cluster is being retired. An empty database costs nothing.
+
+**Then verify by listing** (§5.3's rule), expecting exactly three:
+`fly-db`, `stockgrader`, `stockgrader_scratch`.
+
+### 2.3 The connecting role — and `fly-user` is already a `schema_admin`
+
+**Established on r2, 2026-09-25:** connecting with `user=fly-user` through the
+proxy reports **`current_user = schema_admin`**. The phase-0 handover records
+`fly-user` as holding that role and the platform resolves to it. **So the
+migrations run as the role their headers name** — `RUN AS: a schema_admin` — with
+no separate role needed for the migration itself.
+
+**A dedicated `stockgrader_schema_admin` is still the right end state** and is
+made this way: `fly mpg users create <CLUSTER> -u <name> -r schema_admin` prints
+**only Name and Role, no password** (F-014's amendment), then **the password is
+set by hand in the Fly dashboard** and stored in the password manager. That is
+not a workaround — on this platform it is the mechanism. *Every credential this
+project holds arrived either by a leak or by a human typing it into a browser;
+there is no third route.* `fly mpg users` has no `rotate`.
+
+**Keep `fly mpg attach` out of this — `attach` leaks too.**
+
+### 2.3b Mark scratch disposable
+
+```
+.venv\Scripts\python.exe tools\apply_canary.py --dsn "host=127.0.0.1 port=16380 user=fly-user dbname=stockgrader_scratch" --expect-database stockgrader_scratch --i-understand-this-marks-it-disposable
+```
+
+Phase-0 §5.4 requires asserting **which database you are actually connected to**
+before running the canary, because *"a proxy connected to the wrong database
+looks exactly like a proxy connected to the right one."* `tools/apply_canary.py`
+makes that assertion mechanical: it refuses on mismatch before writing, refuses
+`stockgrader` by name with no override, and confirms the rows after commit.
 
 ### 2.4 Apply the migrations
 
@@ -93,8 +140,10 @@ Then, in a second shell, with the password read interactively so it never
 appears in a pasted line or in shell history:
 
 ```
-$env:PGPASSWORD = (Read-Host -AsSecureString "schema_admin password" | ConvertFrom-SecureString -AsPlainText)
-.venv\Scripts\python.exe db\migrate.py --dsn "host=127.0.0.1 port=16380 user=stockgrader_schema_admin dbname=stockgrader_scratch" --apply
+$s = Read-Host -AsSecureString "password"
+$env:PGPASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
+.venv\Scripts\python.exe db\migrate.py plan  --dsn "host=127.0.0.1 port=16380 user=fly-user dbname=stockgrader_scratch"
+.venv\Scripts\python.exe db\migrate.py apply --dsn "host=127.0.0.1 port=16380 user=fly-user dbname=stockgrader_scratch"
 ```
 
 **The DSN is in keyword form and carries no secret**, so the runner's full output
@@ -104,8 +153,14 @@ violated.
 ### 2.5 Re-load the quarter
 
 ```
-.venv\Scripts\python.exe tools\load_quarter.py 2026q2 --submissions
+$env:DATABASE_URL = "host=127.0.0.1 port=16380 user=fly-user dbname=stockgrader_scratch"
+.venv\Scripts\python.exe tools\load_quarter.py --quarter 2026q2 --archive "<ARCHIVE_DIR>\2026q2.zip" --submissions --dry-run
 ```
+
+`--quarter` and `--archive` are both **required**, and the DSN comes from
+`DATABASE_URL` in the environment - the loader takes no `--dsn`. Run `--dry-run`
+first: it parses the whole archive and rolls back, proving the parse against
+this cluster's schema without writing.
 
 Expect **~148 s** and **3,368,813 facts** (F-034). **State that expectation
 before running it** — a count with no prior expectation returns a number that
@@ -125,7 +180,11 @@ passed, and it is the old cluster's stated end condition.
 
 ### 2.7 Repoint the app
 
-`fly secrets set` the app's `DATABASE_URL`. **Note the interaction with
+**`fly secrets import` from stdin - NOT `fly secrets set`.** The phase-0
+handover puts `fly secrets set KEY=value` on the must-not-run list because **it
+puts the value in shell history**, which is a copy that survives closing the
+window. This runbook said `set` in its first issue; that was wrong and it is
+F-043. **Note the interaction with
 OPEN-63:** `stockgrader_app`'s password rotation is already deferred and its
 credential is already compromised. **A new cluster means a new
 `stockgrader_app` anyway — so OPEN-63 closes for free here**, and deferring it
