@@ -3041,3 +3041,95 @@ unwritten ledger, and 0001/0002 still applied.
 > **A guard proven only against the tables its author invented has been tested
 > against their imagination.** The first real database supplied a case the
 > imagination did not.
+
+---
+
+### F-030 — a real quarter loaded, and 5% of rows carry no value at all
+
+**Established 2026-09-25.** First load of real SEC data through the full
+pipeline, into a local PostgreSQL 18.3 cluster with 0001–0004 applied.
+
+| | |
+|---|---|
+| Archive | `2026q2.zip`, 60,419,016 bytes, sha256 `d7c815395cd420cf…` |
+| Submissions | 7,714 |
+| Filers | 6,179 |
+| **Facts seen** | **3,608,711** |
+| **Facts loaded** | **3,368,813 (93.4%)** |
+| Refused — co-registrant | 61,134 (1.69%) |
+| **Refused — no value** | **178,555 (4.9%)** |
+| Refused — filing absent | **0** |
+| Collapsed duplicates | 14 |
+| Quarantined | 195 |
+| Extension facts | 259,489 |
+| **Accounting** | **BALANCED — 3,608,711 of 3,608,711** |
+| Wall clock | **3 min 9 s** → ~2.4 h for 45 quarters |
+
+`facts_seen` reproduces the register's earlier measurement exactly, and
+`refused_unknown_filing = 0` confirms that FSDS `sub.txt` is complete for the
+facts in its own archive — 7,714 distinct `adsh` in `num.txt`, all 7,714
+present in `sub.txt`.
+
+---
+
+**The number that needs a decision is 178,555.**
+
+Every malformed refusal in the quarter had **one** cause: `value` is empty.
+Verified against the raw archive rather than inferred from the counter —
+179,806 rows carry an empty `value` field, of which 1,251 also carry a `coreg`
+and are counted under that refusal instead.
+
+```
+0000001961-26-000014|CostOfRevenue|us-gaap/2025|20240331|1|USD||||
+0000001961-26-000014|GrossProfit  |us-gaap/2025|20240331|1|USD||||
+```
+
+**These are real FSDS rows, not a parsing artifact.** The tag, taxonomy, period
+and unit are all present and well-formed; the number is simply absent. Only
+1,404 of them carry a footnote, so a footnote does not explain them either.
+
+**And they are not obscure tags.** The most common are:
+
+| Tag | Rows |
+|---|---|
+| `NetIncomeLoss` | 11,538 |
+| `CommitmentsAndContingencies` | 9,585 |
+| `ProfitLoss` | 5,143 |
+| `StockholdersEquity` | 4,561 |
+| `StockIssuedDuringPeriodValueNewIssues` | 4,138 |
+
+**`NetIncomeLoss` and `StockholdersEquity` are core GQS inputs.**
+
+**The current behaviour is to refuse and count**, which satisfies the discipline
+— the rows are visible in `coverage_quarter.refused_malformed` rather than gone.
+`fact.value` is `NOT NULL`, and a fact without a value is not a fact.
+
+**But 4.9% is material and the behaviour arrived as a default rather than as a
+decision.** The tension is real: *store, don't filter* says keep what the source
+asserted, and what the source asserted here is **an element with no number** —
+which may itself be information (a tagged line item deliberately left blank is
+not the same as an untagged one).
+
+**Recorded as OPEN-64 rather than settled here**, because it changes what the
+store contains and the argument runs both ways. What is NOT in doubt: the rows
+are counted, the accounting balances, and nothing vanished silently.
+
+---
+
+**A smaller correction, from the same measurement.** The real `num.txt` header is
+
+```
+adsh, tag, version, ddate, qtrs, uom, segments, coreg, value, footnote
+```
+
+**`coreg` sits after `segments`, not after `version`**, which is where the test
+fixtures had put it. The loader is header-driven so its behaviour was never
+affected — the tests passed before and after the correction, which is the
+evidence for that. Fixed anyway: **a fixture that does not look like the data is
+a weaker test than one that does**, and the next person to read it will take it
+for the real layout.
+
+**Also observed:** 12 of 3,608,711 rows carry 11 fields against a 10-field
+header, almost certainly an embedded tab in `footnote`. They parse harmlessly
+because the extra field is beyond every column the loader reads. Noted, not
+acted on.

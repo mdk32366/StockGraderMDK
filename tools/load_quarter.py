@@ -1,0 +1,177 @@
+"""Load one FSDS quarter into the fact store.
+
+    python tools/load_quarter.py --quarter 2026q2 --archive <path-to>.zip
+
+Takes DATABASE_URL from the environment and never writes it anywhere, the same
+rule the migration runner follows. Everything happens in ONE transaction: if any
+part fails, the fetch row goes with the rows it provenances, because a fetch row
+without its data is untidy while data without its fetch row is unprovenanced
+forever.
+
+ON THE TWO SOURCES
+------------------
+`fact` references `filing`, and ruling 5 sources `filer` and `filing` from
+`submissions.zip` - all filers, full history, dead companies included. FSDS
+`sub.txt` covers only the XBRL submissions in one quarter.
+
+Measured on 2026q2: `num.txt` references 7,714 distinct accessions and `sub.txt`
+contains exactly those 7,714, with **zero** orphans. So the two are
+complementary rather than competing:
+
+  * `sub.txt` is COMPLETE FOR THE FACTS - every fact's filing is in it, so a
+    quarter loaded from FSDS alone is internally consistent.
+  * `submissions.zip` remains required for the UNIVERSE - the filings that
+    carry no XBRL, the history before the mandate, and the companies that
+    stopped filing. That is what OPEN-33's Lehman test is about, and this
+    does not substitute for it.
+
+`--submissions` therefore loads filers and filings from `sub.txt` so a quarter
+can be loaded standalone. It does not make ruling 5 unnecessary and the rows it
+writes carry their own `source_fetch_id`, so which archive produced what stays
+answerable.
+
+WHAT IS DELIBERATELY LEFT NULL
+------------------------------
+Both SIC columns. `sub.txt` carries a per-submission `sic`, but OPEN-37 has not
+established whether it means the SIC **as filed** or the filer's SIC **as of
+extract** - and which of those it is, is the entire reason `sic_at_filing`
+exists. A 97.5% population rate does not say. Until it is established, both stay
+honestly NULL rather than confidently wrong.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import sys
+import zipfile
+from datetime import date, datetime, timezone
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from ingest.edgar import Fetch                                    # noqa: E402
+from ingest.fsds import load_quarter, parse_sub, read_archive     # noqa: E402
+
+FSDS_URL = "https://www.sec.gov/files/dera/data/financial-statement-data-sets/{q}.zip"
+
+
+def _d(raw: str | None) -> date | None:
+    raw = (raw or "").strip()
+    if len(raw) != 8 or not raw.isdigit():
+        return None
+    return date(int(raw[:4]), int(raw[4:6]), int(raw[6:8]))
+
+
+def load_submissions(cur, sub_text: str, *, fetch_id: int, as_of: date) -> tuple[int, int]:
+    """Filers and filings from `sub.txt`. See the module docstring on scope."""
+    rows = [l.split("\t") for l in sub_text.splitlines() if l.strip()]
+    header = rows[0]
+    idx = {name: i for i, name in enumerate(header)}
+    filers, filings = {}, []
+    for r in rows[1:]:
+        if len(r) < len(header):
+            continue
+        cik = r[idx["cik"]].strip()
+        if not cik.isdigit():
+            continue
+        cik = int(cik)
+        adsh = r[idx["adsh"]].strip()
+        form = r[idx["form"]].strip()
+        filers.setdefault(cik, r[idx["name"]].strip())
+        filings.append((adsh, cik, form, _d(r[idx["filed"]]),
+                        _d(r[idx["period"]]), form.endswith("/A")))
+
+    cur.executemany(
+        """INSERT INTO filer (cik, current_name, current_sic, current_sic_desc,
+                              metadata_as_of, source_fetch_id)
+           VALUES (%s, %s, NULL, NULL, %s, %s)
+           ON CONFLICT (cik) DO NOTHING""",
+        [(cik, name, as_of, fetch_id) for cik, name in filers.items()],
+    )
+    cur.executemany(
+        """INSERT INTO filing (accession, cik, form_type, filing_date,
+                               period_of_report, is_amendment, sic_at_filing,
+                               source_fetch_id)
+           VALUES (%s, %s, %s, %s, %s, %s, NULL, %s)
+           ON CONFLICT (accession) DO NOTHING""",
+        [(a, c, f, fd, p, amd, fetch_id) for a, c, f, fd, p, amd in filings
+         if fd is not None],
+    )
+    return len(filers), len(filings)
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="load_quarter")
+    ap.add_argument("--quarter", required=True, help="e.g. 2026q2")
+    ap.add_argument("--archive", required=True, help="path to the FSDS zip")
+    ap.add_argument("--submissions", action="store_true",
+                    help="also load filers/filings from sub.txt (see docstring)")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="parse and report, roll back, write nothing")
+    args = ap.parse_args()
+
+    dsn = os.environ.get("DATABASE_URL")
+    if not dsn:
+        print("DATABASE_URL is not set. This tool takes the DSN from the "
+              "environment and never stores it.", file=sys.stderr)
+        return 2
+
+    data = open(args.archive, "rb").read()
+    sha = hashlib.sha256(data).hexdigest()
+    mtime = datetime.fromtimestamp(os.path.getmtime(args.archive), tz=timezone.utc)
+    print(f"  archive     : {args.archive}")
+    print(f"  bytes       : {len(data):,}")
+    print(f"  sha256      : {sha}")
+    print(f"  retrieved_at: {mtime.isoformat()}  (file mtime - when it was fetched)")
+
+    fetch = Fetch(url=FSDS_URL.format(q=args.quarter), retrieved_at=mtime,
+                  sha256=sha, body=data)
+
+    import psycopg
+    with psycopg.connect(dsn, autocommit=False) as conn:
+        with conn.cursor() as cur:
+            if args.submissions:
+                sub_text, _ = read_archive(data)
+                cur.execute(
+                    """INSERT INTO fetch_log (url, retrieved_at, sha256, content_bytes)
+                       VALUES (%s, %s, %s, %s)
+                       ON CONFLICT (url, retrieved_at) DO NOTHING
+                       RETURNING fetch_id""",
+                    (fetch.url, fetch.retrieved_at, fetch.sha256, len(data)))
+                row = cur.fetchone()
+                if row is None:
+                    cur.execute("SELECT fetch_id FROM fetch_log WHERE url=%s "
+                                "AND retrieved_at=%s",
+                                (fetch.url, fetch.retrieved_at))
+                    row = cur.fetchone()
+                nf, ng = load_submissions(cur, sub_text, fetch_id=row[0],
+                                          as_of=mtime.date())
+                print(f"  filers seen : {nf:,}")
+                print(f"  filings seen: {ng:,}")
+
+            result = load_quarter(cur, quarter=args.quarter, fetch=fetch,
+                                  archive=data)
+
+            print("\n=== load ===")
+            for k, v in result.items():
+                print(f"  {k:>24}: {v if not isinstance(v, int) else format(v, ',')}")
+
+            accounted = (result["facts_loaded"] + result["refused_coreg"]
+                         + result["refused_malformed"]
+                         + result["refused_unknown_filing"]
+                         + result["collapsed_duplicates"] + result["quarantined"])
+            print(f"\n  accounted {accounted:,} of {result['facts_seen']:,} seen -> "
+                  f"{'BALANCED' if accounted == result['facts_seen'] else 'MISMATCH'}")
+
+            if args.dry_run:
+                conn.rollback()
+                print("\n  --dry-run: rolled back, nothing written")
+                return 0
+            conn.commit()
+            print("\n  committed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

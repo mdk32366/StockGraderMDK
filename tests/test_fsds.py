@@ -36,7 +36,7 @@ SUB = "\t".join(["adsh", "cik", "name", "form", "period", "prevrpt"]) + "\n" + \
       "\t".join([OTHER, "320193", "OTHER INC", "10-K", "20260331", "1"]) + "\n"
 
 NUM_HEADER = "\t".join(
-    ["adsh", "tag", "version", "coreg", "ddate", "qtrs", "uom", "segments", "value"])
+    ["adsh", "tag", "version", "ddate", "qtrs", "uom", "segments", "coreg", "value", ""])
 
 
 def num(*rows: list[str]) -> str:
@@ -163,8 +163,8 @@ def test_coreg_rows_are_refused_and_counted():
     """OPEN-39: coreg is free text with no reliable path to a CIK, and
     fact.entity_cik means CIK. A chosen refusal we can count."""
     rows, counts = _parse([
-        [ADSH, "Revenues", "us-gaap/2025", "", "20260331", "0", "USD", "", "100"],
-        [ADSH, "Revenues", "us-gaap/2025", "SUBSIDIARY", "20260331", "0", "USD", "", "200"],
+        [ADSH, "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "", "100", ""],
+        [ADSH, "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "SUBSIDIARY", "200", ""],
     ])
     assert len(rows) == 1
     assert counts.refused_coreg == 1
@@ -173,7 +173,7 @@ def test_coreg_rows_are_refused_and_counted():
 
 def test_a_fact_with_no_value_is_not_a_fact():
     rows, counts = _parse([
-        [ADSH, "Revenues", "us-gaap/2025", "", "20260331", "0", "USD", "", ""],
+        [ADSH, "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "", "", ""],
     ])
     assert rows == []
     assert counts.refused_malformed == 1
@@ -181,8 +181,7 @@ def test_a_fact_with_no_value_is_not_a_fact():
 
 def test_unknown_submission_is_refused_not_invented():
     rows, counts = _parse([
-        ["9999999999-99-999999", "Revenues", "us-gaap/2025", "", "20260331",
-         "0", "USD", "", "100"],
+        ["9999999999-99-999999", "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "", "100", ""],
     ])
     assert rows == []
     assert counts.refused_malformed == 1
@@ -191,7 +190,7 @@ def test_unknown_submission_is_refused_not_invented():
 def test_extensions_are_counted_and_still_loaded():
     """7.3%-8.5% of rows. Counted and reported, never dropped."""
     rows, counts = _parse([
-        [ADSH, "CustomTag", ADSH, "", "20260331", "0", "USD", "", "100"],
+        [ADSH, "CustomTag", ADSH, "20260331", "0", "USD", "", "", "100", ""],
     ])
     assert len(rows) == 1
     assert rows[0].is_extension is True
@@ -200,7 +199,7 @@ def test_extensions_are_counted_and_still_loaded():
 
 def test_entity_cik_comes_from_the_submission_not_the_accession():
     rows, _ = _parse([
-        [OTHER, "Revenues", "us-gaap/2025", "", "20260331", "0", "USD", "", "100"],
+        [OTHER, "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "", "100", ""],
     ])
     assert rows[0].entity_cik == 320193
 
@@ -212,7 +211,7 @@ def test_entity_cik_comes_from_the_submission_not_the_accession():
 
 def _row(value, ordinal, concept="Revenues"):
     rows, _ = _parse([
-        [ADSH, concept, "us-gaap/2025", "", "20260331", "0", "USD", "", value],
+        [ADSH, concept, "us-gaap/2025", "20260331", "0", "USD", "", "", value, ""],
     ])
     r = rows[0]
     return type(r)(**{**r.__dict__, "source_ordinal": ordinal})
@@ -273,18 +272,18 @@ def test_every_fact_is_accounted_for():
     """
     rows, counts = _parse([
         # loads
-        [ADSH, "Revenues", "us-gaap/2025", "", "20260331", "0", "USD", "", "100"],
+        [ADSH, "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "", "100", ""],
         # extension, also loads
-        [ADSH, "CustomTag", ADSH, "", "20260331", "0", "USD", "", "50"],
+        [ADSH, "CustomTag", ADSH, "20260331", "0", "USD", "", "", "50", ""],
         # refused: coreg
-        [ADSH, "Revenues", "us-gaap/2025", "SUB", "20260331", "0", "USD", "", "1"],
+        [ADSH, "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "SUB", "1", ""],
         # refused: no value
-        [ADSH, "Assets", "us-gaap/2025", "", "20260331", "0", "USD", "", ""],
+        [ADSH, "Assets", "us-gaap/2025", "20260331", "0", "USD", "", "", "", ""],
         # refused: unreadable dimensions
-        [ADSH, "Assets", "us-gaap/2025", "", "20260331", "0", "USD", "junk", "5"],
+        [ADSH, "Assets", "us-gaap/2025", "20260331", "0", "USD", "junk", "", "5", ""],
         # two that disagree -> both quarantined
-        [ADSH, "Equity", "us-gaap/2025", "", "20260331", "0", "USD", "", "7"],
-        [ADSH, "Equity", "us-gaap/2025", "", "20260331", "0", "USD", "", "9"],
+        [ADSH, "Equity", "us-gaap/2025", "20260331", "0", "USD", "", "", "7", ""],
+        [ADSH, "Equity", "us-gaap/2025", "20260331", "0", "USD", "", "", "9", ""],
     ])
     loadable, quarantined = partition_collisions(rows)
 
@@ -306,7 +305,7 @@ def test_prevrpt_is_recorded_and_not_used_to_filter():
     subs = parse_sub(SUB)
     assert subs[OTHER].prevrpt is True
     rows, counts = _parse([
-        [OTHER, "Revenues", "us-gaap/2025", "", "20260331", "0", "USD", "", "100"],
+        [OTHER, "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "", "100", ""],
     ])
     # The row from an amended submission is still parsed and still loadable.
     assert len(rows) == 1
@@ -322,9 +321,9 @@ def test_collapsed_duplicates_are_a_category_not_a_gap():
     is the difference between a counter set and an account.
     """
     rows, counts = _parse([
-        [ADSH, "Cash", "us-gaap/2025", "", "20260331", "0", "USD", "", "250"],
-        [ADSH, "Cash", "us-gaap/2025", "", "20260331", "0", "USD", "", "250"],
-        [ADSH, "Revenues", "us-gaap/2025", "", "20260331", "0", "USD", "", "1"],
+        [ADSH, "Cash", "us-gaap/2025", "20260331", "0", "USD", "", "", "250", ""],
+        [ADSH, "Cash", "us-gaap/2025", "20260331", "0", "USD", "", "", "250", ""],
+        [ADSH, "Revenues", "us-gaap/2025", "20260331", "0", "USD", "", "", "1", ""],
     ])
     loadable, quarantined = partition_collisions(rows)
     collapsed = len(rows) - len(loadable) - len(quarantined)
