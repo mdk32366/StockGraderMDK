@@ -150,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         got += 1
         total_bytes += len(f.body)
         print(f"  [{i}/{len(need)}] {q}  {len(f.body):,} bytes  "
-              f"sha256={f.sha256[:12]}")
+              f"sha256={f.sha256[:12]}", flush=True)
 
     print(f"\nfetched={got} failed={failed} bytes={total_bytes:,} "
           f"cache={args.cache}")

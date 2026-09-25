@@ -133,7 +133,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.defer_indexes:
             cmd.append("--defer-indexes")
 
-        r = subprocess.run(cmd, cwd=REPO)
+        # PYTHONUNBUFFERED because the child's stdout is block-buffered when
+        # the parent's is a file -- i.e. exactly the unattended run this exists
+        # for. Progress you cannot see until the run ends is not progress.
+        child_env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+        r = subprocess.run(cmd, cwd=REPO, env=child_env)
         if r.returncode == 0:
             ok += 1
             consecutive = 0
