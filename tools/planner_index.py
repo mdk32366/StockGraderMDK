@@ -41,6 +41,17 @@ commit that adds documents; `--check` fails if it is stale. A stale index is
 indistinguishable from a complete one, and a hand-maintained one is a manifest with
 extra steps.
 
+## Code reports
+
+Reports issued by the Builder are archived at
+[`../reports/INDEX.md`](../reports/INDEX.md). That directory has the same
+robots-disallowed problem as this one, so it has its own linked index and this
+is the link to it - one confirmed read here reaches both.
+
+**Those reports are an archive, not a delivery.** They reach the Planner by
+being hand-carried through Downloads, which is why the Code-side delivery
+manifest is retained.
+
 ## What the git relay does and does not fix
 
 An earlier version of this file said losses *"become impossible rather than merely
@@ -75,8 +86,14 @@ re-sending had failed six times.
 - **D32** - content carried in the same document, section 4.
 - **D30** - closed, not outstanding: its unique content arrived by other routes.
 
-**The manifest chain is retired.** D33's end condition was met when the Planner read
-this file.
+**The PLANNER-side manifest chain is retired.** D33's end condition was met when the
+Planner read this file.
+
+**The CODE-side chain is retained** and is not covered by that. It runs the other way,
+through hand-carried Downloads, and nothing about this directory fixes it. Saying
+"the manifest chain is retired" without naming a direction is the conflation that
+ruling corrects: an improvement working one way is not a symmetric improvement, and
+the direction it does not cover keeps the old failure mode.
 
 ## The one content conflict
 
