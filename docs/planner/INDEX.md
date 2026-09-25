@@ -9,64 +9,64 @@ this directory's contents - but every document below is linked from here, and fi
 pages under `/blob/` are readable. **Any future reorganisation must keep a single
 linked index file.** A directory is not a door.
 
+**This file is generated.** Run `python tools/planner_index.py` as part of the same
+commit that adds documents; `--check` fails if it is stale. A stale index is
+indistinguishable from a complete one, and a hand-maintained one is a manifest with
+extra steps.
+
 ## What the git relay does and does not fix
 
 An earlier version of this file said losses *"become impossible rather than merely
-detectable."* **That was too strong, and it is corrected here** on the Planner's
-own correction in D34.
+detectable."* **That was too strong, and it is corrected here** on the Planner's own
+correction in D34.
 
 Git is the **archive** and the Planner's **read path**. It is **not** the
 Planner -> Code transfer mechanism, which is unchanged.
 
 - **Losses become impossible after receipt.** Before receipt they are exactly as
   possible as on day one - and **every loss so far happened on that hop.**
-- **What genuinely improved is verification.** Delivery is confirmed by reading
-  what landed rather than by predicting a count and waiting for a mismatch. Losses
-  stay possible and become immediately visible instead of inferred two deliveries
-  later.
-
-The hazard the correction guards against is a reader concluding *the relay is git*
-and ceasing to watch the hop that is still live. **The manifest chain therefore
-stays** until the Planner confirms it can read this file.
+- **What genuinely improved is verification.** Delivery is confirmed by reading what
+  landed rather than by predicting a count and waiting for a mismatch.
 
 ## How this set is selected
 
-**By exclusion, not by pattern.** Every `*.md` naming this project is included
-unless it is Code-authored (`REPORT-Code-*`, `MANIFEST-Code-*`, `REPORT-C-013-*`).
+**By exclusion, not by pattern.** Every `*.md` naming this project is included unless
+it is Code-authored (`REPORT-Code-*`, `MANIFEST-Code-*`, `REPORT-C-013-*`).
 
 An include-pattern of `*-Planner-*` was tried first and **silently missed 11
-documents**, including all seven `RULING-RECORD-*` files, which carry the owner's
-own rulings. It would also have missed `RECOVERY-Planner-*`, a prefix that did not
-exist when the pattern was written. **Count by diff, never by filename pattern.**
+documents**, including all seven `RULING-RECORD-*` files, which carry the owner's own
+rulings. It would also have missed `RECOVERY-Planner-*`, a prefix that did not exist
+when the pattern was written. **Count by diff, never by filename pattern.**
 
 ## Delivery gaps - all closed
 
-**D28, D30 and D32** were never received; each was named as the previous manifest
-by a delivery that did arrive. **All three closed on D34**, by content rather than
-re-send - re-sending had failed six times:
+**D28, D30 and D32** were never received; each was named as the previous manifest by a
+delivery that did arrive. **All three closed on D34**, by content rather than re-send -
+re-sending had failed six times.
 
 - **D28** - content carried in `RECOVERY-...-d28-d30-d32-content.md` sections 2-3.
 - **D32** - content carried in the same document, section 4.
-- **D30** - closed, not outstanding: its unique content arrived by other routes
-  (OPEN-61 in full in D31, OPEN-62 ruled by the owner in D33).
+- **D30** - closed, not outstanding: its unique content arrived by other routes.
+
+**The manifest chain is retired.** D33's end condition was met when the Planner read
+this file.
 
 ## The one content conflict
 
 `RULING-RECORD-2026-09-23-...-owner-rulings.md` existed in two differing versions.
-**Both are kept.** The canonical name holds the later revision (*twelve ruled*);
-the earlier (*eleven ruled, two pending*) is retained as `...superseded-r1.md`.
+**Both are kept.** The canonical name holds the later revision (*twelve ruled*); the
+earlier (*eleven ruled, two pending*) is retained as `...superseded-r1.md`.
 
-The later revision carries two owner rulings the earlier lacks - **Altman Z'**
-(ruling 11) and **Lynch-style archetypes, option (c)** (ruling 13). Both were
-verified present in `decisions.md` before this directory was built, so the register
-took the later revision at the time and nothing was lost. Resolved explicitly in
-code, not by sort order.
+The later revision carries two owner rulings the earlier lacks - **Altman Z-prime**
+(ruling 11) and **Lynch-style archetypes, option (c)** (ruling 13). Both were verified
+present in `decisions.md` before this directory was built, so the register took the
+later revision at the time and nothing was lost. Resolved explicitly in code, not by
+sort order.
 
 ## Not included
 
-Snapshot archives and patches (`*-keel-scaffold*.zip`, `*-register-update-*`) stay
-out of the repository by standing convention. Code-authored reports and manifests
-are delivered to the owner's Downloads folder for the Planner to collect.
+Snapshot archives and patches stay out of the repository by standing convention.
+Code-authored reports and manifests are delivered to the owner's Downloads folder.
 
 ## Counts
 
@@ -75,12 +75,12 @@ are delivered to the owner's Downloads folder for the Planner to collect.
 | 2026-09-22 | 13 |
 | 2026-09-23 | 36 |
 | 2026-09-24 | 16 |
-| 2026-09-25 | 14 |
-| **Total** | **79** |
+| 2026-09-25 | 15 |
+| **Total** | **80** |
 
 | Type | Count |
 |---|---|
-| HANDOVER | 8 |
+| HANDOVER | 9 |
 | MANIFEST | 31 |
 | NOTE | 1 |
 | ORDER | 3 |
@@ -93,9 +93,9 @@ are delivered to the owner's Downloads folder for the Planner to collect.
 
 Every entry links to its file. This is the only navigable route in.
 
-
 ### 2026-09-25
 
+- [HANDOVER-Planner-2026-09-25-StockGraderMDK-block-narrowed-to-build.md](HANDOVER-Planner-2026-09-25-StockGraderMDK-block-narrowed-to-build.md) - HANDOVER, 4,213 bytes
 - [HANDOVER-Planner-2026-09-25-StockGraderMDK-final-block-before-checkpoint.md](HANDOVER-Planner-2026-09-25-StockGraderMDK-final-block-before-checkpoint.md) - HANDOVER, 3,384 bytes
 - [MANIFEST-Planner-2026-09-25-StockGraderMDK-D25.md](MANIFEST-Planner-2026-09-25-StockGraderMDK-D25.md) - MANIFEST, 2,192 bytes
 - [MANIFEST-Planner-2026-09-25-StockGraderMDK-D26.md](MANIFEST-Planner-2026-09-25-StockGraderMDK-D26.md) - MANIFEST, 1,763 bytes
