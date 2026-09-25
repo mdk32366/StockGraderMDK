@@ -3632,3 +3632,89 @@ it. **The fixture was unrealistic in the one way that mattered.**
 **Fixed:** the symbol leads the filename. A regression test writes two
 byte-identical payloads for two symbols in the same second and asserts two
 files survive.
+
+### F-043 — the runbook written from documents had four defects and one omission, exactly as its own honest column predicted
+
+**Established 2026-09-25, by the Builder**, by walking
+`docs/reports/2026-09-25-cluster-150gb-runbook.md` with the owner at the
+keyboard, one command at a time.
+
+**Its §5 said, before any of it was run:**
+
+> *None of this has been executed and I cannot execute it. The sequence is
+> assembled from the register... every step is therefore a claim about commands
+> I have read about rather than run. The register has already recorded one
+> cutover procedure that only worked on an app which had never been connected to
+> a database, so a runbook written from documents is exactly the artifact that
+> has failed here before.*
+
+**It was right, and the specific prediction was right too** — it named §2.3, the
+role creation, as *"the shortest section for the worst reason"*. That section was
+indeed wrong, though not in the way predicted: the role turned out to be
+unnecessary, because `fly-user` already resolves to `schema_admin`.
+
+| # | Defect | Consequence if followed |
+|---|---|---|
+| 1 | `fly secrets set` for the app's `DATABASE_URL` | **Writes the password into PowerShell history.** The phase-0 handover puts `set` on the must-not-run list for exactly this and names `fly secrets import` from stdin. **F-021's shape, inside the document written to prevent it.** |
+| 2 | `ConvertFrom-SecureString -AsPlainText` | PowerShell **7+ only**. The owner is on 5.1 and it errored. The gate's own job is named `windows-setup (PS 5.1)`. |
+| 3 | `db/migrate.py --dsn ... --apply` | `apply` is a **positional command**, not a flag. Also skipped `plan`, which is the read-only rehearsal. |
+| 4 | `load_quarter.py 2026q2 --submissions` | `--quarter` and `--archive` are **both required flags**, and the DSN comes from `DATABASE_URL` in the environment — the loader takes no `--dsn`. |
+
+**And the omission, which is larger than any of the four: it never created the
+databases.** A fresh MPG cluster has `fly-db` and nothing else. D-009 records
+that `stockgrader` was *"created deliberately, not the `fly-db` default"* and
+phase-0 §5.3 created `stockgrader_scratch` separately. **The runbook went
+straight from cluster creation to applying migrations**, which would have failed
+against a database that did not exist.
+
+**Every one of the five was recoverable from the register**, and every one was
+found by reading it during execution rather than before writing. **The
+information was not missing. It was unread.**
+
+**The owner's instruction, recorded because it is the rule going forward:**
+*read the register first, state what it predicts and cite the entry, then run the
+command* — and the token cost of that reading is explicitly accepted. Applied
+from the databases step onward, it immediately produced the `fly-db`-only
+prediction, the two-database argument from OPEN-1, the `fly mpg connect` ban,
+and the archive-still-cached check.
+
+**What this does not say.** It does not say runbooks written from documents are
+worthless — this one's sequence, its credential discipline and its ordering
+argument were all correct, and the operation succeeded. **It says a runbook is a
+draft until it is walked, and it should be labelled as one.** The honest column
+was the most accurate section in the document, and it was the only one nobody
+could act on.
+
+### F-044 — F-014's third occurrence, under a warning printed immediately above the command
+
+**Established 2026-09-25, by the Builder**, during the r2 build.
+
+`fly mpg create` printed a live connection string for `fly-user` on
+`w8675081kdjr3pk4` in its normal successful output, and the credential reached
+the session transcript. **Third occurrence of F-014 on this project.**
+
+**What makes it worth a number rather than a footnote: the mitigation had never
+been better positioned and it still failed.** The warning was in the message
+immediately above the command, naming F-014, naming the two roles compromised on
+day one, and saying explicitly *do not paste the output, type back the cluster id
+and name instead*. The output was pasted whole, within seconds, by somebody who
+had just read the warning.
+
+**That is not a lapse in attention; it is the ceiling of attention.** The tooling
+puts the secret in the same block as the two facts the operator needs to relay,
+and separating them is a manual act performed under time pressure at the exact
+moment the operator is focused on something else. **D-030's line - *the
+mitigation is mechanical, not attentional* - has now been tested three times and
+the attentional half has lost three times.**
+
+**Ruled by the owner:** accepted, in use, cycle at the end. Recorded as given -
+*"nobody knows about this app yet."* **The migrations in this build ran under
+that credential.**
+
+**The mechanical mitigation this suggests, unbuilt and not proposed as work:**
+nothing in `flyctl` will stop printing it, so the only interception point is the
+operator's terminal. A wrapper that runs `fly mpg create`, captures stdout,
+prints the id and name, and writes the connection string straight to a password
+manager or a file with no terminal echo **would remove the human step that has
+now failed three times.** It is a small script and it is the difference between a
+rule and a guard.
