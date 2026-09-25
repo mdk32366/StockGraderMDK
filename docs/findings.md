@@ -2499,3 +2499,92 @@ an instrument acquired a new question it could not answer. **Here I brought the
 new question to an instrument I had personally documented as unable to answer
 it.**
 **Sample:** 1 listing, 2 questions, 1 recorded limitation not applied.
+
+### F-next/open-56-storage-cannot-be-resized-from-the-cli - and the docs and the CLI do not agree
+**Date:** 2026-09-25 - **By:** Builder, establishing OPEN-56
+**Claim:** the answer splits, and **the two halves do not compose into a
+confident one.**
+
+**What the CLI says.** `fly mpg create` takes **`--volume-size int` (default 10)**,
+so size is chosen **at creation**. And the full subcommand list is
+`attach, backup, connect, create, databases, destroy, detach, list, proxy,
+restore, status, users` - **there is no resize, scale or update command.** From
+the CLI, **provisioned storage cannot be changed after creation.**
+
+**What the documentation says.** *"Storage growth is monitored and managed
+automatically."* And billing is **`$0.28 per provisioned GB` for a 30-day month** -
+provisioned, not used.
+
+**What the documentation does NOT say:** whether provisioned storage can be
+**raised** post-creation. That sentence is absent.
+
+**So "managed automatically" is doing a great deal of work in five words**, and it
+is the load-bearing claim. If it means Fly raises the provisioned figure as the
+data grows, then **under-provisioning is recoverable and over-provisioning is
+money spent on empty space** - provision low. If it means monitoring and alerting,
+then **under-provisioning is not cheaply recoverable at all**, because the CLI
+offers no way out and `fly mpg restore` picks its own size (it gave 15 GB for a
+10 GB source, OPEN-22).
+
+**This is the same shape as "no cases found is not the rule is unnecessary."** I
+cannot verify auto-growth without filling a disk, and **a claim I cannot test is
+not evidence I can spend money against.**
+
+**Consequence for OPEN-53, and it inverts D25 §5.1's framing.** The ruling asked
+which mistake is cheap *because* the answer decides the figure. **On the CLI
+evidence, under-provisioning is the expensive mistake** - recovery means creating
+a new cluster at the right size and migrating into it, since restore will not size
+to order. **Over-provisioning is merely money**, at $0.28/GB/month.
+**So the safe direction is to provision for the measured need plus headroom, and
+to treat "it grows automatically" as unverified rather than as a safety net.**
+**Also established, for OPEN-57:** plan RAM is **Basic 1 GB, Starter 2 GB,
+Launch 8 GB, Scale 32 GB, Performance 64 GB.**
+**Sample:** 1 CLI surface, 1 docs page, 1 unanswered question.
+
+### F-next/open-57-the-measurement-cannot-answer-its-own-question
+**Date:** 2026-09-25 - **By:** Builder, running OPEN-57
+**Claim:** **index construction is not the constraint, and the measurement cannot
+establish that Basic is sufficient.** Both halves matter and the second is the
+important one.
+
+**Measured** - two widely separated quarters, Postgres constrained to
+Basic-shaped memory (`shared_buffers=128MB`, `maintenance_work_mem=64MB`,
+`work_mem=4MB`):
+
+| | |
+|---|---|
+| Facts loaded | 5,636,958 |
+| Table size | 1,089 MB |
+| **`fact_one_per_filing` built in** | **21.3 s** |
+| Index size | 1,075 MB |
+| Rate | 264,038 rows/s, 50.4 MB/s |
+| Extrapolated to 42 GB | **~0.2 h linear, ~0.3 h `n log n`-adjusted** |
+
+**So Postgres's own memory settings are not the binding constraint on the index
+build.** 64 MB of `maintenance_work_mem` built a 1 GB index in 21 seconds; the
+external merge sort is not the problem the question feared.
+
+**AND THE RESULT DOES NOT ANSWER THE QUESTION, exactly as the ruling predicted.**
+The host has **31.5 GB of physical RAM**. The 1,089 MB table **fit entirely in the
+operating system's page cache**, which was never constrained - only Postgres's
+own buffers were. On Fly Basic, **1 GB is the whole machine**: shared_buffers,
+page cache, connections and everything else come out of it, and a 114 GB store
+cannot be cached in any meaningful proportion.
+
+**So the simulation was optimistic by roughly 31x on the one resource that
+matters**, and the number it produced is about a machine that does not exist.
+**It could have proved Basic inadequate. It did not, so it proves nothing** -
+which is a different and weaker outcome than "Basic looks fine".
+
+**The asymmetry is the finding, and it was stated before the measurement rather
+than after.** D25 §5.2 said *"it can prove Basic is inadequate; it cannot prove
+Basic is sufficient"* - and **writing that caveat in advance is what stops a green
+result being read as a pass.** Had it been written afterwards it would have looked
+like an excuse for an inconvenient number.
+**What would actually answer it:** a cgroup- or VM-constrained host with **1 GB
+total**, so the page cache is bounded too - or provisioning a Basic cluster and
+loading into it, which costs money and is the thing the measurement was meant to
+avoid.
+**Recorded as: the constraint is unmeasured, and the plan tier is still an open
+decision.** The only thing removed from the risk list is the external sort.
+**Sample:** 1 constrained cluster, 5.6M facts, 31x unconstrained page cache.
