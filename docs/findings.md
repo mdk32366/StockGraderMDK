@@ -3535,3 +3535,62 @@ the same argument F-036 closed with.
 
 **Corrected in the r2 order.** The R&D session's `L` deferral now ends on *the
 load, which is itself gated on a larger cluster*, rather than on the load alone.
+
+### F-041 — the first live capture refused all ten symbols, and that is the system working
+
+**Established 2026-09-25, by the Builder**, on the first live run authorised
+under D-036.
+
+`StooqProvider` was the first implementation: no API key, documented CSV,
+unadjusted closes. **A live run against ten large-caps refused all ten.** The
+endpoint returns a **796-byte JavaScript browser-verification page** — *"This
+site requires JavaScript to verify your browser"* — to any client that does not
+execute JS. Confirmed directly against `stooq.com` and `stooq.pl`; both serve the
+same challenge.
+
+**Nothing was written, and the run exited 1.** The parser refused because the
+CSV header check did not find `Date` and `Close`. **Had the parser been
+permissive, ten files of HTML would have been recorded as a trading day**, and
+the gap would have surfaced months later as a hole in a series nobody could
+refill — the failure this whole capture exists to prevent, arriving through the
+front door on day one.
+
+**What this cost and what it did not.** It cost one afternoon, on ten symbols,
+exactly as the plan said it would: *the first run is the one that finds out
+whether the provider's shape matches the fixtures, and finding that out across
+the whole universe costs a day of capture to learn a thing ten symbols would
+have said.* **It did not cost a capture day** — the replacement ran the same
+afternoon.
+
+**And it is the honest column of the build report coming true within the hour.**
+That report said: *the fixtures are mine, not the provider's. A hermetic green
+proves the parser handles the shape Stooq documents, not that Stooq serves it.*
+**It does not serve it.** Ten hermetic tests passed against a provider that
+cannot be reached. **That is F-036's rule a fourth time** — *a suite is evidence
+only about the environment it declares* — and this time it was written down
+before the run rather than after, which is the only part that is progress.
+
+**Replacement: `YahooChartProvider`.** JSON, no credential, and it serves
+`close` and `adjclose` in **separate arrays** — §7.1's *store the as-traded close
+and the adjustment factors separately*, handed over by the source. The adjusted
+value is never read into `close`; it is recorded only as an
+`AdjustmentObservation`, a separate record type, so the separation is structural
+rather than conventional.
+
+**First successful capture, same afternoon: 10 symbols, 0 refused, 50 bars, 10
+carrying the same-day guarantee.**
+
+**And the theory was confirmed rather than assumed.** Every one of today's ten
+bars has an adjustment factor of **exactly 1.0** — adjusted close equals
+as-traded close, because **no adjustment has yet been applied to a price that
+traded today.** That is *a close captured on the day it traded is as-traded by
+construction*, measured instead of argued. It is the premise D-036 rests on, and
+it now has a number behind it.
+
+**The standing caveat, and it is not small.** The endpoint is **undocumented**
+and can change or close without notice. **It is not a vendor-of-record decision
+and OPEN-9 stays open.** What makes this acceptable is the property that made
+D-036 rulable in the first place: a close observed on date D stays true whoever
+is later paid to serve it, so **a provider change invalidates no captured row** —
+it only interrupts capture, and an interruption is visible where a silent
+adjustment is not.

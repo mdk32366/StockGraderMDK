@@ -130,3 +130,106 @@ def test_dailybar_has_no_adjusted_field():
     """
     assert "adj_close" not in DailyBar.__dataclass_fields__
     assert not any("adj" in f.lower() for f in DailyBar.__dataclass_fields__)
+
+
+# ---------------------------------------------------------------------------
+# YahooChartProvider — added after StooqProvider failed its first live run
+# (F-041). Fixtures below are trimmed from a real payload captured 2026-09-25.
+# ---------------------------------------------------------------------------
+
+YAHOO = json.dumps({
+    "chart": {"result": [{
+        "meta": {"currency": "USD", "symbol": "AAPL", "gmtoffset": -14400},
+        "timestamp": [1790343000, 1790602200],
+        "indicators": {
+            "quote": [{
+                "open": [338.0, 339.5], "high": [341.0, 342.2],
+                "low": [337.1, 338.9], "close": [339.75, 340.13],
+                "volume": [51000000, 47250000],
+            }],
+            "adjclose": [{"adjclose": [338.20, 338.58]}],
+        },
+    }], "error": None},
+}).encode()
+
+
+def _yahoo_dates():
+    from ingest.prices import YahooChartProvider
+    bars = YahooChartProvider().parse("AAPL", YAHOO, captured_on=date(2026, 9, 25))
+    return [b.trade_date for b in bars]
+
+
+def test_yahoo_reads_as_traded_close_never_adjclose():
+    """The payload carries both. We must take `close`, never `adjclose`."""
+    from ingest.prices import YahooChartProvider
+    bars = YahooChartProvider().parse("AAPL", YAHOO, captured_on=date(2026, 9, 25))
+    closes = [b.close for b in bars]
+    assert closes == [339.75, 340.13]
+    # The adjusted values must appear nowhere among the as-traded closes.
+    assert 338.20 not in closes and 338.58 not in closes
+
+
+def test_yahoo_records_the_adjustment_separately_with_a_factor():
+    """§7.1: as-traded and adjustment stored separately, not folded together."""
+    from ingest.prices import YahooChartProvider
+    bars, adjustments = YahooChartProvider().parse_both(
+        "AAPL", YAHOO, captured_on=date(2026, 9, 25))
+    assert len(adjustments) == len(bars) == 2
+    a = adjustments[-1]
+    assert a.as_traded_close == 340.13
+    assert a.adjusted_close == 338.58
+    assert a.factor == pytest.approx(338.58 / 340.13)
+    assert a.observed_on == date(2026, 9, 25)
+
+
+def test_yahoo_uses_exchange_local_date_not_utc():
+    """A daily bar belongs to the exchange's session, not to UTC.
+
+    THE FIXTURE IS CHOSEN SO THE TWO ANSWERS DIFFER. A 09:30 ET session is
+    13:30 UTC, and UTC-vs-local give the SAME date there - so a test built on
+    an ordinary session cannot fail for the reason it claims, which is the
+    register's first failure shape. This timestamp is 2026-09-26 01:00 UTC,
+    which at gmtoffset -14400 is 2026-09-25 21:00 locally: UTC says the 26th,
+    the exchange says the 25th.
+    """
+    from ingest.prices import YahooChartProvider
+    payload = json.dumps({"chart": {"result": [{
+        "meta": {"gmtoffset": -14400},
+        "timestamp": [1790384400],          # 2026-09-26 01:00 UTC
+        "indicators": {"quote": [{"close": [100.0]}]},
+    }], "error": None}}).encode()
+    bars = YahooChartProvider().parse("AAPL", payload,
+                                      captured_on=date(2026, 9, 25))
+    assert bars[0].trade_date == date(2026, 9, 25), "took the UTC date"
+    assert bars[0].captured_same_day is True
+
+
+def test_yahoo_ordinary_session_dates():
+    assert _yahoo_dates() == [date(2026, 9, 25), date(2026, 9, 28)]
+
+
+def test_yahoo_adjclose_without_close_is_refused():
+    """The §7.1 refusal, in this provider's shape."""
+    from ingest.prices import AdjustedOnly, YahooChartProvider
+    payload = json.dumps({"chart": {"result": [{
+        "meta": {"gmtoffset": 0}, "timestamp": [1758807000],
+        "indicators": {"quote": [{}], "adjclose": [{"adjclose": [338.2]}]},
+    }], "error": None}}).encode()
+    with pytest.raises(AdjustedOnly, match="no as-traded close"):
+        YahooChartProvider().parse("AAPL", payload, captured_on=date(2026, 9, 25))
+
+
+def test_yahoo_unknown_symbol_is_an_error_not_a_quiet_no_trade():
+    from ingest.prices import PriceParseError, YahooChartProvider
+    payload = json.dumps({"chart": {"result": [], "error": None}}).encode()
+    with pytest.raises(PriceParseError, match="not evidence"):
+        YahooChartProvider().parse("NOPE", payload, captured_on=date(2026, 9, 25))
+
+
+def test_yahoo_non_json_is_refused():
+    """Stooq's failure mode was an HTML challenge page. Guard against it here."""
+    from ingest.prices import PriceParseError, YahooChartProvider
+    with pytest.raises(PriceParseError, match="not JSON"):
+        YahooChartProvider().parse(
+            "AAPL", b"<!DOCTYPE html><html><body>verify your browser</body></html>",
+            captured_on=date(2026, 9, 25))
