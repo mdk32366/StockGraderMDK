@@ -2349,3 +2349,81 @@ signals which.
 story. **Count the population before recommending the handling** - it cost one
 query each time, and each time it reversed the recommendation.
 **Sample:** 3 predictions from first instances, 3 reversed by counting.
+
+### F-next/0003-inverts-the-enumeration - The guard now fails closed, proven side by side
+**Date:** 2026-09-25 - **By:** Builder, D23 §2 (OPEN-54)
+**Claim:** 0003 adds `source_fetch_id NOT NULL` to `fact`, and **replaces 0002's
+enumerated provenance check with a derived one.** A2 now reads the catalogue and
+asserts **every ordinary table** carries provenance, **minus** rows in a declared
+`provenance_exempt` table.
+
+**The demonstration, run side by side on the same database.** A new table
+`price_daily` was created — the same shape of omission by which 0002 missed
+`fact`:
+
+| Check | Result |
+|---|---|
+| **0003's derived A2** | **RED** — *"table(s) carry no source_fetch_id NOT NULL and are not declared in provenance_exempt: price_daily"* |
+| **0002's enumerated A5** | **PASSES** — blind to `price_daily` **and** to `fact` |
+
+**That is the fails-open / fails-closed argument as a measurement rather than an
+assertion.** Both are enumerations; only one is wrong by default.
+
+**Every guard seen red:**
+
+| Defect injected | Caught by |
+|---|---|
+| New unprovenanced table added later | **A2** |
+| `fact.source_fetch_id` made nullable | **A2** (and A4 names it explicitly) |
+| Exemption naming a non-existent table | **A3** |
+| Unprovenanced `fact` row | C1 |
+| Exemption with a trivial reason | C2 |
+| Unprovenanced quarantine row | C3 |
+
+**A3 exists for a failure I had not thought of until writing the list.** A stale
+exemption — a name in `provenance_exempt` for a table that does not exist —
+**pre-authorises a future table that happens to reuse the name.** The hole opens
+years later, silently, and the exemption looks deliberate because it was.
+
+**Reasons are mandatory and length-checked** (`>= 20` characters). The ruling's
+line is the reason: *a list of names with no reasons becomes a place to hide a
+table.* A CHECK constraint is the only place that rule cannot be forgotten.
+
+**A4 is redundant with A2 and kept anyway.** A2 would catch `fact` on its own.
+A4 names it explicitly because **it is the table 0002 missed**, and a regression
+worth naming out loud is worth a redundant check.
+**Sample:** 1 new table, 2 checks compared, 6 guards tripped.
+
+### F-next/0003-quarantine-keeps-both-assertions - OPEN-55, and the key is not weakened
+**Date:** 2026-09-25 - **By:** Builder, D23 §3 (OPEN-55)
+**Claim:** `fact_collision` holds **both** competing assertions when FSDS rows
+collide on `fact_one_per_filing` with **different values**. Neither is loaded.
+Proven: two rows for one fact, values `-3,123,000` and `706,000`, **both
+retrievable, both traced to their fetch.**
+
+**`fact_one_per_filing` is untouched**, per §3.3, and A6 asserts that. Adding a
+source ordinal to the key would let two rows exist for one fact — **exactly what
+the key forbids by design and what A4 protects.** The guarantee is worth more
+than 31 facts per quarter out of 3.4 million, and **the alternative was never
+"keep them" — it was "keep one of them, chosen arbitrarily, with no record."**
+
+**No uniqueness constraint on the quarantine's colliding key, deliberately**, and
+A5 asserts its absence. **The rows collide by definition**; a unique constraint
+here would refuse the second one and **reproduce the loss inside the table built
+to prevent it.** That is the kind of guard that would have looked correct.
+
+**The quarantine is not where the rules relax.** Quarantined rows carry
+`source_fetch_id NOT NULL` like everything else, and C3 proves an unprovenanced
+one is refused. **A refusal we can count is only a different object from a
+silence if the refusal is itself inspectable.**
+
+**`fact_collision_rate` reports per fetch**, per §3.5 — *the number is the
+signal; a jump means something changed at the source, which a constant trickle
+would hide.* A view rather than a stored counter, for 0002's reason: the number
+is derived, and a stored copy can diverge from what it counts.
+
+**Second instance of the standard set with `coreg`:** a **chosen refusal we can
+count and inspect** is a different object from a silence. Recorded as **the
+general response to source data that violates its own contract**, which is what
+the ruling asked.
+**Sample:** 1 collision pair, 4 behavioural checks, 3 refusals.
