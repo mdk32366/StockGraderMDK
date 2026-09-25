@@ -132,8 +132,16 @@ Planner.
 Consequence: D-010 is ruled on the **Builder's summary** of the document, not on
 the document. A summary is not knowing (P8). Until the Planner has read both,
 no scoring design work proceeds, and D-010's condition - ratification of the
-five open questions in the TDD's section 17 - cannot even be assessed.
-Status: ASSUMED, and **currently true**. [OWNER] to supply both documents.
+open questions in the TDD - cannot even be assessed.
+Status: **CLOSED 2026-09-23.** Falsified as intended: the Planner has read
+`TDD-growth-score.md` and `growth-model-lineage.md` **in full, not a summary of
+them**, and produced `PLANNER-NOTE-r2-2026-09-23-...-GQS-variable-source-map.md`.
+**The reading immediately produced four findings** (F-next/gqs-tdd-defects) that
+a summary had not surfaced - including that D-010's own condition cited a section
+that does not exist, and that 25% of the score cannot be computed from the source
+the TDD names as its only one. **That is the assumption doing its job:** it was
+written to say the difference between reading and being told mattered, and the
+difference turned out to be four findings and four rulings.
 
 **A-017 - A `writer` can do everything the application needs**
 Relies on: the application requiring row access only, with schema changes

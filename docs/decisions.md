@@ -112,19 +112,32 @@ stock-side design -- its four independently ranked blocks, its integrity gate,
 its `insufficient_data` fourth state, its point-in-time requirement, and its
 attribution of score moves (fundamentals deteriorating versus price rising and
 valuation compressing).
-**Condition, binding:** GQS v3's own header says it is a draft with **five open
-questions in its §17 requiring owner ratification before a build order**. Those
-five are ratified, or **the build order for scoring does not issue**. Adopting a
-draft without answering the questions its own author flagged is how a draft
-becomes doctrine by accident.
+**Condition, binding.** **Reworded by owner ruling 7, 2026-09-23:** it read
+*"five open questions in its §17"*; it now reads **"the four open questions in
+its §11."** Unchanged in substance - it now points at a section that exists.
+Those four are ratified, or **the build order for scoring does not issue**.
+Adopting a draft without answering the questions its own author flagged is how a
+draft becomes doctrine by accident.
+**Superseded by GQS v4 (ruling 8):** v3 is revised to v4 grounded on this repo,
+rather than ported inside a build order. §12's confirm-before-build list is
+rewritten against StockGraderMDK - `alembic heads` removed (D-021 rejected
+Alembic), the `finance` agent and settings-overlay items replaced with this
+repo's equivalents, and §3's `place_stock_order` non-goal becomes **moot rather
+than satisfied**, since no such path exists here.
+**Why not port it inside a build order:** §13 refuses the document for build.
+Carrying the port inside a build order would mean the refusal never formally
+lifts, and **a completeness gate that is routed around once stops being a gate.**
+**Current state: still refused.** See the §13 table in `testplan.md`.
 **Rejected:** the Planner's first-turn placeholder component list, which was a
 sketch and is superseded.
 **Consequence:** A-007 becomes load-bearing. Point-in-time integrity constrains
 the **first migration**, so the schema must carry it from Phase 1 whether or not
 scoring is built yet -- it is unaffordable to retrofit.
-**Blocking:** see **A-016**. The Planner has not read GQS v3 or
-`docs/finance/growth-model-lineage.md`; everything above is taken from the
-Builder's summary, and a summary is not knowing (P8). GQS covers businesses, not
+**Blocking: LIFTED 2026-09-23.** A-016 is closed - the Planner has read
+`TDD-growth-score.md` and `growth-model-lineage.md` in full. The reading produced
+four defects (`F-next/gqs-tdd-defects`), **one of them in this entry's own
+condition** (F-A, fixed by ruling 7). The variable-to-source map that came out of
+it is `docs/gqs-source-map.md`. GQS covers businesses, not
 funds; the fund score is a separate design -- see D-027.
 
 ### D-011 — Python 3.12 everywhere: local, CI, image
@@ -267,15 +280,37 @@ merge green and still break `main`, because the required check ran against an
 older base. The post-merge `deploy` job and the live-SHA check (D-005) are what
 would catch it. **Revisit both settings the day a second person can push.**
 
-### D-019 - `windows-setup` stays non-required until 10 consecutive green runs
-**Status:** RULED 2026-09-22
-**Choice:** the D-014 job runs on every PR but is **not** a required check.
-Promotion is an owner ruling once it has been green on **10 consecutive runs**,
-counted in `testplan.md`.
-**Rejected:** promoting it now. Two green runs was a sample of two, and a
-Windows-runner outage would block every merge on a job that guards one script.
-**What protects the entry point meanwhile:** the required `.ps1` byte guard
-(G-9 / D-013), which runs inside the required `test` job.
+### D-019 - `windows-setup` is a required check
+**Status:** **RULED 2026-09-23 (owner) - PROMOTED.** Supersedes the 2026-09-22
+ruling, which held it non-required until 10 consecutive green runs. **The counter
+is retired.**
+**Choice:** `windows-setup` is a **required** check on `main`. **A red on Windows
+blocks merge.**
+**Met on:** 10 consecutive green runs, **no reds**, across five branches and four
+merges to `main`. The ruling was made **on** the threshold rather than reached by
+default.
+**The caveat is recorded with the ruling, not against it.** Those ten runs are
+ten runs of a repo with 22 tests and **almost no application code**.
+`windows-setup` has not been stressed by dependency churn, and **ingest - the
+next work - is exactly what stresses a Windows setup path.** That is the argument
+*for* promoting now: **a check made required after the churn is one that was
+proven against nothing and then made load-bearing at the moment it started to
+matter.**
+**Reversal path, named in advance** so it is a decision rather than a scramble:
+the same settings change in reverse. **Condition: a red attributable to the
+runner rather than to the repository, twice.** One is noise.
+**Superseded rationale, kept:** the 2026-09-22 entry rejected promotion because
+two green runs was a sample of two and a runner outage would block every merge on
+a job guarding one script. That was right then; the counter is what changed it.
+**What protected the entry point meanwhile:** the required `.ps1` byte guard
+(G-9 / D-013), inside the required `test` job. It stays.
+**IMPLEMENTATION NOT YET APPLIED.** Branch protection is a repository settings
+change, not a commit, and the change was blocked at the Builder's permission
+boundary. **testplan OPEN-14** carries it.
+**Required context: `windows-setup (PS 5.1)`.** The promotion ruling's §2 named
+`windows-setup`, which nothing ever reports; **§2 is superseded and corrected**
+by `RULING-Planner-2026-09-23-...-p7-settled-p8-context-string.md` §1.1. The
+error is **P-8**; the hazard is `F-next/required-check-context-name`.
 
 ### D-024 - Decision status vocabulary, and the rule that keeps it true
 **Status:** PROPOSED 2026-09-22
@@ -334,6 +369,15 @@ Every fetch records source URL, retrieval timestamp, and a hash of the payload.
 accession plus hash makes any row re-derivable.
 **Forced by:** A-004. A 403 means we have been refused, not that we should try
 again. A retry that swallows it turns a policy failure into a silent data gap.
+
+**Numbers established 2026-09-23** (`F-next/edgar-limits-established`), because
+"a hard client-side rate limit" without a figure is not a limit:
+- **10 requests per second**, the SEC's published maximum access rate.
+- **User-Agent format:** `Company Name AdminContact@domain.com`.
+The bound is one we can point at rather than a sleep someone guessed - a guessed
+sleep that happens to be slower is indistinguishable from a correct one until the
+limit moves, and then indistinguishable from a correct one that has silently
+become wrong.
 
 ### D-027 - Fund scoring is look-through PLUS fund mechanics
 **Status:** PROPOSED 2026-09-22
@@ -401,6 +445,43 @@ request to the live service proves the new one is in use.** `/healthz` cannot
 prove it, because it touches no database; the first DB-backed endpoint can.
 **Order:** the application credential goes first.
 
+**~~RULED 2026-09-23 (owner ruling 6) - closure is by destroy, not rotation.~~**
+**VOID, same day.** Ruling 6 held that destroying the old cluster retires both
+exposed credentials, and that this was D-029 closing by replacement. **It is not.**
+
+**`fly mpg restore` carries the role catalogue.** `fly mpg users list
+kzpwm0j1dm204nv3` returns `fly-user` (`schema_admin`), `stockgrader_app`
+(`writer`) and **`stockgradermdk` (`schema_admin`)**. Both credentials
+compromised on 2026-09-22 are **live on the new cluster with their original
+passwords**. The destroy would retire **two copies that no longer matter**.
+See `F-next/restore-carries-compromised-roles`.
+
+**D-029 therefore has no closure path at present.** Stated in those words rather
+than left implied, because it was resting entirely on ruling 6.
+
+**What still stands:** **D-031, in full.** The app connects as `stockgrader_app`
+at `writer`, verified from the connection string's own components. That was real
+work and is untouched. **The defect is the residue the restore carried, not the
+replacement that was made.**
+
+**What became false:** the claim that F-017's over-privilege is not rebuilt on a
+clean cluster. **There is no clean cluster** - a restore is a copy, and the
+over-privileged account came across with the data.
+
+**The risk, neither inflated nor dismissed:** the cluster is on the private
+network and unreachable from the public internet. A credential alone buys nothing
+without Fly organisation access, and anyone holding that does not need the
+credential. **Practical probability of exploitation is low** - and it was low
+this morning, which is why the deferral was sound.
+**What changed is not the probability.** It is that **the register asserted
+something false** - a wrong record is worse than a known risk, because nobody
+re-examines it - **and the remediation acquired a deadline it did not have.**
+
+**Remediation is gated: see `testplan.md` OPEN-25.** It is nearly free while the
+databases hold no owned objects, and becomes a schema-ownership problem the
+moment migration 0001 creates tables.
+`probe_ro`'s resolution is unchanged - delete.
+
 ### D-030 - Credential handling, with a procedure
 **Status:** PROPOSED 2026-09-22
 **Choice:**
@@ -431,6 +512,22 @@ one - and the nearest one is chat:**
 **Residual, stated rather than hidden:** anything in a machine's environment is
 readable by anyone who can `fly ssh console` into it. "Never printed" is a habit;
 **least privilege and rotation are the controls.**
+
+**AMENDED 2026-09-23 - the rotation clause is a platform fact, not a discipline.**
+As written, *a human who needs a credential rotates it rather than looking it up*
+**reads as a choice**, and a rule that sounds like a choice invites the next
+person to go hunting for the lookup. **There isn't one.**
+`fly mpg users` exposes `create`, `delete`, `list`, `set-role` and **no
+`rotate`**; no flag on any of them emits a password or connection string; and
+Fly secrets are write-only. **So rotation on this platform is
+delete-and-recreate, or a dashboard password change, and looking a credential up
+is not a worse option - it is not an option**
+(`F-next/no-cli-path-to-a-recovery-credential`).
+**The general form:** every credential this project holds arrived either **by a
+leak** (F-014) or **by a human typing it into a browser.** There is no third
+route.
+**`set-role` is a mitigation, never a fix.** Downgrading an account's role
+shrinks the blast radius of an exposed password and leaves it exposed.
 
 ### D-031 - The application connects as a `writer`, not a `schema_admin`
 **Status:** PROPOSED 2026-09-22. Evidence in hand (A-017).
@@ -478,3 +575,508 @@ object - appears in a report **before anything else is done**.
 For infrastructure there is no commit, so work can outrun its record and nothing
 in the documents reveals it. The register is assembled from reports; a chat is
 not a record.
+
+### D-035 - The DSN check runs before the driver import
+**Status:** RULED 2026-09-25 by the owner, on the Builder's finding F-036.
+**Choice:** `_connect` validates `DATABASE_URL` **before** importing psycopg, so
+the runner's refusal to invent a DSN does not depend on what is installed. The
+driver check is not removed - it moved behind the DSN check, and both orders are
+now tested.
+**Forced by:** F-036. With the import first, the runner reported a missing
+driver when the real and prior fault was a missing DSN, and the test that exists
+to prove *the runner never invents a DSN* passed only on machines that happened
+to have psycopg. **A refusal that depends on an unrelated dependency is not a
+refusal, it is a coincidence.**
+**Also ruled:** `psycopg[binary]==3.3.6` is declared in `requirements-dev.txt`.
+It was imported by `db/migrate.py`, `tools/load_quarter.py`, `tools/e2e_fsds.py`
+and `tests/keel_db_guard.py` and declared nowhere.
+
+---
+
+## Backup strategy - B-1 to B-9
+
+**Source:** `HANDOVER-Planner-2026-09-23-...-backup-strategy-restore-drill.md` §2,
+received 2026-09-23, **as amended by**
+`RULING-Planner-2026-09-23-...-backup-mechanics-section4-amended.md`.
+**Status: B-1..B-8 RATIFIED by owner ruling 2, 2026-09-23** (PROPOSED -> RULED).
+**B-9 APPROVED by owner ruling 3.** B-6a remains an open testplan item (OPEN-7) dated
+2026-10-03. The `B-n` labels
+are the Planner's. B-2, B-6 and B-8 below are the **amended** texts; the
+originals were withdrawn on the Builder's evidence and are described as withdrawn
+rather than deleted.
+
+**B-1 - Automatic backups are the floor, not the plan.** The rolling schedule
+covers ordinary operation. Everything below is what the schedule does not do.
+**[Builder, F-next/backup-cadence-observable]** the floor is higher than assumed:
+hourly incrementals, 6-hourly differentials, daily fulls, observed on this
+cluster.
+
+**B-2 - A manual full backup before any deliberate act that could destroy data.**
+**AMENDED 2026-09-23** on the Builder's argument. Before a migration, a bulk
+load, a cutover, a destroy: `fly mpg backup create <CLUSTER_ID> --type full`.
+**Original rationale withdrawn.** It read *"the alternative is depending on
+whenever the rolling schedule last happened to fire"* - but the schedule fires
+hourly (F-next/backup-cadence-observable), so worst-case unguarded exposure is
+~60 minutes, not an unknown. **B-2 now stands on deliberateness: a checkpoint you
+took is a recovery point you can name**, and an hour of a bulk load is a real
+loss.
+
+**B-3 - A manual full backup immediately after a cutover.**
+**Rationale REPLACED 2026-09-23**, exactly as B-2's was and by the same argument.
+The original read *"a restored cluster has no lineage until one is made or the
+schedule fires, and the window between those is unguarded."* **Observed: the
+schedule took a full at 16:00:17Z, roughly six minutes after the restored cluster
+went ready** (`F-next/restored-cluster-joins-the-schedule-immediately`). The
+window is ~6 minutes, not open-ended.
+**B-3 stands on deliberateness, not absence:** a checkpoint you took is a
+recovery point you can **name**, and the first act after a cutover is when you
+most want a named one. Restore builds a new cluster and backup history does not
+follow it - that part is unchanged and true.
+
+**B-4 - A backup that exists is not a backup that restores.** Recovery table row
+4 stays **Never** until a restore is driven end to end including cutover. Re-run
+after the ticker load, when row counts make the data half meaningful.
+
+**B-5 - Recovery is not finished when the data comes back.** It is finished when
+the app points at the new cluster and a live request proves it: `fly mpg attach`,
+**then** `fly secrets deploy`, then verify. F-015 is the scar.
+
+**B-6 - Retention is whatever chains still have a living root.**
+**REWRITTEN 2026-09-23.** The original read *"10-day retention is an expiry, and
+expiry is silent"* and assumed ten days of hourly recovery points. That is not
+the shape. **Backup IDs are chains** - an incremental or differential names the
+full it is rooted in (`<FULL>_<CHILD>`) and is **not independently restorable**.
+**The recovery horizon is bounded by the oldest *full* backup still present, not
+by the oldest listed ID.**
+The silence clause survives: nothing warns that a recovery point has aged out,
+and `fly mpg backup list <CLUSTER_ID> --all` is the only way to know. Without
+`--all` it shows 24 hours.
+
+**B-6a - OPEN ITEM, dated.** Whether a full's children expire with it is
+**unverified**. `20260922-192041F` should age out around 2026-10-02; running
+`fly mpg backup list d1zj5omk443ryqkv --all` on **2026-10-03** answers it for the
+cost of one read-only command. Tracked as **testplan OPEN-7**. Flagged rather than
+claimed, because this is the class of thing discovered while you need it.
+
+**B-7 - Off-platform copies are not required today, and the condition that
+requires them is written down.** Everything in `stockgrader` is rebuildable by
+re-running the loader. The first write that is not - anything user-owned,
+anything whose loss is not fixed by a re-run - makes an off-platform dump
+mandatory. Same tripwire that ends the credential deferral.
+
+**B-8 - `stockgrader_scratch` is never a reason to restore.**
+**REWRITTEN 2026-09-23.** The original said scratch was *"explicitly out of
+scope... not backed up on purpose."* **That claimed a platform behaviour that
+does not exist.** Backups are **cluster-scoped**; scratch lives on the cluster
+and is therefore backed up, and nothing in the listing distinguishes the two
+databases. The intent survives unchanged - scratch carries the canary, which
+marks it disposable, and it is never a reason to restore anything - but the
+wording must not assert an exclusion the platform does not offer.
+
+**B-8a - A cluster restore brings scratch across, canary included.** This is the
+good direction: the disposability marker travels with the database it marks, so
+`postgres_probe` behaves identically on the restored cluster. Drill step 5
+therefore **expects** scratch to be present; its absence is the surprise.
+
+**B-9 - APPROVED 2026-09-23 (owner ruling 3): measure the PITR window while it is free.**
+`--pitr-time` requires a recovery window no command reports
+(F-next/pitr-available-window-invisible; testplan OPEN-8) - a guess validated only by attempting
+it, which is F-015's shape. **An invisible property can be made visible by one
+experiment:** a PITR restore at a chosen timestamp either succeeds or is refused,
+and **the refusal names the boundary.** Against a cluster holding nothing, on a
+day nothing is at stake, that is a cheap measurement.
+**Cost, stated:** a restored cluster is provisioned asynchronously and billed
+separately - real money for as long as it exists - and is destroyed immediately
+after the answer is recorded.
+**APPROVED.** Runs *after* the drill completes, **never interleaved**. The
+measured boundary is the finding - *a refusal names it as usefully as a success.*
+**CONDITION, hardened 2026-09-23 from an agreement into a gate:** **B-9 does not
+start unless there is time to finish it, destroy included.** The probe cluster is
+created, the window recorded, and the cluster **destroyed in the same sitting**,
+by the owner, before the session ends. **If the session cannot hold all three,
+B-9 does not begin.**
+**The reason is two clusters away and already running.** The instinct that says
+*leave it, it costs little* is visibly what produced the PharmFoldMDK orphans -
+one of them a restore of a restore, five weeks apart, named by timestamps the
+platform chose (`F-next/orphaned-restore-clusters-already-exist`). OPEN-6 marks
+those out of scope and that remains true; **it does not make the pattern someone
+else's.**
+
+**Platform mechanics established 2026-09-23 (read-only, §3):** `fly mpg backup`
+exposes only `create` and `list`. There is **no command to configure cadence or
+retention** - confirmed against the binary, not just the docs. `fly mpg restore`
+supports both `--backup-id` and `--pitr-time`, plus `-n/--name`. `fly mpg destroy`
+takes `-y`. See F-next/pitr-available-window-invisible and
+F-next/restore-name-flag.
+
+
+---
+
+## Owner rulings, 2026-09-23 - data and model
+
+**Source:** `RULING-RECORD-2026-09-23-StockGraderMDK-owner-rulings.md`,
+**revision of 07:32** (delivered as `... (1).md`), which supersedes the 07:29
+version. Thirteen rulings: **twelve ruled**, one recorded as a deferral rather
+than an answer - *which is itself the owner's ruling on how that question is
+handled.* Rulings 11 and 13 were pending in the 07:29 version and are ruled here.
+Drill and infrastructure rulings (1, 2, 3, 6) are applied in place above; the
+data and model rulings are recorded here.
+
+### D-next/cutover-and-stay - Ruling 1: cutover-and-stay. RULED.
+`stockgrader-db-r1` becomes the live cluster and today's ticker load goes onto
+it. The amended §4 runs as written.
+
+### D-next/sourcing-policy - Ruling 4: SEC is one source among several. RULED.
+The TDD's §2 goal 1 (*"from SEC filings only"*) and §5.1's single-source framing
+are **corrected in v4**. Data is taken where it is available.
+**This is a ruling on sourcing policy, not a vendor selection.** The price vendor
+is **still unchosen**, and the deciding question is **delisted coverage** - a
+vendor that drops dead names **reintroduces survivorship bias through a door the
+universe fix (ruling 5) just closed.** Tiingo and EODHD both need that question
+put to them directly before either is picked. Tracked as **testplan OPEN-9**.
+
+### D-next/universe-from-filings - Ruling 5: universe derived from filing history. RULED.
+The historical universe comes from **the fact store's own filing record**, not
+from `company_tickers.json`. The ticker files serve as the **current-day
+identifier crosswalk only.**
+**Constrains the first migration:** the fact store carries **filing dates and
+accessions from the start** - which §5.1 already required for a different reason.
+This is the same class of constraint as D-010's point-in-time requirement:
+unaffordable to retrofit.
+
+### D-next/wacc-flat-v1 - Ruling 9: §11.3 WACC flat rate for v1. RULED.
+**Condition, binding:** the ROIC-WACC spread is **never surfaced as an absolute
+figure** while the flat rate is in force. It is defensible for a **relative
+ranking** and indefensible as an absolute number, and the condition is what keeps
+the two apart.
+
+### D-next/size-tilt-default-off - Ruling 10: §11.4 size tilt available, default off. RULED.
+Enabling it is a **deliberate act** rather than a hidden thumb on the scale.
+
+### D-next/rd-capitalization - Ruling 12: §11.1 R&D capitalization. DEFERRED, NOT RULED.
+The owner agreed it warrants a dedicated session. **§11.1 therefore remains an
+open question, and §5.4 with it.** §13 continues to refuse the TDD for build on
+those two grounds.
+**Recorded as a deferral, not an answer, deliberately** - so that no later reader
+mistakes agreement-to-defer for a ruling. The deferral **is** the owner's ruling
+on how the question is handled.
+**Obligation attached by the owner:** the deferral carries forward into a
+**closeout and prework document** for its dedicated session, **not into memory.**
+That document names what §11.1 has to decide - capitalize or unadjusted GAAP;
+if capitalized, what useful life - what it would reorder, and what evidence would
+settle it, **so the session opens on a prepared question rather than on a
+re-derivation of why the question is hard.**
+
+### D-next/altman-z-prime - Ruling 11: Altman variant. RULED: Z'.
+**Z'** - the private-firm form, **book value of equity in the fourth term.**
+The disqualifier does not move with the share price.
+**Reason recorded, per the owner's instruction:** TDD §3 names price and
+technical signals a non-goal on the grounds that including them **quietly
+converts a hold model into a trading model.** An integrity gate built on market
+value of equity would disqualify a company on a day its fundamentals did not
+change - **that failure in its least visible form, inside a gate rather than
+inside a block.**
+**Chosen for that reason and not for sourcing.** Ruling 4 means market equity is
+available, so this is a design choice made **with the alternative in hand**,
+which is the only kind worth recording.
+
+### D-next/sector-archetypes - Ruling 13: §11.2 sector granularity. RULED: option (c).
+**Lynch-style archetypes with per-archetype metric sets**, with an explicit
+fallback. Two consequences carry into v4, **neither of them objections**:
+
+**1. Archetype assignment becomes its own computed thing.** Fast growers,
+stalwarts, cyclicals, turnarounds and asset plays are **not derivable from SIC** -
+SIC says what industry a company is *in*, not which of Lynch's five it *behaves
+like*. The classifier needs its own definition, its own `insufficient_data` path
+for companies fitting none cleanly, and **its own place in the output**: a reader
+who cannot see which archetype was assigned cannot evaluate the sector-relative
+rank that followed from it.
+
+**2. It is partly circular, and the circularity needs stating rather than
+solving.** Classification draws on growth stability, margin behaviour and asset
+intensity - **the same fundamentals the blocks then score.** Tolerable if the
+classifier is **specified independently and frozen before scoring runs**; a quiet
+disaster if it is **tuned until the rankings look right.**
+
+**Fallback, made operational.** The owner's *"if we find we need to change that
+later, we can"* **only fires if something is watching for it.** §11.2 falls back
+to **SIC-as-is** if either holds:
+- the archetype classifier is still unspecified when **every other §13 condition
+  has cleared**, or
+- a hand-check finds it assigns archetypes the owner **disagrees with more often
+  than agrees**.
+
+Recorded as **testplan OPEN-11** so the fallback has a trigger rather than a hope.
+
+### D-next/delivery-manifest - One manifest per delivery, numbered; continuity is the guard
+**Status:** ADOPTED 2026-09-23, **AMENDED the same day** by
+`RULING-Planner-2026-09-23-...-manifest-scheme-and-pr6.md` §2.
+**Choice:** every Planner delivery carries a manifest, and the Builder
+**reconciles what arrived against it before applying anything.**
+- A document **not on the manifest was not issued by the Planner.**
+- A manifest entry with **nothing beside it is a loss**, detected at delivery
+  rather than at citation.
+- **A revision gets a new filename and says so in the body**, naming what it
+  supersedes and what changed.
+
+**Naming: `MANIFEST-Planner-<date>-D<n>.md`, one per delivery, numbered by
+delivery and never revised by date.** The r/r2 chain was already awkward and
+**would have become the same-name problem again by the third revision of a single
+day's manifest** - the control reproducing the defect it was written to catch.
+
+**Each manifest carries:**
+- the documents in **its own delivery** only
+- the **previous manifest as an entry, by name**
+- a **document count** for the delivery
+- issue times where recorded, and the words *not recorded* where not - *a blank
+  reads as an absence of the document rather than of the timestamp*
+
+**Continuity is the guard, not self-reference.** A manifest that lists itself
+still **cannot report its own absence if it never arrives.** Each manifest naming
+the previous one means a missing manifest appears as a **gap in the next**. The
+document count is cheap redundancy alongside it.
+**Counting rule - SETTLED 2026-09-23 (P-6, P-7), the Builder's reading adopted:**
+count new documents in the delivery **including the manifest**, **excluding** the
+carried-forward previous-manifest entry. Cumulative figures count every manifest.
+*The manifest is a document that can be lost - D4 proved it is the loss that
+matters most, because it takes the record of everything else with it. A count
+excluding it would disagree with the disk for precisely the artifact whose
+absence is hardest to detect.*
+Without this the cumulative **inflates by one per delivery** - an error that
+grows rather than staying constant, which is the version that eventually
+persuades someone. See `F-next/manifest-count-double-counts` and P-6.
+
+**Re-sends - sub-rule added 2026-09-23 (D6).** A re-sent document is **listed and
+marked as a re-send, not counted as newly issued** - it was counted when first
+issued, and counting it again would inflate the issued figure and **break the
+comparison with the disk count that just located D4.**
+Re-sends **keep their original filename and content.** This is **not** a
+`same-name-revision` defect: that was a *changed* document reusing an identity.
+**An unchanged document keeping its identity is what identity is for.**
+
+**Forced by:** three relay defects in two days by three distinct mechanisms -
+F-020 (lost both directions), `F-next/relay-loss-recurrence` (lost, detected only
+by a later citation), `F-next/same-name-revision` (silently superseded under the
+same filename). **D-033's sequence numbers catch the first. Nothing caught the
+third, because nothing was absent.**
+**Relationship to D-033:** complementary, not a replacement. D-033 numbers
+documents so a gap is visible; the manifest makes it visible **at delivery**.
+Both stay.
+**Reciprocal, Builder-adopted:** Code deliveries carry a manifest too. D-033
+already numbers both directions, and both F-020 losses went one way each - **a
+rule that guards one direction guards whichever direction failed most recently.**
+**Today's deliveries:** D1 (first manifest), D2 (its r2), D3. Retroactive, and
+**nothing is renamed** - the mapping is stated in D3.
+
+**Date convention - RATIFIED 2026-09-24 (D18 §2).** **The count keys on the date
+in the filename, not on arrival.** D16's documents are dated 2026-09-23 and count
+against the 23rd although they arrived on the 24th. Both sides apply it.
+*Recorded because two parties computing the same figure by different rules is how
+a real shortfall gets explained away as a convention mismatch.*
+**A delivery sequence does not reset at a date boundary.** D16 -> D17 and
+D11 -> D12 both cross one; a predecessor manifest carrying a different date is
+not a loss.
+**Every manifest states the expected distinct count in advance**, and the
+receiving side runs it. That expectation - not the count - is what has twice
+caught a Builder method error. See `F-next/an-expectation-is-what-makes-a-count-a-check`.
+**Reconciliations to date:** D1 7 entries, D2 9, D3 3. One predicted absence,
+confirmed three times. Nothing unaccounted. See `F-next/manifest-adopted`.
+
+
+### D-next/ingest-sources - Where slice 1's rows come from
+**Status:** RULED 2026-09-23 (D15), superseding §3's inputs in
+`HANDOVER-Planner-2026-09-23-...-ingest-slice-1.md`.
+
+| Table | Source |
+|---|---|
+| `filer`, `filing` | **`submissions.zip`** - the public EDGAR filing history for **all filers**, one archive, ~1.56 GB, refreshed nightly ~03:00 ET |
+| `filer_ticker` | `company_tickers*.json` - the **current-day identifier crosswalk only** |
+| `filing.sic_at_filing` | **NULL in slice 1.** No source (OPEN-32) |
+
+**The superseded input list, kept with its reason rather than deleted.** §3 as
+issued seeded `filer` from `company_tickers.json` and crawled submissions per
+CIK. **Struck**, because:
+- **That file is a current universe.** Measured: 8,049 distinct CIKs, all
+  currently listed; Lehman, Sears, Bed Bath & Beyond and Enron absent, Apple
+  present as control. A universe seeded from it **cannot contain a company that
+  stopped trading**, which is the survivorship bias ruling 5 exists to close.
+- **Independently, the per-CIK route is incomplete.** Its history is paginated -
+  Apple's document defers 1,249 filings (1994-2015) to a separate file - so one
+  request per CIK does not return one filer's history, and **the incompleteness
+  hides inside the size.**
+Either point alone disqualifies it. Recorded as **P-10**; the rule that followed
+is that a handover naming data sources **cites the ruling each source satisfies**,
+because *a source with no citation is an unmade decision.*
+
+**Incremental path, established rather than assumed:** `submissions.zip` **once**
+for history, then the **daily index**
+(`.../daily-index/YYYY/QTRn/master.YYYYMMDD.idx`) thereafter. The daily index
+carries no `reportDate`, so the incremental shape is *daily index -> the CIKs
+that filed that day -> per-CIK submissions for **only those***. Hundreds per day,
+comfortably inside the 10 req/s bound. **The per-CIK endpoint is wrong as a
+universe source and fine as an incremental detail source** - ruling it out for
+one use does not rule it out for the other.
+**Run-phase acceptance test:** testplan OPEN-33.
+
+
+### D-next/fact-sources - OPEN-36 RULED: the Financial Statement Data Sets
+**Status:** RULED 2026-09-24 (D17 §2).
+
+| Data | Source |
+|---|---|
+| XBRL facts, dimensions, per-fact entity | **Financial Statement Data Sets** (`num.txt`, `sub.txt`) |
+| `filing.sic_at_filing` | FSDS `sub.txt.sic` - **but NOT until OPEN-37 establishes it is as-filed** |
+| Recency layer over the FSDS lag | **companyfacts - DEFERRED, gated on OPEN-38** |
+
+**Decided by one measurement: 60.7%.** `segments` is populated on 2,189,835 of
+3,608,711 `num.txt` rows. Choosing companyfacts *"would not lose a rare edge
+case - it would discard the majority of the facts filers publish, invisibly,
+because what remains looks like a complete consolidated dataset."*
+**Filtering data you have is a decision; not having it is a ceiling.**
+
+**This is ruling 5 one level down, and the register would contradict itself to
+decide otherwise.** The ticker files were rejected not for inconvenience but
+because they are **structurally incapable** of representing a company that
+stopped trading. companyfacts is **structurally incapable** of representing a
+dimension or a second entity. Same shape, same answer.
+**Why that is worse than untested:** **no ingested row could ever contradict
+A8.** The schema would be right and *unable to be wrong* - the instrument
+pattern arriving as a **data source** rather than as code.
+
+**The cadence cost is real and bounded.** FSDS lags ~50 days; companyfacts is
+nightly. **The lag bites only at the live edge, and the live edge does not
+exist** - no DB-backed endpoint, no scoring build order, run phase gated five
+ways. It does not bite the **backtest** at all, which is what the point-in-time
+property was built for.
+**And the two directions are not symmetrical:**
+- **Adding recency later is additive** - a companyfacts layer over a complete
+  store covers the unpublished quarter.
+- **Adding completeness later is a re-ingest** - nothing retrofits dimensions or
+  entity onto rows whose source never had them.
+Same asymmetry as provenance, filing dates and `entity_cik`. **Cheap now,
+impossible later** - and this is the historical store.
+
+**WHICH PILLAR THIS RESTS ON - established 2026-09-24, and it is one of the
+two.** The ruling was argued on dimensions **and** a per-fact entity identifier.
+**OPEN-39 establishes that the second does not hold:** `coreg` is free text with
+no path to a CIK - 0 of 990 values numeric, 93.8% of carrying submissions have no
+`aciks` to resolve against, 34.5% of rows use opaque within-filing codes.
+**So this decision rests on DIMENSIONS ALONE (60.7%)**, which is decisive on its
+own, and the record says so rather than leaving a withdrawn argument standing.
+**Consequence:** co-registrant facts are **refused** under the scheme rule
+(~1.69% of facts) rather than coerced to the parent's CIK. `entity_cik` will be
+trivially the filer's CIK on every ingested row - **the same condition that
+disqualified companyfacts, but as a chosen, countable refusal rather than an
+invisible misattribution.** See `F-next/coreg-is-a-marker-not-an-identifier`.
+
+**companyfacts is deferred, not rejected, and the gate is recorded as a
+condition:** if a recency layer is wanted, **OPEN-38 must be answered first.**
+If companyfacts returns co-registrant facts under the requested CIK, using it
+would inject wrong-entity rows into a store chosen for correctness.
+**Omission would be tolerable; mislabelling is not.**
+
+### D-next/delisting-eligibility - Companies that have stopped trading
+**Status:** RULED 2026-09-24 (owner, recorded in D19 §2).
+**Choice:** **out of scope for output, in scope for validation.**
+
+**It is an explicit eligibility rule, not an emergent one**, belonging in §5.3
+beside the financials and REITs exclusions. *An exclusion that happens by
+accident - no recent filings, no current price - stops happening the moment
+something upstream changes, and nothing announces that it has stopped.*
+
+**The signal is current listing, and the source is the one we rejected for the
+universe.** `company_tickers.json` contains only currently listed companies.
+**That property is a defect when building a historical universe and precisely
+the right tool for asking whether something is listed today.** Same file,
+opposite verdict, depending on the question - recorded explicitly because the
+register already carries a ruling rejecting it and that must not be read as a
+blanket judgement.
+**Do not infer delisting from absence of filings.** A filer can go quiet and
+resume; a company can deregister and still trade; a late filer is not a dead one.
+**Absence of a filing is absence of evidence.**
+
+**THE TRAP, and it is why this is a ruling rather than a note.** Eligibility
+must be evaluated **as of the scoring date, not as of today.** If the rule is
+*exclude companies not currently listed*, a 2014 backtest excludes every company
+that died between 2014 and now - **and survivorship bias walks straight back in
+through the eligibility gate**, after being kept out of the universe at real
+cost. The universe would be correct, the fact store would be correct, ruling 5
+would have done its job, **and the validation would still be wrong** - the bias
+entering at the last step, in the one component built to enforce correctness.
+
+**So there are two rules, and they are not the same rule:**
+- **Output, today:** exclude filers not currently listed. `company_tickers.json`
+  answers it.
+- **Validation, as of D:** exclude filers not listed **at D**. **We cannot
+  currently answer this at all.**
+
+**What we do not have:** `filer_ticker.valid_from` is an observation date, not a
+listing start (OPEN-35), and **there is no delisting date anywhere in the
+store.** As-of listing status is not derivable from anything we hold - see
+testplan OPEN-43.
+
+**What does not change:** the point-in-time property has **two** justifications
+and survivorship is only one. The other is **restatement lookahead** - reading a
+2018 balance sheet as restated in 2021, for a company alive today. **0001's key,
+the amendment history, 0002 and the runner all stand regardless.** The Lehman
+fixture stays as it is: it proves the machinery, and this ruling is about what
+**leaves** the machinery, not what enters it.
+
+
+### D-next/coverage-window - OPEN-51: the 45 most recent FSDS quarters
+**Status:** RULED 2026-09-24 (owner, recorded in D22).
+**Choice:** the fact slice loads the **45 most recent FSDS quarters** - roughly
+2015q1 through 2026q2 - trimming the oldest end of the archive's usable range.
+**Measurement comes first regardless:** one quarter into a local cluster, table
+and index sizes taken, multiplied by 45, **reported before 45 are loaded.**
+
+**Why measure first:** *loading 45 quarters to find out where we sit is measuring
+by doing the expensive thing.* The asymmetry is at the failure end - **a
+measurement costs an hour; a load that does not fit costs deleting from a
+database that already holds the data.** With the figure in hand, 45 is **a
+decision rather than an experiment.**
+
+**Why the OLDEST quarters are the right ones to drop**, recorded because *recent
+data is more useful* is the weaker argument and would not survive scrutiny:
+- **The archive cannot supply 2008 under any option.** It begins 2009q1 and is
+  not usable until ~2011q4 (OPEN-42), so **every available window is entirely
+  post-crisis.** No choice here buys the event a durability model would most want
+  to have seen - **a property of the source, not of this ruling.**
+- **The fifteen dropped quarters (~2011q4-2014q4) are the benign recovery
+  years** - the weakest available test of whether a growth-quality score
+  identifies companies that survive stress. **The 2015-16 industrial and energy
+  recession and the 2020 drawdown both sit INSIDE the 45.**
+- So **the marginal validation value of the dropped quarters is lower than their
+  row count suggests.** Storage is the occasion, not the reason.
+
+**THE CONDITION - coverage is recorded as data.** *Which quarters are loaded must
+be answerable from the store*, not from memory or a handover.
+**Without it:** someone runs a 2013 backtest against a store beginning in 2015
+and gets **a well-formed, nearly empty answer that looks like a result** - code
+correct, query valid, coverage the thing nobody stated. That is **OPEN-42's
+nominal-versus-usable problem arriving from our own choice** rather than the
+SEC's phase-in, and it is the **ninth instrument**.
+1. **Loaded quarters are rows**, with per-quarter fact counts, so the store
+   answers *what does this cover?* directly.
+2. **Any validation states its window in its own output**, not beside it. *A
+   validation result that does not carry its coverage is not interpretable, and
+   the one that silently has none is worse than an error.*
+
+**This does not weaken *store, don't filter*.** That rule still governs
+everything **inside** the loaded window - `prevrpt`, dimensions, superseded
+facts. **The coverage boundary is a load decision recorded as data, not a filter
+applied to data we hold**, and that distinction is what keeps it honest: *we are
+not hiding quarters we have, we are recording which ones we took.*
+
+**If the measurement says 45 does not fit: report and stop.** Order of
+preference: (1) narrow the **concept** set to the TDD's §4 blocks plus a margin;
+(2) increase the disk; (3) **not** narrowing dimensions.
+**Reversibility is what separates (1) from (3).** FSDS quarterly archives are
+**immutable once published** - now measured, see
+`F-next/open-44-answered-per-source` - and re-readable indefinitely, so a narrow
+concept set **can be widened later from an archive that has not changed.**
+Discarding the 60.7% of dimensioned rows would leave a store **indistinguishable
+from the companyfacts one we rejected**, and OPEN-36 would have bought nothing.
+**The same reversibility applies to the window:** quarters not loaded today can
+be loaded later from the same unchanged archives, **so 45 is a starting position,
+not a permanent bound.**
