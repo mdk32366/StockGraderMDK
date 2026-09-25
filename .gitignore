@@ -25,3 +25,8 @@ __pycache__/
 # it is loaded into the cluster it exists in exactly one place, so it needs a
 # backup that is not this repository. See docs/reports/2026-09-25-price-capture-built.md
 price_capture/
+
+# FSDS archive cache, if placed inside the repo. 4.24 GB of SEC archives.
+# Immutable once published, so re-fetchable - unlike price_capture/.
+fsds-cache/
+.fsds-cache/
