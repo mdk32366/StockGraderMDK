@@ -71,9 +71,13 @@ BEGIN
 
     -- A3: the exclusion list must not name tables that do not exist. A stale
     -- exemption is a hole that opens if the name is ever reused.
-    SELECT string_agg(table_name, ', ' ORDER BY table_name) INTO extra
+    -- Schema-aware since OPEN-60: an exemption names a specific object, so
+    -- staleness is checked against that object and not against a table of the
+    -- same name in whichever schema happens to hold one.
+    SELECT string_agg(schema_name || '.' || table_name, ', '
+                      ORDER BY schema_name, table_name) INTO extra
     FROM provenance_exempt
-    WHERE to_regclass('public.' || table_name) IS NULL;
+    WHERE to_regclass(quote_ident(schema_name) || '.' || quote_ident(table_name)) IS NULL;
     IF extra IS NOT NULL THEN
         RAISE EXCEPTION 'A3 FAILED: provenance_exempt names non-existent '
                         'table(s): %. A stale exemption pre-authorises a future '

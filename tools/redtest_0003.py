@@ -7,7 +7,7 @@ whether the expected check fired.
 The harness asserts its own preconditions first. A harness that cannot run
 reports the same thing as a system with no defects.
 """
-import os, subprocess, sys
+import os, re, subprocess, sys
 
 PGBIN = r"C:\Program Files\PostgreSQL\18\bin"
 PSQL = os.path.join(PGBIN, "psql")
@@ -28,7 +28,7 @@ def psql(db, sql=None, f=None):
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
-def fresh(db):
+def fresh(db, pre_sql=None):
     subprocess.run([PSQL, "-U", "postgres", "-h", "127.0.0.1", "-p", PORT,
                     "-d", "postgres", "-c", f"DROP DATABASE IF EXISTS {db};"],
                    capture_output=True, text=True)
@@ -37,16 +37,21 @@ def fresh(db):
                        capture_output=True, text=True)
     if r.returncode != 0:
         sys.exit("cannot create database: " + r.stderr)
+    if pre_sql:
+        # Placed BEFORE the migrations, as a human would have placed it.
+        rr = psql(db, sql=pre_sql)
+        if rr.returncode != 0:
+            sys.exit("pre_sql failed: " + rr.stderr)
     env = dict(os.environ, DATABASE_URL=f"postgresql://postgres@127.0.0.1:{PORT}/{db}")
     r = subprocess.run([PY, "db/migrate.py", "apply"], cwd=REPO,
                        capture_output=True, text=True, env=env)
     return r
 
 
-def run_case(name, mutations, expect_fire, expect_text):
+def run_case(name, mutations, expect_fire, expect_text, pre_sql=None):
     db = "sgcase"
-    r = fresh(db)
-    if "applied 3 migration" not in r.stdout:
+    r = fresh(db, pre_sql=pre_sql)
+    if not re.search(r"applied \d+ migration", r.stdout):
         print(f"  [{name}] SETUP FAILED - migrations did not apply cleanly")
         print("   ", (r.stdout + r.stderr).strip().splitlines()[-1:])
         return False
@@ -102,6 +107,20 @@ cases = [
      ["CREATE SCHEMA staging;",
       "CREATE TABLE staging.bulk_facts (id bigint, value numeric);"],
      True, "A2"),
+
+    # Found on the migrations' FIRST contact with a real Fly cluster: scratch
+    # carries keel_disposable_canary, a hand-placed disposability marker with no
+    # provenance. A2 fails closed on it, correctly.
+    ("canary present: the conditional exemption covers it",
+     [], False, "",
+     "CREATE TABLE keel_disposable_canary (marked_at timestamptz NOT NULL "
+     "DEFAULT now(), marked_by text NOT NULL, note text);"),
+
+    ("A3 still catches a genuinely stale exemption",
+     ["INSERT INTO provenance_exempt (schema_name, table_name, reason) VALUES "
+      "('public','no_such_table_anywhere','A stale exemption that names a "
+      "table which does not exist, which is the hole A3 refuses.');"],
+     True, "A3 FAILED"),
 
     ("OPEN-60: exemption must not reach across schemas",
      ["CREATE SCHEMA staging;",

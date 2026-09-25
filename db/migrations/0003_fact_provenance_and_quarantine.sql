@@ -125,6 +125,38 @@ INSERT INTO provenance_exempt (table_name, reason) VALUES
 
 
 -- ----------------------------------------------------------------------------
+--  A CONDITIONAL exemption, and the only one in this file.
+--
+--  `keel_disposable_canary` marks a database as safe to truncate. Its PRESENCE
+--  makes scratch disposable; its ABSENCE is what refuses the test harness
+--  against production (testplan R-2). So whether it exists is environment-
+--  dependent BY DESIGN, and that design is a safety control.
+--
+--  That collides with two rules in this migration, both of which are right:
+--
+--    * A2 fails closed on any table without provenance, so the canary must be
+--      exempted or the migration cannot run on scratch.
+--    * A3 refuses an exemption naming a table that does not exist, because a
+--      stale exemption pre-authorises a future table reusing the name.
+--
+--  A static exemption would satisfy A2 on scratch and fail A3 on production.
+--  So the row is inserted ONLY where the table actually is. On production no
+--  exemption exists, because no canary exists, and A3 stays satisfied.
+--
+--  This does NOT create the canary. `db/keel_canary.sql` says never to add it
+--  to a migration and that still holds - this exempts it where a human already
+--  put it, and nowhere else.
+-- ----------------------------------------------------------------------------
+INSERT INTO provenance_exempt (schema_name, table_name, reason)
+SELECT 'public', 'keel_disposable_canary',
+       'Disposability marker placed by hand via db/keel_canary.sql, not data '
+       'derived from a retrieval. Exempted conditionally because its presence '
+       'is environment-dependent by design: it makes scratch safe to truncate '
+       'and its absence refuses the harness against production.'
+WHERE to_regclass('public.keel_disposable_canary') IS NOT NULL;
+
+
+-- ----------------------------------------------------------------------------
 --  3. fact_collision — OPEN-55's quarantine
 --
 --  FSDS violates its own documented unique key. Measured on 2026q2: 3,608,711
