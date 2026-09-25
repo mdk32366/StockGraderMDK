@@ -27,12 +27,13 @@ work.
 Planner documents are committed to [`../planner/INDEX.md`](../planner/INDEX.md)
 on receipt. That direction is safe after receipt; this one is not.
 
-## Documents (6)
+## Documents (7)
 
 Every entry links to its file. This is the only navigable route in.
 
 - [MANIFEST-Code-2026-09-25-StockGraderMDK-D25.md](MANIFEST-Code-2026-09-25-StockGraderMDK-D25.md) — Code → Planner — StockGraderMDK — 2026-09-25 — D25 (5,069 bytes)
 - [2026-09-25-segments-grammar-undocumented.md](2026-09-25-segments-grammar-undocumented.md) — the `segments` grammar is undocumented, and the data breaks it (5,727 bytes)
+- [2026-09-25-price-capture-built.md](2026-09-25-price-capture-built.md) — Code → Planner — price capture built, not yet run (6,819 bytes)
 - [2026-09-25-first-real-load.md](2026-09-25-first-real-load.md) — 3.37 million facts are in a real cluster (7,402 bytes)
 - [2026-09-25-fact-loader-built.md](2026-09-25-fact-loader-built.md) — the fact loader is built and proven (8,406 bytes)
 - [2026-09-25-code-side-manifest-retained.md](2026-09-25-code-side-manifest-retained.md) — the Code-side manifest is retained (4,373 bytes)

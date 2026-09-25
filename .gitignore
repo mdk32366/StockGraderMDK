@@ -10,3 +10,13 @@ __pycache__/
 .pytest_cache/
 .vscode/*
 !.vscode/extensions.json
+
+# Daily price capture output (D-036). Not in git: it is data, it grows every
+# trading day, and it belongs in Postgres once a price migration exists.
+#
+# BUT NOTE, and this is the one place ignoring a directory carries real risk:
+# this is the only data in the project that CANNOT be re-fetched. Facts reload
+# from immutable FSDS archives; a lost capture day is gone at any price. Until
+# it is loaded into the cluster it exists in exactly one place, so it needs a
+# backup that is not this repository. See docs/reports/2026-09-25-price-capture-built.md
+price_capture/
