@@ -393,57 +393,112 @@ def existing_accessions(cur, accessions) -> set[str]:
     return {r[0] for r in cur.fetchall()}
 
 
-def load_facts(cur, rows, *, fetch_id: int) -> int:
-    """Insert facts. Idempotent by the schema's own constraint, not by care.
+def load_facts(cur, rows, *, fetch_id: int) -> tuple[int, int]:
+    """Insert facts via COPY into a staging table, then one server-side INSERT.
 
-    `ON CONFLICT DO NOTHING` is safe HERE and only here: `partition_collisions`
-    has already removed every group whose members disagree, so the only rows
-    that can conflict are exact duplicates of something already stored. Used
-    without that partition it would be silent data loss — see
-    F-next/fsds-violates-its-own-documented-key.
+    Returns ``(resolved, newly_inserted)``.
+
+    **Why not executemany.** It issues one round trip per row. Against a local
+    cluster that is merely slow (3m09s for a quarter); through `fly mpg proxy`
+    to a remote region it is 3.4 MILLION round trips inside a single
+    transaction, and on the first real attempt the server closed the connection
+    part-way through. The transaction rolled back whole, so nothing was lost -
+    but the mechanism cannot carry a quarter, let alone 45.
+
+    COPY streams the same rows in one statement. The conflict handling that
+    `ON CONFLICT DO NOTHING` provided is preserved by staging first and then
+    inserting server-side, so idempotency is still the schema's property and
+    not the loader's.
+
+    **The two return values are different questions and must not be conflated.**
+    `resolved` is how many rows THIS LOAD determined were loadable, and it is
+    what `coverage_quarter`'s arithmetic must balance against. `newly_inserted`
+    is how many rows the database did not already hold. On a first load they
+    agree; on a re-ingest the second is 0 while the first is unchanged, which is
+    exactly what idempotency looks like from the loader's side.
+
+    `ON CONFLICT DO NOTHING` remains safe HERE and only here, because
+    `partition_collisions` has already removed every group whose members
+    disagree. Used without that, it is silent data loss.
     """
-    payload = [(r.accession, r.entity_cik, r.concept, r.taxonomy, r.unit,
-                r.period_type, r.period_start, r.period_end, r.value,
-                _json(r.dimensions), fetch_id) for r in rows]
-    if not payload:
-        return 0
-    cur.executemany(
-        """
+    if not rows:
+        return 0, 0
+
+    cur.execute("""
+        CREATE TEMP TABLE _fact_stage (
+            accession text, entity_cik bigint, concept text, taxonomy text,
+            unit text, period_type text, period_start date, period_end date,
+            value text, dimensions text, source_fetch_id bigint
+        ) ON COMMIT DROP
+    """)
+    with cur.copy(
+        "COPY _fact_stage (accession, entity_cik, concept, taxonomy, unit, "
+        "period_type, period_start, period_end, value, dimensions, "
+        "source_fetch_id) FROM STDIN"
+    ) as copy:
+        for r in rows:
+            copy.write_row((r.accession, r.entity_cik, r.concept, r.taxonomy,
+                            r.unit, r.period_type, r.period_start, r.period_end,
+                            r.value, _json(r.dimensions), fetch_id))
+
+    cur.execute("""
         INSERT INTO fact (accession, entity_cik, concept, taxonomy, unit,
                           period_type, period_start, period_end, value,
                           dimensions, source_fetch_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+        SELECT accession, entity_cik, concept, taxonomy, unit, period_type,
+               period_start, period_end, value::numeric, dimensions::jsonb,
+               source_fetch_id
+        FROM _fact_stage
         ON CONFLICT ON CONSTRAINT fact_one_per_filing DO NOTHING
-        """,
-        payload,
-    )
-    return len(payload)
+    """)
+    inserted = cur.rowcount
+    cur.execute("DROP TABLE _fact_stage")
+    return len(rows), inserted
 
 
-def quarantine_facts(cur, rows, *, fetch_id: int) -> int:
+def quarantine_facts(cur, rows, *, fetch_id: int) -> tuple[int, int]:
     """Record competing assertions. Neither is loaded; both are kept.
 
-    OPEN-59's constraint makes this idempotent across re-ingest, keyed on the
-    colliding key plus value plus source_ordinal.
+    Same COPY-then-insert shape as `load_facts`, for the same reason, and
+    returning the same two distinct numbers. OPEN-59's constraint makes the
+    insert idempotent across re-ingest.
     """
-    payload = [(r.accession, r.entity_cik, r.concept, r.taxonomy, r.unit,
-                r.period_type, r.period_start, r.period_end,
-                _json(r.dimensions), r.value, r.source_ordinal, fetch_id)
-               for r in rows]
-    if not payload:
-        return 0
-    cur.executemany(
-        """
+    if not rows:
+        return 0, 0
+
+    cur.execute("""
+        CREATE TEMP TABLE _collision_stage (
+            accession text, entity_cik bigint, concept text, taxonomy text,
+            unit text, period_type text, period_start date, period_end date,
+            dimensions text, value text, source_ordinal integer,
+            source_fetch_id bigint
+        ) ON COMMIT DROP
+    """)
+    with cur.copy(
+        "COPY _collision_stage (accession, entity_cik, concept, taxonomy, unit, "
+        "period_type, period_start, period_end, dimensions, value, "
+        "source_ordinal, source_fetch_id) FROM STDIN"
+    ) as copy:
+        for r in rows:
+            copy.write_row((r.accession, r.entity_cik, r.concept, r.taxonomy,
+                            r.unit, r.period_type, r.period_start, r.period_end,
+                            _json(r.dimensions), r.value, r.source_ordinal,
+                            fetch_id))
+
+    cur.execute("""
         INSERT INTO fact_collision (accession, entity_cik, concept, taxonomy,
                                     unit, period_type, period_start, period_end,
                                     dimensions, value, source_ordinal,
                                     source_fetch_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s)
+        SELECT accession, entity_cik, concept, taxonomy, unit, period_type,
+               period_start, period_end, dimensions::jsonb, value::numeric,
+               source_ordinal, source_fetch_id
+        FROM _collision_stage
         ON CONFLICT ON CONSTRAINT fact_collision_one_per_source_row DO NOTHING
-        """,
-        payload,
-    )
-    return len(payload)
+    """)
+    inserted = cur.rowcount
+    cur.execute("DROP TABLE _collision_stage")
+    return len(rows), inserted
 
 
 def record_coverage(cur, *, quarter: str, fetch_id: int, submissions_seen: int,
@@ -504,8 +559,9 @@ def load_quarter(cur, *, quarter: str, fetch, archive: bytes) -> dict:
     # from what partition_collisions actually did.
     collapsed = len(rows) - len(loadable) - len(quarantined)
 
-    loaded_n = load_facts(cur, loadable, fetch_id=fetch_id)
-    quarantined_n = quarantine_facts(cur, quarantined, fetch_id=fetch_id)
+    loaded_n, loaded_new = load_facts(cur, loadable, fetch_id=fetch_id)
+    quarantined_n, quarantined_new = quarantine_facts(cur, quarantined,
+                                                      fetch_id=fetch_id)
 
     record_coverage(cur, quarter=quarter, fetch_id=fetch_id,
                     submissions_seen=len(submissions), counts=counts,
@@ -524,5 +580,9 @@ def load_quarter(cur, *, quarter: str, fetch, archive: bytes) -> dict:
         "refused_unknown_filing": len(unknown),
         "collapsed_duplicates": collapsed,
         "quarantined": quarantined_n,
+        # Rows the database did not already hold. Equal to the above on a first
+        # load; 0 on a re-ingest, which is what idempotency looks like.
+        "newly_inserted_facts": loaded_new,
+        "newly_inserted_quarantined": quarantined_new,
         "extension_facts": counts.extensions,
     }
