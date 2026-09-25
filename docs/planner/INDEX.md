@@ -92,8 +92,8 @@ Code-authored reports and manifests are delivered to the owner's Downloads folde
 | 2026-09-22 | 13 |
 | 2026-09-23 | 36 |
 | 2026-09-24 | 16 |
-| 2026-09-25 | 18 |
-| **Total** | **83** |
+| 2026-09-25 | 20 |
+| **Total** | **85** |
 
 | Type | Count |
 |---|---|
@@ -101,8 +101,9 @@ Code-authored reports and manifests are delivered to the owner's Downloads folde
 | HANDOVER | 9 |
 | MANIFEST | 31 |
 | NOTE | 1 |
-| ORDER | 4 |
+| ORDER | 5 |
 | RECOVERY | 1 |
+| REPORT | 1 |
 | RESEARCH | 1 |
 | RULING | 30 |
 | RULING-RECORD | 5 |
@@ -124,7 +125,9 @@ Every entry links to its file. This is the only navigable route in.
 - [MANIFEST-Planner-2026-09-25-StockGraderMDK-D33.md](MANIFEST-Planner-2026-09-25-StockGraderMDK-D33.md) - MANIFEST, 2,178 bytes
 - [MANIFEST-Planner-2026-09-25-StockGraderMDK-D34.md](MANIFEST-Planner-2026-09-25-StockGraderMDK-D34.md) - MANIFEST, 2,156 bytes
 - [ORDER-Planner-2026-09-25-StockGraderMDK-rd-treatment-session.md](ORDER-Planner-2026-09-25-StockGraderMDK-rd-treatment-session.md) - ORDER, 7,451 bytes
+- [ORDER-r2-Planner-2026-09-25-StockGraderMDK-rd-treatment-session.md](ORDER-r2-Planner-2026-09-25-StockGraderMDK-rd-treatment-session.md) - ORDER, 7,132 bytes
 - [RECOVERY-Planner-2026-09-25-StockGraderMDK-d28-d30-d32-content.md](RECOVERY-Planner-2026-09-25-StockGraderMDK-d28-d30-d32-content.md) - RECOVERY, 7,271 bytes
+- [REPORT-Planner-2026-09-25-StockGraderMDK-tdd-v3-numbering-and-ruling-7.md](REPORT-Planner-2026-09-25-StockGraderMDK-tdd-v3-numbering-and-ruling-7.md) - REPORT, 16,039 bytes
 - [RULING-Planner-2026-09-25-StockGraderMDK-0003-accepted-open59-open60.md](RULING-Planner-2026-09-25-StockGraderMDK-0003-accepted-open59-open60.md) - RULING, 6,768 bytes
 - [RULING-Planner-2026-09-25-StockGraderMDK-b9-runs-refusal-first.md](RULING-Planner-2026-09-25-StockGraderMDK-b9-runs-refusal-first.md) - RULING, 4,678 bytes
 - [RULING-Planner-2026-09-25-StockGraderMDK-cluster-freeze-open56-open57.md](RULING-Planner-2026-09-25-StockGraderMDK-cluster-freeze-open56-open57.md) - RULING, 6,961 bytes
