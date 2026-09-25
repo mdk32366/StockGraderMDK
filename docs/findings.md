@@ -3378,3 +3378,160 @@ the DSN refusal survives with no driver installed and one proving the driver
 check still fires when a DSN *is* present. The first was red-tested against the
 old ordering and fails on it, which is the only reason to believe it guards
 anything.
+
+### F-037 — ruling 7 corrected a correct reference, and the artifacts prove it
+
+**Established 2026-09-25, by the Builder**, verifying the fresh Planner's report
+`REPORT-Planner-2026-09-25-...-tdd-v3-numbering-and-ruling-7.md` against the
+documents themselves rather than against the report.
+
+**The register's F-A says D-010's condition cited a section that does not
+exist.** F-A runs backwards, and this is now settled by artifact rather than by
+reading.
+
+Both files are on the owner's machine. `TDD-growth-score-v3.md` exists in **three
+byte-identical copies**, sha256 `66520afd70eeaf1a…`, one of them dated
+**2026-09-22 08:14** — the day this project started, so a v3 was present from
+day one.
+
+| File | Size | Header says |
+|---|---|---|
+| `TDD-growth-score-v3.md` | 57,528 | *"**Five** open questions in **§17** require owner ratification…"* |
+| `TDD-growth-score.md` | 20,251 | *"**Four** open questions in **§11** are load-bearing…"* |
+
+**D-010 as originally written — *"five open questions in its §17"* — matches v3
+verbatim in scope.** Ruling 7 reworded it to *"the four open questions in its
+§11"* on the grounds that it *"now points at a section that exists."* That
+wording is **verbatim the v1 header**. Against v3 it points at
+`## 11. insufficient_data — the fourth state`.
+
+Structure confirms the crosswalk independently: v3 carries `### §17.1`–`### §17.5`
+under `## 17. Open questions`; v1 carries `### 11.1`–`### 11.4` and has no §17.
+**§17.5 is marked *(new in v2)***, so a four-question §11 is a v1 artifact, not a
+garbled v3.
+
+**The rule, and it already exists in a narrower form.** The error record says
+*identifiers a platform reports are read from the platform, by query.* **A
+document's own section numbers are the same class of identifier**, and the rule
+did not fire because it was written about a CI check name. That is the meta-rule
+both closeouts name: **a rule is indexed by the situation that produced it, and
+the next situation arrives without consulting it.**
+
+**Not applied here.** Reversing ruling 7 is the owner's, and the report proposes
+it as `D-next/d010-condition-restated-against-v3`. **Ruling 7 keeps its text and
+its reason when it goes.**
+
+### F-038 — the completeness gate is short a result-changing question, and that one has a deadline
+
+**Established 2026-09-25, by the Builder**, from the same verification.
+
+`testplan.md` records *"§11.1 is now the only open §11 question."* **Against v3
+there are two open questions that change results, and the register tracks one.**
+
+**§17.5 — price source and split adjustment — has no counterpart anywhere in the
+register.** It is marked *(new in v2)*, so the v1 read that produced the
+register's numbering never saw it. v3 §17.0 triages it as result-changing, and
+§17.5 closes, verbatim:
+
+> **(b) costs nothing but time and starts paying immediately — but only if it
+> starts now**, which makes this the one open question with a deadline attached.
+
+**It is not OPEN-9, and the distinction is the whole finding.**
+
+| | OPEN-9 | §17.5 |
+|---|---|---|
+| Question | **Which vendor** | **How retroactive adjustment is handled** |
+| Blocked by | Three properties needing vendor confirmation | **Nothing** |
+| Advanceable today | No | **Yes — option (b) needs no vendor** |
+| Cost of delay | Time | **Permanent. Unrecoverable.** |
+
+Option (b) is *store prices daily going forward*. **Every day without it is a day
+of point-in-time price history that cannot be purchased later at any price**,
+because no vendor sells the unadjusted series as it stood on a past date. It is
+the survivorship-bias door ruling 5 closed, arriving on the price side.
+
+**The register already holds the reasoning and not the deadline.**
+`gqs-source-map.md` §7.1: a back-adjusted price times shares outstanding *"gives
+a market cap nobody ever observed"* and *"it will pass every test that does not
+check for it specifically."* **The question carrying the deadline was dropped in
+the renumber, so the reasoning sits in the register with nothing pointing at it.**
+
+**Not applied here.** `D-next/price-capture-starts-now` is the owner's.
+
+### F-039 — I put a local drill's numbers into an order and called it the cluster
+
+**Established 2026-09-25, by the Builder, against myself**, caught by the fresh
+Planner's report within the hour.
+
+`ORDER-Planner-2026-09-25-...-rd-treatment-session.md`, merged in `2c40e35`,
+states the store holds *"2026q2 and 2015q2 only — two quarters eleven years
+apart, 3,368,813 facts."*
+
+**Every part of that is wrong.** The cluster's `coverage_window` reports
+`2026q2..2026q2` — **one quarter, one coverage row**, as both
+`docs/reports/2026-09-25-first-real-load.md` and the builder closeout's §2.2
+state plainly. The two-quarter load was **F-034's restart drill against a local
+throwaway cluster**, and **3,368,813 is the one-quarter count** — the drill's
+two-quarter total is 5,636,769, which appears in the same table I read it from.
+
+**How it happened.** F-034's table is three rows of a restart drill; I took row 2
+for the cluster's state because the figure in row 1 matched the number I already
+associated with the cluster. **The matching number is what made it look
+verified.** Superseded by the r2 order.
+
+**The rule.** *A figure is read from the system it describes, not from the
+nearest document that mentions it.* This is **F-037's rule one level down** —
+there, a section number read from a prior reference instead of the document;
+here, a row count read from a drill instead of the store. Both were recorded in
+the register, and **both were checkable in under a minute by someone who thought
+to check.**
+
+**And the uncomfortable part, which is the reason this is a finding and not a
+correction.** I wrote the order that carries F-035's rule — *name the decision a
+measurement changes* — into §4, and in §2 of the same document asserted a
+measurement I had not made. **The rule was in the file. I applied it outward and
+not to the paragraph above it.**
+
+### F-040 — I wrote that the 45-quarter load can start today. It cannot.
+
+**Established 2026-09-25, by the Builder, against myself**, while pricing the
+owner's retention question — the third defect found in the same order document
+in one sitting.
+
+`ORDER-r2-Planner-2026-09-25-...-rd-treatment-session.md` §2 says the load is
+*"built, unattended, ~34 h, restart free and confirmed (F-034) — calendar time,
+not work time — it can start today regardless of how §17.1 lands."*
+
+**Every clause is true except the last, which is the operative one.** The load
+needs **~114 GB**. The cluster is **15 GB**. It cannot start today and could not
+finish if it did.
+
+**Worse, the correction is not "provision more disk later."** `fly mpg` exposes
+**no subcommand that resizes a volume after creation** (OPEN-56). **Disk is a
+create-time decision**, so the 45-quarter load is gated on **standing up a new,
+larger cluster and migrating**, which is a different task of a different size
+from *press go on a job that already exists*.
+
+**How it happened, and it is the same mechanism as F-039 a third time.** I read
+F-034 — restartable, 34 hours, no optimisation needed — and carried its
+conclusion forward **without carrying its precondition**. F-034 measured a
+*local* cluster with no disk constraint. The register's sizing analysis sits in
+OPEN-53 and findings 2140–2325, **which I did not read until the owner asked an
+unrelated question about retention.**
+
+**The rule, and the register already contains it twice.** *A capability
+confirmed in one environment is not a capability in another* — which is
+`F-next/a-suite-is-evidence-only-about-the-environment-it-declares` (F-036) in a
+second dress, and §1.1 of the builder closeout in a third. **Three findings, one
+mechanism, all mine, all in one day.** The honest reading is not that I keep
+making different mistakes; it is that **I keep reading a conclusion and not its
+conditions**, and no rule in the register fires on that, because each instance
+looks like a different subject.
+
+**What saved it both times was a question from outside the document** — the fresh
+Planner's report for F-039, the owner's retention question here. **Neither was
+looking for my error.** That is the argument for relay and for review, and it is
+the same argument F-036 closed with.
+
+**Corrected in the r2 order.** The R&D session's `L` deferral now ends on *the
+load, which is itself gated on a larger cluster*, rather than on the load alone.
