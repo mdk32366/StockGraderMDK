@@ -65,15 +65,27 @@ gets pasted back; `PGPASSWORD` via `Read-Host -AsSecureString`, DSN in keyword
 form:
 
 ```sql
+-- Column names read from db/migrations/0001_fact_store.sql, not from memory.
+-- The fact table has entity_cik and period_end; there is no filer_id and no
+-- fiscal_year column. entity_cik is the XBRL context's entity, NOT filing.cik
+-- -- 0001's own comment warns that filtering on filing.cik returns a parent's
+-- co-registrants' facts as though they were the parent's.
 SELECT n_years, count(*) AS filers
 FROM (
-  SELECT filer_id, count(DISTINCT fiscal_year) AS n_years
+  SELECT entity_cik,
+         count(DISTINCT extract(year FROM period_end)) AS n_years
   FROM   fact
-  WHERE  concept = 'ResearchAndDevelopmentExpense'
-  GROUP  BY filer_id
+  WHERE  concept     = 'ResearchAndDevelopmentExpense'
+    AND  taxonomy    = 'us-gaap'
+    AND  period_type = 'duration'
+  GROUP  BY entity_cik
 ) t
 GROUP BY n_years ORDER BY n_years;
 ```
+
+**Run `SELECT * FROM coverage_window;` first** — it is one row and it settles how
+many quarters are actually loaded, which is the figure the first issue of this
+order got wrong.
 
 **Stated expectation, before the number arrives: a mode of 2–3 years.** Stating
 it first is what makes this a check rather than a number (F-035, F-A's rule).
