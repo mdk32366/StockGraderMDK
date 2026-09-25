@@ -3263,3 +3263,65 @@ to ask what result would have made it complain.
 
 The index check now prints the intermediate count — 7 indexes, then 2, then 7 —
 so the drop is **proven to have happened** before the comparison is trusted.
+
+---
+
+### F-034 — the 34-hour batch is restartable, confirmed rather than assumed
+
+**Established 2026-09-25**, answering the Planner's condition on OPEN-65 — that
+a long unattended load is acceptable *because* a failure costs the quarter in
+flight rather than the hours behind it, and that the property must be confirmed.
+
+Three loads against a local cluster with 0001-0004 applied:
+
+| step | quarter | time | facts | coverage rows |
+|---|---|---|---|---|
+| 1 | 2026q2 | 148.3 s | 3,368,813 | 1 |
+| 2 | 2015q2 | 208.3 s | 5,636,769 | 2 |
+| 3 | **2026q2 again** | **63.3 s** | **5,636,769** | **2** |
+
+**All three properties hold:**
+
+- **Quarters commit independently.** Each load is one transaction in one
+  process, so quarter two landing does not touch quarter one.
+- **Re-running a completed quarter is a no-op** — no rows added, no coverage row
+  added. And **faster**, 63 s against 148 s, because every row conflicts away
+  instead of inserting. **The speed difference is itself the evidence**: a
+  re-run that took the same time would mean work was being redone.
+- **A discontiguous window reports its gaps:**
+  `2015q2 .. 2026q2, quarters=2, gaps=43`.
+
+**2 loaded + 43 gaps = 45**, which is exactly the ruled coverage window, derived
+by the view rather than asserted anywhere. **A batch that dies at hour twenty
+leaves precisely this shape**, and OPEN-51's failure mode is a window that
+reports it as contiguous.
+
+**So restart is free, and the 34 hours needs no optimisation.**
+
+---
+
+### F-035 — I proposed a measurement with no decision behind it, one day after recording that exact finding
+
+**Established 2026-09-25, by the Planner.**
+
+I recommended measuring `--defer-indexes` on one quarter to settle OPEN-65.
+**The Planner refused it on my own evidence:**
+
+> `F-next/a-measurement-that-decides-nothing`: name the decision a measurement
+> changes and check that the decision is still open.
+
+**What decision changes if the load time halves?** The load still runs
+unattended, the result is byte-identical, and nothing downstream waits on it.
+**None.** Same shape as OPEN-61 — which was recorded **the previous day**, from a
+measurement that had been answering a question the owner's ruling had already
+closed.
+
+**The rule did not fail; I did not apply it to my own proposal.** That is the
+distinction worth keeping: a finding stated in the register protects the question
+that produced it and offers nothing to the next one unless somebody applies it.
+Which is `F-next/i-used-a-source-i-had-proven-unreliable` in a third form — **a
+rule is indexed by the situation that produced it, and the next situation arrives
+without consulting it.**
+
+`--defer-indexes` remains built, tested, and **unused**. If 34 hours ever becomes
+blocking it acquires a decision and becomes a measurement worth running.
