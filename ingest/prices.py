@@ -229,6 +229,159 @@ class StooqProvider:
         return bars
 
 
+@dataclass(frozen=True)
+class AdjustmentObservation:
+    """The adjustment, kept in a separate record from the as-traded bar.
+
+    §7.1 says *store the as-traded close and the adjustment factors
+    separately*. This is that separation made structural rather than
+    conventional: ``DailyBar`` has no field an adjusted value can occupy, so
+    the only way to record one is here, where it is labelled.
+
+    ``factor`` is adjusted / as-traded on the day of observation — the
+    cumulative split-and-dividend adjustment the provider has applied so far.
+    It is a property of *when it was read*, not of the trading day, which is
+    why ``observed_on`` is part of the record.
+    """
+
+    symbol: str
+    trade_date: date
+    as_traded_close: float
+    adjusted_close: float
+    observed_on: date
+
+    @property
+    def factor(self) -> float | None:
+        if not self.as_traded_close:
+            return None
+        return self.adjusted_close / self.as_traded_close
+
+    def as_row(self) -> dict:
+        d = asdict(self)
+        d["trade_date"] = self.trade_date.isoformat()
+        d["observed_on"] = self.observed_on.isoformat()
+        d["factor"] = self.factor
+        return d
+
+
+class YahooChartProvider:
+    """Yahoo's chart endpoint. JSON, no API key, as-traded and adjusted split.
+
+    WHY THIS EXISTS: StooqProvider was the first implementation and **it does
+    not work from a script.** A live run on 2026-09-25 returned a 796-byte
+    JavaScript browser-verification page for all ten symbols — see F-041. The
+    parser refused all ten rather than storing the challenge page as prices,
+    which is the behaviour, but it captured nothing.
+
+    This endpoint returns ``close`` and ``adjclose`` in **separate arrays**,
+    which is §7.1's requirement handed to us by the source. We read ``close``
+    and never ``adjclose``; the adjusted value is recorded only as an
+    ``AdjustmentObservation``, where it is labelled for what it is.
+
+    **This is not a vendor-of-record decision and must not be read as one.**
+    OPEN-9 is open, D-036 is provisional, and the endpoint is undocumented —
+    it can change or close without notice. It is here because capture is
+    deadline-bearing and this is what works today without a credential.
+    """
+
+    name = "yahoo-chart"
+
+    def daily_url(self, symbol: str) -> str:
+        return (f"https://query1.finance.yahoo.com/v8/finance/chart/"
+                f"{symbol.upper()}?interval=1d&range=5d")
+
+    def parse(self, symbol: str, payload: bytes, captured_on: date
+              ) -> list[DailyBar]:
+        bars, _ = self.parse_both(symbol, payload, captured_on)
+        return bars
+
+    def parse_both(self, symbol: str, payload: bytes, captured_on: date
+                   ) -> tuple[list[DailyBar], list[AdjustmentObservation]]:
+        try:
+            doc = json.loads(payload.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise PriceParseError(f"{symbol}: payload is not JSON") from exc
+
+        chart = doc.get("chart") or {}
+        if chart.get("error"):
+            raise PriceRefused(f"{symbol}: {chart['error']}")
+        results = chart.get("result") or []
+        if not results:
+            # Same rule as the empty CSV body: an unknown symbol must not read
+            # as a day with no trading.
+            raise PriceParseError(
+                f"{symbol}: no result in payload. This is an unknown or "
+                f"unavailable symbol, not evidence that no trade occurred."
+            )
+
+        r = results[0]
+        meta = r.get("meta") or {}
+        stamps = r.get("timestamp") or []
+        quote = ((r.get("indicators") or {}).get("quote") or [{}])[0]
+        closes = quote.get("close")
+
+        if closes is None:
+            adj_block = (r.get("indicators") or {}).get("adjclose")
+            if adj_block:
+                raise AdjustedOnly(
+                    f"{symbol}: payload carries adjclose but no as-traded "
+                    f"close. Refusing - an adjusted close in the as-traded "
+                    f"field is undetectable downstream (§7.1)."
+                )
+            raise PriceParseError(f"{symbol}: no close series in payload")
+
+        adj_series = (((r.get("indicators") or {}).get("adjclose")
+                       or [{}])[0]).get("adjclose") or []
+
+        # Exchange-local date, not UTC date. A daily bar is stamped at the
+        # exchange's session, and deriving the trading day from UTC would
+        # misdate any exchange far enough east or west.
+        offset = int(meta.get("gmtoffset") or 0)
+
+        bars: list[DailyBar] = []
+        adjustments: list[AdjustmentObservation] = []
+
+        for i, ts in enumerate(stamps):
+            close = closes[i] if i < len(closes) else None
+            if ts is None or close is None:
+                continue
+            trade_date = datetime.fromtimestamp(
+                int(ts) + offset, tz=timezone.utc).date()
+
+            bars.append(DailyBar(
+                symbol=symbol.upper(),
+                trade_date=trade_date,
+                open=_index(quote.get("open"), i),
+                high=_index(quote.get("high"), i),
+                low=_index(quote.get("low"), i),
+                close=float(close),
+                volume=(int(v) if (v := _index(quote.get("volume"), i))
+                        is not None else None),
+                captured_same_day=(trade_date == captured_on),
+            ))
+
+            adj = _index(adj_series, i)
+            if adj is not None:
+                adjustments.append(AdjustmentObservation(
+                    symbol=symbol.upper(),
+                    trade_date=trade_date,
+                    as_traded_close=float(close),
+                    adjusted_close=float(adj),
+                    observed_on=captured_on,
+                ))
+
+        if not bars:
+            raise PriceParseError(f"{symbol}: parsed but no usable rows")
+        return bars, adjustments
+
+
+def _index(seq, i):
+    if not seq or i >= len(seq):
+        return None
+    v = seq[i]
+    return None if v is None else float(v)
+
+
 def _maybe_float(v: str | None) -> float | None:
     v = (v or "").strip()
     if not v or v == "N/A":
@@ -249,7 +402,8 @@ def _maybe_int(v: str | None) -> int | None:
         return None
 
 
-def write_capture(out_dir: Path, capture: RawCapture, bars: Iterable[DailyBar]
+def write_capture(out_dir: Path, capture: RawCapture, bars: Iterable[DailyBar],
+                  adjustments: Iterable[AdjustmentObservation] | None = None
                   ) -> Path:
     """Write one symbol's capture: the raw payload, and the parsed bars.
 
@@ -273,6 +427,10 @@ def write_capture(out_dir: Path, capture: RawCapture, bars: Iterable[DailyBar]
         "provider": capture.provider,
         "raw_file": f"{base}.raw",
         "bars": [b.as_row() for b in bars],
+        # Separate key, not a column on the bar. §7.1 requires the adjustment
+        # stored separately from the as-traded close, and a separate key is
+        # how that survives a careless loader.
+        "adjustments": [a.as_row() for a in (adjustments or [])],
     }
     path = out_dir / f"{base}.json"
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True),

@@ -43,8 +43,15 @@ from ingest.prices import (  # noqa: E402
     PriceRefused,
     RawCapture,
     StooqProvider,
+    YahooChartProvider,
     write_capture,
 )
+
+# Yahoo is the default because Stooq's first live run returned a JavaScript
+# browser-verification page for all ten symbols (F-041). Stooq stays selectable
+# so the finding is reproducible rather than only described.
+PROVIDERS = {p.name: p for p in (YahooChartProvider(), StooqProvider())}
+DEFAULT_PROVIDER = YahooChartProvider.name
 
 # Deliberately below anything a public endpoint is likely to police. The same
 # argument as ingest/edgar.py: sitting on a limit means any burst crosses it,
@@ -75,6 +82,9 @@ def main(argv: list[str] | None = None) -> int:
                    help="actually fetch. Without it, nothing hits the network.")
     p.add_argument("--dry-run", action="store_true",
                    help="print the URLs that would be fetched, then stop")
+    p.add_argument("--provider", default=DEFAULT_PROVIDER,
+                   choices=sorted(PROVIDERS),
+                   help=f"default: {DEFAULT_PROVIDER}")
     args = p.parse_args(argv)
 
     if args.symbols:
@@ -88,7 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         print("no symbols", file=sys.stderr)
         return 2
 
-    provider = StooqProvider()
+    provider = PROVIDERS[args.provider]
     today = datetime.now(timezone.utc).date()
 
     if args.dry_run or not args.live:
@@ -114,7 +124,12 @@ def main(argv: list[str] | None = None) -> int:
         try:
             payload = fetch(url)
             cap = RawCapture.of(url, payload, provider.name)
-            bars = provider.parse(symbol, payload, captured_on=today)
+            if hasattr(provider, "parse_both"):
+                bars, adjustments = provider.parse_both(
+                    symbol, payload, captured_on=today)
+            else:
+                bars, adjustments = provider.parse(
+                    symbol, payload, captured_on=today), []
         except (PriceRefused, PriceParseError, AdjustedOnly) as exc:
             # Counted and named, never swallowed. A capture that quietly
             # skipped a symbol is a gap shaped like a holiday.
@@ -122,7 +137,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  REFUSED {symbol}: {exc}", file=sys.stderr)
             continue
 
-        write_capture(args.out, cap, bars)
+        write_capture(args.out, cap, bars, adjustments)
         captured += 1
         same_day += sum(1 for b in bars if b.captured_same_day)
 

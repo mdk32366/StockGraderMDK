@@ -3,8 +3,12 @@
 **From:** Code (Builder) · **Date:** 2026-09-25
 **Ruling executed:** **D-036** — TDD v3 §17.5 option (b), as-traded daily closes
 captured going forward.
-**Status: built, tested hermetically, and deliberately not run.** Nothing has
-reached the network and nothing has reached the cluster.
+**Status: built, run, and capturing. UPDATED after the first live run.**
+The first provider failed on contact and was replaced the same afternoon —
+**F-041**. Nothing has reached the cluster.
+
+**First successful capture, 2026-09-25 18:53Z: 10 symbols, 0 refused, 50 bars,
+10 carrying the same-day guarantee.**
 
 ---
 
@@ -115,7 +119,21 @@ starting capture before the schema — which was the right call, but it is not f
 **It needs a backup that is not this repository, and not only this machine.**
 The `.gitignore` entry says so where somebody will read it.
 
-## 7. The honest column
+## 7. The honest column — and it came true within the hour
+
+**It did.** `StooqProvider` serves a JavaScript browser-verification page to any
+client that does not execute JS. **Ten hermetic tests passed against a provider
+that cannot be reached**, and the first live run refused all ten symbols and
+wrote nothing (**F-041**). Replaced with `YahooChartProvider`, which serves
+`close` and `adjclose` in separate arrays — §7.1's requirement handed over by
+the source.
+
+**The premise now has a number behind it.** All ten of today's bars carry an
+adjustment factor of **exactly 1.0**: adjusted equals as-traded, because no
+adjustment has yet been applied to a price that traded today. *A close captured
+on the day it traded is as-traded by construction* is measured, not argued.
+
+**The original honest column, kept because it was right:**
 
 **The fixtures are mine, not the provider's.** `tests/test_prices.py` proves the
 parser handles the CSV shape **Stooq documents**. It does not prove Stooq serves
