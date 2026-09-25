@@ -2649,3 +2649,65 @@ out, not a reason to treat 882 ms as an answer.
 proved Basic inadequate. It did not. **It is now meaningful evidence that the
 build is safe and weak evidence about anything else.**
 **Sample:** 1 cgroup-bounded container, 5.6M facts, 95,784 reclaim events.
+
+---
+
+### F-021 — a live credential reached the transcript, and the instruction that set it up was mine
+
+**Established 2026-09-25, during the first attempt to run the migrations against
+a real Fly cluster.**
+
+**What happened.** `stockgrader_app`'s password appeared in full in the session
+transcript. It was pasted as part of a `$env:DATABASE_URL=` assignment, echoed
+back along with the command that followed it.
+
+**Which command did it — and it was not a command.** Every prior control in this
+project guarded against a credential appearing in *command output*: F-014 records
+that `fly mpg create` and `fly mpg attach` print live credentials on success, and
+the standing rule is to redact before relaying. **This exposure came from an
+assignment the owner typed, not from any tool's output.**
+
+**The instruction that set it up was the Builder's.** The handoff said to
+substitute the real password into a `DATABASE_URL` line and then paste the
+results back. That is a structure in which the value and the pasted region
+overlap, and it depends on the person noticing the difference between the line
+they type and the lines they return. **A rule that requires the human to
+partition their own paste is not a control.**
+
+**The correct shape:** have the variable set without the value ever entering the
+conversation — read from a password manager, prompted by `Read-Host -AsSecureString`,
+or sourced from a file outside the repository — so that no correct action puts
+the secret on screen. **The transcript should never be the place where redaction
+happens, because by then it has already happened.**
+
+**Why this is the same shape as the project's other findings.** D-030 says
+credentials never appear in transcripts, repo files, or env files in the tree.
+It was stated as a property of the system and enforced only against the paths
+anyone had thought of. **The guard covered tool output and the exposure came
+through the one channel it did not cover** — the same structure as 0002's
+enumerated A5 passing while blind to `fact`, and as an include-pattern that
+silently omits a prefix nobody had invented yet.
+
+**Blast radius.** The value is in the session transcript, the owner's shell
+environment, and PowerShell history on disk. It is the credential the deployed
+application uses, so rotation is two actions: a dashboard password change and a
+`fly secrets set` for the app, both the owner's to run.
+
+**Status: rotation DEFERRED by the owner, 2026-09-25.** Recorded as **OPEN-63**
+rather than left in prose, because a deferral without an end is P-13's shape and
+this project has one of those already.
+
+**Three further defects in the same attempt**, each of which would independently
+have failed the run, recorded because the credential exposure is the loudest of
+the four and not the only one:
+
+- **`stockgrader_app` is a `writer`.** A-017 established a writer is refused
+  `CREATE TABLE` **by design**, so 0001 could never have run as it. The block
+  needs a `schema_admin`; that is its entire purpose.
+- **The host was `pgbouncer.<id>.flympg.net`.** The runner takes
+  `pg_advisory_xact_lock` and runs each migration as one transaction it owns
+  (D-021). Those semantics are not reliable through a transaction-mode pooler.
+  A direct connection via `fly mpg proxy` is required.
+- **The working directory was `C:\Windows\system32`**, so `.venv` did not
+  resolve. This is the error the owner actually saw, and it masked the other
+  two — **the shallowest fault reported first, with three real ones behind it.**
