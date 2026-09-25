@@ -2711,3 +2711,111 @@ the four and not the only one:
 - **The working directory was `C:\Windows\system32`**, so `.venv` did not
   resolve. This is the error the owner actually saw, and it masked the other
   two — **the shallowest fault reported first, with three real ones behind it.**
+
+---
+
+### F-022 — a guard written as a proxy for its property blocked the correct fix
+
+**Established 2026-09-25, closing OPEN-59.**
+
+0003's **A5** forbade any unique constraint on `fact_collision` covering
+`concept`. Its stated purpose was to prevent a constraint that would **refuse a
+second, disagreeing assertion** — reproducing, inside the quarantine, the loss
+the quarantine exists to prevent.
+
+**Those are not the same test.** "Covers `concept`" was a *proxy* for "would
+refuse a competing value", and the two diverge at exactly one point: **a
+constraint that also includes `value` cannot refuse a differing value, because
+differing values differ in the key.**
+
+**The divergence was not hypothetical — it was the fix to OPEN-59.** Making the
+quarantine idempotent requires a constraint over the colliding key plus `value`
+plus `source_ordinal`. A5 would have rejected it, while permitting nothing
+safer. **The guard would have blocked the repair of a different defect and looked
+correct doing it.**
+
+**A5 now tests the property directly:** uniqueness covering the colliding key is
+forbidden **unless `value` is part of it**. Proven both ways — the harness
+confirms A5 still fires on uniqueness over the colliding key alone, and no longer
+fires on the correct constraint.
+
+**The general form, which is the part worth keeping:**
+
+> A guard that tests a proxy passes and fails for the right reasons only while
+> the proxy and the property agree. Nothing announces the point where they stop
+> agreeing, and the first case to reach it is likely to be a correct change being
+> refused rather than a defect being admitted — **which reads as the guard
+> working.**
+
+Related in shape to `a-guard-never-seen-red-is-not-a-guard`, and its inverse:
+this one had been seen red, in the case it was written for. **Being seen red does
+not establish that it goes red for the right reason.**
+
+---
+
+### F-023 — the quarantine's identity is a property of the archive, not of the fetch
+
+**Established 2026-09-25, closing OPEN-59.**
+
+Every other table's double-ingest idempotency is **the schema's property**: each
+insert lands on `ON CONFLICT DO NOTHING` against a real constraint.
+`fact_collision` deliberately had no constraint at all, so a second ingest of the
+same quarter re-inserted every quarantined row. **A load that is idempotent
+everywhere except in the table recording its refusals is not idempotent.**
+
+**The identity that works is the colliding key + `value` + `source_ordinal`, and
+each term is load-bearing:**
+
+- **`value`** — two rows that disagree must both insert. That is A5's property,
+  preserved by construction rather than by care.
+- **`source_ordinal`** — three rows that collide where **two agree on value**
+  must still yield three. Keyed on value alone they collapse to two, discarding
+  the evidence that the archive asserted that value twice. **This is the case
+  the Planner named in advance, and the harness confirms the wrong fix produces
+  exactly 2.**
+- **`source_fetch_id` is deliberately EXCLUDED.** `fetch_log` is keyed on
+  `(url, retrieved_at)`, so a re-ingest is a **new fetch with a new id**.
+  Including it would make every re-ingested row unique again and **pass a naive
+  idempotency test while fixing nothing.**
+
+**The cost, stated because it is real:** the retained row keeps the **first**
+fetch that produced it. That is honest here — the row's content is immutable, so
+first sighting is complete provenance, not the stale pointer OPEN-45 warns about
+for mutable `current_*` columns. **The dilemma does not arise because nothing
+updates.**
+
+`source_ordinal` became `NOT NULL`: nullable, it could not distinguish two
+separate assertions of the same value from one row seen twice, and NULLs do not
+compare equal in a unique index.
+
+---
+
+### F-024 — the inversion moved the enumeration up a level; it did not remove it
+
+**Established 2026-09-25, closing OPEN-60.**
+
+0003's A2 was the fix for 0002's enumerated A5 — it derives its check set from
+the catalogue rather than from a list of table names. **But it scoped that
+derivation to `nspname = 'public'`.**
+
+**So A2 enumerated a schema instead of a table list.** A table created in any
+other schema — a staging area for bulk loads, a partitioning scheme, an
+extension's own objects — escaped the provenance check **exactly as `fact`
+escaped A5**, and for the same structural reason one level up.
+
+**Fixed by enumerating what the system excludes rather than what we include:**
+every schema except `pg_catalog`, `information_schema` and `pg_*`. A new schema
+is in scope by default.
+
+**`provenance_exempt` became schema-qualified** in the same change. Keyed on
+`table_name` alone, a row exempting `bulk_facts` would have exempted a table of
+that name in **every** schema, including one created later by someone who never
+saw the list. **Widening the check while leaving the exemption unqualified would
+have moved the hole rather than closed it** — and the harness tests exactly that:
+an exemption naming `public.bulk_facts` does **not** silence
+`staging.bulk_facts`.
+
+**Proven side by side**, the way A2 was originally proven against A5: same
+database, same moment, the public-only scope blind to the table and the
+schema-wide scope firing. **B7 asserts the old scope returns 0** — if the probe
+ever stops being blind, the comparison is not measuring what it claims.

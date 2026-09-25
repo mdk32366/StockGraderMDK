@@ -90,9 +90,15 @@ COMMENT ON COLUMN fact.source_fetch_id IS
 --  with no reasons becomes a place to hide a table."
 -- ----------------------------------------------------------------------------
 CREATE TABLE provenance_exempt (
-    table_name  text        PRIMARY KEY,
+    -- OPEN-60. Exemptions are schema-qualified. Keyed on table_name alone, a
+    -- row exempting 'staging_facts' would exempt a table of that name in EVERY
+    -- schema, including one created years later by someone who never saw this
+    -- list. The exemption must name the object it is exempting.
+    schema_name text        NOT NULL DEFAULT 'public',
+    table_name  text        NOT NULL,
     reason      text        NOT NULL,
     exempted_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (schema_name, table_name),
     CONSTRAINT provenance_exempt_reason_substantive CHECK (length(btrim(reason)) >= 20)
 );
 
@@ -168,12 +174,52 @@ CREATE TABLE fact_collision (
     -- The disagreeing value. One row per competing assertion, so both survive.
     value           numeric     NOT NULL,
     -- Which source row it came from, for tracing back into the archive.
-    source_ordinal  integer     NULL,
+    -- OPEN-59: NOT NULL because it is part of this row's identity. Nullable, it
+    -- could not distinguish two genuinely separate assertions of the same value
+    -- from one row seen twice, and NULLs do not compare equal in a unique index.
+    source_ordinal  integer     NOT NULL,
     source_fetch_id bigint      NOT NULL REFERENCES fetch_log (fetch_id),
     detected_at     timestamptz NOT NULL DEFAULT now(),
 
     CONSTRAINT fact_collision_period_type_valid CHECK (period_type IN ('instant','duration')),
-    CONSTRAINT fact_collision_period_ordered    CHECK (period_start <= period_end)
+    CONSTRAINT fact_collision_period_ordered    CHECK (period_start <= period_end),
+
+    -- ------------------------------------------------------------------------
+    -- OPEN-59 — re-ingesting an archive must leave this table UNCHANGED.
+    --
+    -- Every other table's idempotency is the schema's property: each insert
+    -- lands on ON CONFLICT DO NOTHING against a real constraint. This table had
+    -- no constraint at all, so a second ingest of the same quarter inserted the
+    -- same quarantined rows again. A load that is idempotent everywhere except
+    -- in the table recording its refusals is not idempotent.
+    --
+    -- The obvious fix -- uniqueness on the colliding key -- is the WRONG one,
+    -- and A5 exists to forbid it: it would refuse the second competing value
+    -- and reproduce, inside the quarantine, the exact loss the quarantine was
+    -- built to prevent.
+    --
+    -- So identity is the colliding key PLUS the value PLUS the source ordinal:
+    --
+    --   * including `value` means two rows that disagree BOTH insert. That is
+    --     the property A5 protects, and it is preserved by construction.
+    --   * including `source_ordinal` means three rows that collide where two
+    --     agree on value still yield three rows. Keyed on value alone they
+    --     would collapse to two, silently discarding the evidence that the
+    --     archive asserted that value twice.
+    --   * both are properties of the ARCHIVE, not of the fetch, so they are
+    --     stable across re-ingestion. source_fetch_id deliberately is NOT in
+    --     the key: a re-ingest is a new fetch with a new fetch_id, so including
+    --     it would make every row unique again and restore the defect.
+    --
+    -- Consequence, stated because it is the cost: the retained row keeps the
+    -- FIRST fetch that produced it. That is honest -- the row's content is
+    -- immutable, so first sighting is complete provenance, not the stale
+    -- pointer OPEN-45 warns about for mutable `current_*` columns.
+    -- ------------------------------------------------------------------------
+    CONSTRAINT fact_collision_one_per_source_row UNIQUE (
+        accession, entity_cik, concept, taxonomy, unit, period_type,
+        period_start, period_end, dimensions, value, source_ordinal
+    )
 );
 
 CREATE INDEX fact_collision_key_idx ON fact_collision
