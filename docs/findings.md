@@ -880,7 +880,38 @@ old cluster is deliberately retained, and detaching may interact with the secret
 Recorded as testplan OPEN-23 to be resolved at destroy time.
 **Sample:** 1 app, 2 clusters, 1 listing.
 
-### F-next/orphaned-restore-clusters-already-exist - The account holds restore artifacts from earlier recoveries, still running
+### F-next/orphaned-restore-clusters-already-exist - CORRECTED: two clusters exist; "orphan" was my inference and it was not supported
+**CORRECTION 2026-09-25, and the framing was mine.** The title and the body below
+call two clusters **orphans**. **The evidence established only that they exist.**
+Both are attached to live projects, and one is named
+`sentinel-holy-rain-4562 restored 2026-08-17...` and attached to `sentinel...` -
+**it may be Sentinel's production database**, restored once and in use ever since.
+Nothing in `fly mpg list` distinguishes that from an abandoned cluster.
+
+**The part that makes this mine rather than unlucky:** I had already recorded
+`F-next/attachment-record-is-not-authoritative` - that the ATTACHED APPS column
+records *which clusters have ever been attached and not detached*, **not what an
+app is using.** I established that the listing cannot answer "is this in use",
+**then used the same listing to conclude these were not in use.** A source I had
+proven non-authoritative in one direction, relied on in the other.
+**The names did the rest of the work.** *"restored 2026-08-17... restored
+2026-09-13..."* reads as debris. It is equally consistent with a project that
+recovered twice and kept the result.
+
+**Operational consequence, and it is the reason this is corrected rather than
+softened: do not destroy either non-StockGrader cluster.** A cost argument ending
+in *destroy the three idle clusters* is **one action away from deleting a live
+production database on the strength of a name in a listing.**
+
+**What survives:** four clusters exist, ready and billing; `-r1` is live and
+`stockgrader-db` is ours and deliberately empty. **The other two are a question
+for PharmFoldMDK's and Sentinel's own registers** - which cluster did each project
+cut over to. If those registers answer it, it is a document read; if they do not,
+**that gap is the finding and it is theirs.**
+**Recorded as P-11 on the Planner's side. It is equally mine**, and the original
+text stands below unedited so the inference is visible rather than tidied away.
+
+### (original text, 2026-09-23, as written) - The account holds restore artifacts from earlier recoveries, still running
 **Date:** 2026-09-23 - **By:** Builder, post-drill sweep
 **Claim:** `fly mpg list -o matt-kelly-802` returns **four** clusters, all
 `ready`, all on the `basic` plan, **all billed.** Two belong to StockGraderMDK.
@@ -2307,9 +2338,21 @@ time.
 memory **for a cluster**, so four clusters means four plan fees. `fly mpg list`
 shows **four ready clusters**: `stockgrader-db-r1` (live), `stockgrader-db`
 (retained, holding nothing), and the two PharmFoldMDK restore orphans.
-**Approximately $41/month for the retained old cluster** at Basic with 10 GB, and
-**approximately $38 each plus storage** for the orphans - **on the order of
-$120/month of idle spend.**
+**Approximately $41/month for the retained old cluster** at Basic with 10 GB.
+
+**CORRECTED 2026-09-25 (P-11): the "~$120/month of idle spend" figure is struck.**
+It totalled three clusters as idle when **only one is established as such.**
+`stockgrader-db` is ours and deliberately empty. The other two are attached to
+live projects and **their status is unknown** - see
+`F-next/orphaned-restore-clusters-already-exist`, corrected.
+
+**The mechanism is untouched and it is the part that mattered:** a cluster costs
+**~$38/month before storage**, so an empty cluster is not cheap.
+**And the conclusion survives on the one cluster we can vouch for.**
+`stockgrader-db` at roughly **$41/month alone more than covers the ~$38/month the
+disk increase needs.** The inversion holds **without touching anyone else's
+infrastructure**, which is a better version of the argument than the one that
+needed three clusters.
 **Ruling 6 says the old cluster *"holds nothing and costs little."* The second
 half is wrong.** The ordering of its destroy does not change - it still waits on
 the ticker load and a DB-backed endpoint, and that ordering was right for
@@ -2427,3 +2470,32 @@ count and inspect** is a different object from a silence. Recorded as **the
 general response to source data that violates its own contract**, which is what
 the ruling asked.
 **Sample:** 1 collision pair, 4 behavioural checks, 3 refusals.
+
+### F-next/i-used-a-source-i-had-proven-unreliable
+**Date:** 2026-09-25 - **By:** Builder, on P-11
+**Claim:** I recorded that `fly mpg list`'s ATTACHED APPS column **records history,
+not state** - that it *"does not answer which cluster is this app using"* - and
+then, from the same listing, **concluded that two clusters were unused.**
+**The two uses are not symmetric in evidence but they are symmetric in
+unreliability.** *Attached* does not prove in-use; *attached to a project I am not
+thinking about* does not prove abandoned. I treated the first as a caution and
+the second as a fact.
+**What made it feel safe:** the *names*. `sentinel-holy-rain-4562 restored
+2026-08-17... restored 2026-09-13...` reads like debris, and a generated name
+carrying two timestamps invites the reading. **A name is not a status field**, and
+the same string is equally consistent with a project that recovered twice and kept
+what it got.
+**The general form, which is why it is a finding and not an apology:** **a source
+established as unreliable for one question is not thereby reliable for its
+converse.** Recording the limitation protects the question you were asking when
+you found it, and **offers no protection at all to the next question**, because the
+limitation lives in a finding and the next question arrives without reading it.
+**The cost of the specific error was bounded and the shape was not.** The cost
+argument was one step from *destroy the three idle clusters* - **and destroying a
+cluster on the strength of a name in a listing is how a live production database
+disappears.**
+**Related:** `F-next/an-instrument-can-be-promoted-without-being-changed` - there
+an instrument acquired a new question it could not answer. **Here I brought the
+new question to an instrument I had personally documented as unable to answer
+it.**
+**Sample:** 1 listing, 2 questions, 1 recorded limitation not applied.
