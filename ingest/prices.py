@@ -413,8 +413,19 @@ def write_capture(out_dir: Path, capture: RawCapture, bars: Iterable[DailyBar],
     That asymmetry is the entire argument for keeping both.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
+    bars = list(bars)
     stamp = capture.retrieved_at.strftime("%Y%m%dT%H%M%SZ")
-    base = f"{capture.provider}-{capture.sha256[:12]}-{stamp}"
+
+    # THE SYMBOL IS IN THE FILENAME, AND IT HAS TO BE.
+    # Without it the name is provider + payload hash + second, which collides
+    # for any two captures in the same second with identical payloads -- and a
+    # collision here OVERWRITES, silently, losing a capture with no evidence it
+    # ever arrived. In production two symbols' payloads differ because the
+    # symbol is inside the JSON, so the old scheme worked by accident rather
+    # than by construction. That is the distinction 0001's uniqueness key exists
+    # to make, one layer out. See F-042.
+    symbol = bars[0].symbol if bars else "UNKNOWN"
+    base = f"{symbol}-{capture.provider}-{capture.sha256[:12]}-{stamp}"
 
     (out_dir / f"{base}.raw").write_bytes(capture.payload)
 

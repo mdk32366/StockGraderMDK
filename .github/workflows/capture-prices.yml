@@ -1,0 +1,145 @@
+# Daily as-traded price capture — D-036 (TDD v3 §17.5 option b).
+#
+# WHY THIS RUNS HERE AND NOT ON A DEVELOPER MACHINE
+# --------------------------------------------------
+# The captured series is the only data in this project that CANNOT be
+# re-fetched. Facts reload from immutable FSDS archives; a lost capture day is
+# gone at any price. A scheduled task on one laptop makes that data depend on
+# that laptop being awake at 22:00 UTC, and stores the only copy on it.
+#
+# It does not run on Fly either: fly.toml defines no ingest process group
+# despite D-022, and sets min_machines_running = 0, so the app sleeps.
+#
+# So it runs here, and commits what it captures. Git is not where this data
+# belongs — D-037 says it belongs in Postgres — but there is no price migration
+# yet (the runner refuses sequence gaps and 0005 is reserved for OPEN-64's nil
+# assertions). Until then git is offsite, versioned and backed up, which is
+# three properties more than a gitignored folder on one machine has.
+#
+# THE SIZE GUARD IS NOT OPTIONAL
+# -------------------------------
+# This is a bridge, and bridges get left standing. At ten symbols a day's
+# capture is ~35 KB. At the six thousand D-036 actually ruled it is ~10 MB/day,
+# or ~3.6 GB/year, which git must not be asked to hold. The guard below FAILS
+# the run rather than letting the repository grow quietly past the point where
+# somebody has to deal with it. A guard that warns is a guard that gets
+# ignored; this one stops the line.
+
+name: capture-prices
+
+on:
+  schedule:
+    # 22:00 UTC, weekdays. US markets close 20:00 UTC (EDT) / 21:00 (EST), so
+    # this clears both without needing a DST-aware schedule. GitHub's cron is
+    # best-effort and can be delayed under load — which is survivable here,
+    # because a late capture is still that day's capture, and the exit-3 path
+    # below tells us if it was not.
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: "Comma-separated override (leave blank to use the symbol file)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  # Two captures writing the same day would not corrupt anything — filenames
+  # carry the payload hash and the timestamp — but they would produce duplicate
+  # observations of the same moment, and a duplicate is a thing somebody later
+  # has to explain.
+  group: capture-prices
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Capture
+        id: capture
+        run: |
+          set +e
+          if [ -n "${{ inputs.symbols }}" ]; then
+            python tools/capture_prices.py --symbols "${{ inputs.symbols }}" \
+              --out price_capture --live
+          else
+            python tools/capture_prices.py \
+              --symbol-file ingest/universe/symbols.txt \
+              --out price_capture --live
+          fi
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          set -e
+          # 0 captured with same-day bars; 3 captured but none same-day (a
+          # market holiday looks like this, and so does a stale provider);
+          # 1 captured nothing. Only 1 is unambiguous failure.
+          if [ "$code" = "1" ]; then
+            echo "::error::Captured nothing. See the refusals above."
+            exit 1
+          fi
+          if [ "$code" = "3" ]; then
+            echo "::warning::No same-day bar. Market holiday, or the provider \
+            is serving stale data — these are not the same thing and this \
+            warning does not distinguish them. Check the dates in the commit."
+          fi
+
+      - name: Size guard
+        run: |
+          bytes=$(du -sb price_capture | cut -f1)
+          echo "capture size: $bytes bytes"
+          # 5 MB/day. Ten symbols is ~35 KB, so this fires long before the
+          # repository is in trouble and long after any plausible good day.
+          if [ "$bytes" -gt 5242880 ]; then
+            echo "::error::Capture is ${bytes} bytes, over the 5 MB/day \
+            ceiling. This is the bridge outgrowing git, which is expected \
+            eventually and must not happen silently. Land the price migration \
+            and load from Postgres instead of widening this limit."
+            exit 1
+          fi
+
+      # The data goes to its own branch, never to main. Two reasons, and the
+      # first is not a preference:
+      #
+      #   1. main is a protected branch. A push from here is declined, exactly
+      #      as a developer's is. Discovered by trying it.
+      #   2. Daily data commits on main would bury the project's history under
+      #      a machine's, and `price_capture/` is gitignored there on purpose.
+      #
+      # price-data is an orphan branch: no shared history with main, so it can
+      # be rewritten or dropped wholesale without touching the project.
+      - name: Publish to the price-data branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git fetch origin price-data:price-data 2>/dev/null; then
+            git worktree add data-branch price-data
+          else
+            echo "price-data does not exist yet; creating it as an orphan"
+            git worktree add --detach data-branch
+            git -C data-branch checkout --orphan price-data
+            git -C data-branch rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          mkdir -p data-branch/price_capture
+          cp -r price_capture/. data-branch/price_capture/
+
+          cd data-branch
+          git add -A
+          if git diff --cached --quiet; then
+            echo "nothing new to publish"
+            exit 0
+          fi
+          git commit -m "data(prices): capture $(date -u +%Y-%m-%d)
+
+          Automated daily as-traded capture under D-036. Runner exit code
+          ${{ steps.capture.outputs.code }} — 0 = same-day bars captured,
+          3 = captured but none carried the same-day guarantee."
+          git push origin price-data

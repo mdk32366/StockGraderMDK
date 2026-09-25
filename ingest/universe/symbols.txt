@@ -1,0 +1,23 @@
+# Daily price capture universe (D-036).
+#
+# TEN SYMBOLS, DELIBERATELY. This is not the universe D-036 ruled -- that says
+# "capture broader than the current store", and producing the real list needs
+# the ticker map from slice 1, which has NEVER been run against the cluster.
+# The store holds CIKs, not tickers.
+#
+# So this is a bridge: it starts the clock on the only question whose cost is
+# elapsed time, while the real list is assembled. Every day these ten capture
+# is a day of point-in-time history that exists; every day spent waiting for
+# six thousand is a day none of them have.
+#
+# Widening this file is the whole of the change. Nothing else needs to move.
+AAPL
+MSFT
+NVDA
+AMZN
+GOOGL
+META
+JPM
+XOM
+JNJ
+PG

@@ -14,6 +14,11 @@ __pycache__/
 # Daily price capture output (D-036). Not in git: it is data, it grows every
 # trading day, and it belongs in Postgres once a price migration exists.
 #
+# WHERE IT ACTUALLY LIVES: the price-data branch, published daily by
+# .github/workflows/capture-prices.yml. Ignored HERE on main, committed THERE.
+# An orphan branch, so it shares no history with the project and can be dropped
+# wholesale once a price migration loads it into Postgres.
+#
 # BUT NOTE, and this is the one place ignoring a directory carries real risk:
 # this is the only data in the project that CANNOT be re-fetched. Facts reload
 # from immutable FSDS archives; a lost capture day is gone at any price. Until
