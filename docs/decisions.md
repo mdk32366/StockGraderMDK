@@ -1149,3 +1149,59 @@ attach/backup/connect/create/databases/destroy/detach/list/proxy/restore/status/
 **So sizing is a create-time decision and correcting it later means a new cluster
 plus a data migration.** 15 GB -> 150 GB is **+$38/month**. **Under-provisioning
 is the expensive mistake here, not over-provisioning.**
+
+### D-038 - Captured price data is published publicly, and that is a decision
+**Status:** RULED 2026-09-25 by the owner.
+**Choice:** the daily capture is committed to the public `price-data` branch of
+this public repository (D-020). The owner's reason, recorded as given: *"not
+worried about licensing because I'm the only customer."*
+**Recorded because it is a decision and not an oversight.** A future reader
+finding vendor-derived market data in a public repo should find the ruling next
+to it rather than infer carelessness. **The Builder raised one distinction and
+the owner ruled past it:** *only customer* governs **use**, while a public repo
+governs **publication** - the data is redistributed to anyone, not merely used
+by one person. **At ten large-cap symbols of daily OHLC this is factual market
+data that is widely republished, and the owner's call is a reasonable reading of
+a small exposure.** It is recorded so that **if the universe widens to the six
+thousand D-036 ruled, somebody re-reads it** rather than inheriting it.
+**Reversible, and cheaply:** the data lives on an orphan branch with no shared
+history. Moving it to a private repository is one changed remote and costs
+nothing already captured.
+
+### D-039 - The cluster is provisioned at 150 GB, which means a NEW cluster
+**Status:** RULED 2026-09-25 by the owner - *"bump the cluster to 150GB"*.
+**Choice:** provision **150 GB**. **+$37.80/month** at the published $0.28 per
+provisioned GB per 30-day month, against the current 15 GB.
+**Forced by:** the sizing measurement. 45 quarters is **124.4 GB**, ~114 GB after
+tier 1, against 15 GB - **7.6x over** - and OPEN-53 priced every narrowing lever
+and rejected all of them. **Disk is the only lever with 8x in it.**
+
+**THE OPERATION IS NOT A RESIZE AND THE WORD MATTERS.** `fly mpg` has **no
+subcommand that changes a volume after creation** (OPEN-56), and `restore` picks
+its own size (OPEN-22). **This is: create a new cluster at 150 GB, move the data,
+repoint, and retire the old one under a stated end condition.**
+
+**AND THIS IS THE CHEAPEST MOMENT IT WILL EVER BE, which is the argument for
+doing it now rather than the argument against.** The store holds **one quarter,
+3.37M facts, ~1.8 GB**. The migration is not a 114 GB dump and restore - the
+**FSDS archives are immutable and already cached on disk**, so the new cluster
+can be filled by **re-running the loader**, measured at **148 s for 2026q2**
+(F-034). **Every day the 45-quarter load is not started, this stays a
+two-minute job. The day after it completes, it becomes a 114 GB data migration.**
+**Order matters: new cluster first, 45-quarter load second.**
+
+**Execution is owner-at-the-keyboard and NOT the Builder's.** No credential
+reaches the Builder, and **`fly mpg create` prints a live connection string in
+its normal successful output** (F-014) - the command that creates the cluster is
+the command that leaks the credential, which is how two roles were compromised on
+day one. **The Builder must not run it.** Runbook:
+`docs/reports/2026-09-25-cluster-150gb-runbook.md`.
+
+**The old cluster is not destroyed on completion.** Standing constraint: no
+cluster is destroyed; anything built is named and recorded with a stated end
+condition. **Its end condition:** retained until the new cluster has passed the
+same verification the old one passed - 0001-0004 applied, `coverage_window`
+reporting the same quarter, and fact counts matching - and then destroyed in a
+sitting somebody sees through (B-9). **Two Basic clusters running is ~$0.28/GB
+plus two plan fees**, and F-next/orphaned-restore-clusters-already-exist records
+that the plan fee, not storage, is what makes a forgotten cluster expensive.
