@@ -3325,3 +3325,56 @@ without consulting it.**
 
 `--defer-indexes` remains built, tested, and **unused**. If 34 hours ever becomes
 blocking it acquires a decision and becomes a measurement worth running.
+
+
+### F-036 — the gate was red for two days and the closeout reported 96/96
+
+**Established 2026-09-25, by the Builder**, while carrying out an instruction to
+merge PR-6 on green.
+
+**PR-6 has never passed CI.** All 40 gate runs on `pr6-backup-strategy` failed,
+the oldest visible dated 2026-09-23 17:43Z. `main` is green; its last success is
+PR-5 on 2026-09-22. One test failed, identically on both jobs:
+
+```
+tests/test_migrate.py::test_no_dsn_is_an_error_not_a_default
+  Expected regex: 'DATABASE_URL is not set'
+  Actual message: 'psycopg is required to run migrations'
+```
+
+**`psycopg` was declared nowhere** — not `requirements.txt`, not
+`requirements-dev.txt`, not `gate.yml`, not `setup.ps1`. It was present in the
+developer `.venv` at 3.3.6, installed by hand at some point and never recorded.
+`_connect` imported the driver before checking the DSN, so locally the import
+succeeded and the assertion was reached; in CI the import failed first and the
+test got the wrong error. Every other psycopg import in the tree is lazy and
+inside a function, so nothing else in the hermetic suite noticed.
+
+**The comment on the except branch read `# pragma: no cover - dependency is
+declared`.** It was not.
+
+**Why this is the same shape as F-021 and §1.1 of the builder closeout.** That
+section records that `python` resolves to another project's virtualenv and warns
+that the OpenAPI contract test is *the only test in the suite that can tell the
+difference*. **It was not the only divergence.** This is a second one, in the
+opposite direction: a package the local environment has and the declared
+environment does not. The closeout's headline `Suite: 96/96` was a local number
+reported as a project number, and the gate had been contradicting it for two
+days in a place nobody was looking.
+
+**The rule.** *A suite is evidence only about the environment it declares.* A
+local green proves the code works where the dependencies were installed by
+hand — which is nowhere else, including the machine that decides whether a merge
+is allowed. The gate is the only run whose environment is written down.
+
+**And the second-order rule, which is the one that cost the two days.** *Nobody
+read the gate.* Three days of documents, 79 Planner and 57 Code, a register with
+105 findings, and a merge that was blocked from the first push and is recorded in
+none of them. **An indicator outside the documents is outside the process.**
+
+**Fixed:** `psycopg[binary]==3.3.6` declared in `requirements-dev.txt`; the DSN
+check moved ahead of the driver import (**D-035**); two tests added, one proving
+the DSN refusal survives with no driver installed and one proving the driver
+check still fires when a DSN *is* present. The first was red-tested against the
+old ordering and fails on it, which is the only reason to believe it guards
+anything.

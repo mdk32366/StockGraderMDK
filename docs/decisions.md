@@ -576,6 +576,21 @@ For infrastructure there is no commit, so work can outrun its record and nothing
 in the documents reveals it. The register is assembled from reports; a chat is
 not a record.
 
+### D-035 - The DSN check runs before the driver import
+**Status:** RULED 2026-09-25 by the owner, on the Builder's finding F-036.
+**Choice:** `_connect` validates `DATABASE_URL` **before** importing psycopg, so
+the runner's refusal to invent a DSN does not depend on what is installed. The
+driver check is not removed - it moved behind the DSN check, and both orders are
+now tested.
+**Forced by:** F-036. With the import first, the runner reported a missing
+driver when the real and prior fault was a missing DSN, and the test that exists
+to prove *the runner never invents a DSN* passed only on machines that happened
+to have psycopg. **A refusal that depends on an unrelated dependency is not a
+refusal, it is a coincidence.**
+**Also ruled:** `psycopg[binary]==3.3.6` is declared in `requirements-dev.txt`.
+It was imported by `db/migrate.py`, `tools/load_quarter.py`, `tools/e2e_fsds.py`
+and `tests/keel_db_guard.py` and declared nowhere.
+
 ---
 
 ## Backup strategy - B-1 to B-9

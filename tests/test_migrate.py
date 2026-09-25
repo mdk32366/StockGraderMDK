@@ -11,6 +11,7 @@ A hermetic green here is not evidence that a migration applies.
 
 from __future__ import annotations
 
+import builtins
 import importlib.util
 import sys
 from pathlib import Path
@@ -190,3 +191,43 @@ def test_no_dsn_is_an_error_not_a_default(monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
     with pytest.raises(migrate.MigrationError, match="DATABASE_URL is not set"):
         migrate._connect(None)
+
+
+def test_no_dsn_is_an_error_even_with_no_driver_installed(monkeypatch):
+    """The refusal to invent a DSN must not depend on psycopg being installed.
+
+    D-035. This is the guard for F-036: psycopg was undeclared, the driver
+    import ran first, and so the test above passed locally — where psycopg
+    happened to be present — and failed in the gate for two days. Declaring
+    the dependency fixes the gate; only this test fixes the reason it lied.
+    """
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    real_import = builtins.__import__
+
+    def _no_psycopg(name, *args, **kwargs):
+        if name == "psycopg":
+            raise ImportError("psycopg is not installed")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _no_psycopg)
+
+    # Not "psycopg is required" — the DSN is missing and that is the first
+    # thing wrong, driver or no driver.
+    with pytest.raises(migrate.MigrationError, match="DATABASE_URL is not set"):
+        migrate._connect(None)
+
+
+def test_missing_driver_is_still_reported_when_a_dsn_is_present(monkeypatch):
+    """The driver check did not disappear — it moved behind the DSN check."""
+    real_import = builtins.__import__
+
+    def _no_psycopg(name, *args, **kwargs):
+        if name == "psycopg":
+            raise ImportError("psycopg is not installed")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _no_psycopg)
+
+    with pytest.raises(migrate.MigrationError, match="psycopg is required"):
+        migrate._connect("host=localhost port=5432 dbname=x user=y")

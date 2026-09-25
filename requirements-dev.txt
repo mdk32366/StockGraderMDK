@@ -1,3 +1,9 @@
 -r requirements.txt
 pytest==9.1.1
 httpx==0.28.1
+
+# The migration runner, the loaders and the DB guard all import psycopg. It was
+# present in the developer venv and declared nowhere, so the gate failed on
+# every run for two days while the suite passed locally (F-036). [binary]
+# because CI installs on ubuntu and windows without a libpq to build against.
+psycopg[binary]==3.3.6

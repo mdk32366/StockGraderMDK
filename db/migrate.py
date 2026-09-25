@@ -296,17 +296,22 @@ def apply_one(conn, m: Migration, *, verbose: bool = True) -> None:
 
 
 def _connect(dsn: str | None):
-    try:
-        import psycopg
-    except ImportError as exc:  # pragma: no cover - dependency is declared
-        raise MigrationError("psycopg is required to run migrations") from exc
-
+    # The DSN is checked before the driver is imported, so the refusal to invent
+    # a DSN does not depend on what happens to be installed (D-035). The import
+    # raising first is how the gate stayed red for two days while the suite
+    # passed locally on a machine that had psycopg by accident - see F-036.
     dsn = dsn or os.environ.get("DATABASE_URL")
     if not dsn:
         raise MigrationError(
             "DATABASE_URL is not set. The runner takes the DSN from the "
             "environment and never stores it."
         )
+
+    try:
+        import psycopg
+    except ImportError as exc:
+        raise MigrationError("psycopg is required to run migrations") from exc
+
     return psycopg.connect(dsn, autocommit=False)
 
 
