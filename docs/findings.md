@@ -2939,3 +2939,105 @@ as a specification. Noted rather than closed.
 schema; A5 tested a proxy; this assumed a documented grammar existed. Each was
 reasonable, each was wrong in the same direction: **a stated basis that turns out
 to be narrower than the thing it is standing in for.**
+
+---
+
+### F-027 — the live cluster is PostgreSQL 16.15, and everything was proven on 18.3
+
+**Established 2026-09-25, closing OPEN-30**, by `SELECT version();` in the same
+session that proved `stockgrader_schema_admin` — the cheapest possible
+resolution, exactly as OPEN-30 proposed.
+
+```
+server 16.15 (Debian 16.15-1.pgdg13+2)
+```
+
+**Two majors from where every migration was developed.** 0001 through 0004, the
+runner, and every A/B/C verification were proven on local **18.3** and had never
+met the version they would actually run on. Generated columns, `jsonb`
+behaviour, exclusion constraints and `NULLS NOT DISTINCT` have all moved between
+recent majors, so *hermetic-against-the-wrong-major* proves a migration runs
+**somewhere**.
+
+**The outcome was good and the guard was still right.** All four applied and
+verified against 16.15 unchanged. **That is a result, not a non-event** — it was
+discovered by applying to a disposable canary database rather than to
+`stockgrader`, and the ordering is what made a bad outcome survivable rather
+than what made this one fine.
+
+**OPEN-30 had been open since 2026-09-23** and was resolved by one statement
+costing nothing, folded into a step the owner was already performing.
+
+---
+
+### F-028 — the dashboard password flow works for a FRESHLY CREATED user
+
+**Established 2026-09-25, closing the one unestablished step in OPEN-27.**
+
+F-019 recorded a human setting a password in the Fly dashboard, **but for an
+existing account.** Whether it worked for a newly created MPG user had never
+been seen, and OPEN-27 called it out: *"If it does not, step 2 fails — and the
+ordering means it fails while both compromised accounts still exist and the
+recovery path is intact."*
+
+**It works.** `stockgrader_schema_admin` was created by CLI, given a password in
+the dashboard, and then **connected, ran `CREATE TABLE`, `INSERT`, `SELECT` and
+`DROP TABLE`** against `stockgrader_scratch`.
+
+**The proof step was not ceremony.** *Created-and-given-a-password* is an account
+that **looks** usable; *connected-and-ran-DDL* is a usable account. The gap
+between those two claims is where D-029's recovery row sat.
+
+**So the recovery path for this platform is now established end to end and not
+merely argued:** create by CLI, set the password by hand in the dashboard, store
+it in the password manager, prove it with DDL. **No credential entered a
+transcript**, which is the part F-021 got wrong earlier the same day.
+
+---
+
+### F-029 — two correct guards collided, and the collision was only findable on a real cluster
+
+**Established 2026-09-25, on the migrations' first contact with a Fly cluster.**
+
+0003's **A2** fired and rolled the migration back in full:
+
+```
+A2 FAILED: table(s) carry no source_fetch_id NOT NULL and are not declared
+in provenance_exempt: public.keel_disposable_canary
+```
+
+**A2 was right.** That table has no provenance. But it is **a safety mechanism,
+not stray data**: `keel_disposable_canary` marks a database as safe to truncate.
+Its **presence** makes scratch disposable; its **absence** is what refuses the
+test harness against production (testplan R-2). `db/keel_canary.sql` says in
+capitals: *never add it to a migration.*
+
+**So whether it exists is environment-dependent BY DESIGN, and that design is
+itself a control.**
+
+**Which put two correct rules in direct conflict:**
+
+| | |
+|---|---|
+| **A2** fails closed on a table without provenance | so the canary must be exempted, or scratch cannot migrate |
+| **A3** refuses an exemption naming a non-existent table | so a static exemption would **break production**, where no canary exists |
+
+**A static exemption satisfies one and violates the other**, and no ordering of
+the two fixes it — the conflict is in the shape of the problem, not in the
+sequence.
+
+**Resolved with a conditional exemption:** the row is inserted only where the
+table actually is. Scratch gets it; production does not, because production has
+no canary. **The migration does not create the canary** — it exempts one a human
+already placed, so the file's prohibition stands.
+
+**Why this is worth a finding.** Every prior A2 test used a table we invented
+for the test. **This was a real table, placed by a real safety procedure, that
+nobody had thought about while writing the guard** — and it was undiscoverable
+hermetically, because a local throwaway database has no canary. The cost of
+finding it was zero: a disposable database, a migration rolled back whole, an
+unwritten ledger, and 0001/0002 still applied.
+
+> **A guard proven only against the tables its author invented has been tested
+> against their imagination.** The first real database supplied a case the
+> imagination did not.
