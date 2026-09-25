@@ -27,7 +27,7 @@ work.
 Planner documents are committed to [`../planner/INDEX.md`](../planner/INDEX.md)
 on receipt. That direction is safe after receipt; this one is not.
 
-## Documents (5)
+## Documents (6)
 
 Every entry links to its file. This is the only navigable route in.
 
@@ -36,3 +36,4 @@ Every entry links to its file. This is the only navigable route in.
 - [2026-09-25-first-real-load.md](2026-09-25-first-real-load.md) — 3.37 million facts are in a real cluster (7,402 bytes)
 - [2026-09-25-fact-loader-built.md](2026-09-25-fact-loader-built.md) — the fact loader is built and proven (8,406 bytes)
 - [2026-09-25-code-side-manifest-retained.md](2026-09-25-code-side-manifest-retained.md) — the Code-side manifest is retained (4,373 bytes)
+- [2026-09-25-builder-closeout-and-prework.md](2026-09-25-builder-closeout-and-prework.md) — CLOSEOUT AND PREWORK — Builder's half — StockGraderMDK — 2026-09-25 (14,468 bytes)
