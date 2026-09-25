@@ -1080,3 +1080,72 @@ from the companyfacts one we rejected**, and OPEN-36 would have bought nothing.
 **The same reversibility applies to the window:** quarters not loaded today can
 be loaded later from the same unchanged archives, **so 45 is a starting position,
 not a permanent bound.**
+
+### D-036 - Price capture starts now, ahead of vendor selection (TDD v3 §17.5 option b)
+**Status:** RULED 2026-09-25 by the owner.
+**Choice:** adopt **option (b)** - store as-traded daily closes going forward and
+build genuine point-in-time price history from today. **Provisional and
+discardable:** it does not select a vendor of record and does not pre-empt
+OPEN-9. If (a) or (c) is later chosen, captured history remains valid, because a
+close observed on date D stays true regardless of who is later paid to serve it.
+**Forced by:** F-038. **§17.5 is the only open question in the project whose cost
+is elapsed time.** (a) and (c) are equally available tomorrow; (b) is strictly
+worse tomorrow. **No vendor sells the unadjusted series as it stood on a past
+date**, so a day not captured cannot be bought at any price. It is the
+survivorship-bias door ruling 5 closed, arriving on the price side.
+**Scope ruled:** capture broader than the current store - a name entering the
+universe later needs history nobody knew to collect. **Store the as-traded close
+and the adjustment factors separately**, per `gqs-source-map.md` §7.1: a
+back-adjusted close times shares outstanding gives a market cap nobody ever
+observed, and **it passes every test that does not check for it specifically**.
+**What this obliges, and none of it is blocked by OPEN-9:** a price table
+(migration), a daily capture job, and an ingest process group - `fly.toml`
+currently defines none, despite D-022, and sets `min_machines_running = 0`, so
+the app sleeps. **Capture to disk may begin before the schema lands**; the dates
+are the perishable part, not the loading.
+
+### D-037 - Data retention: prices are never pruned; the fact store is a disk decision, not a deletion decision
+**Status:** PROPOSED 2026-09-25 by the Builder, at the owner's request. **Owner to
+rule.**
+**Choice, in three parts:**
+
+**1. Captured prices are never deleted, and no retention window is set on them.**
+**A retention policy on the price series is self-defeating** - it destroys
+precisely the asset D-036 exists to create, and unlike every other table in this
+store **it cannot be rebuilt from source at any price.** Facts can be reloaded
+from FSDS archives, which are immutable once published
+(`F-next/open-44-answered-per-source`). **A pruned price day is gone.**
+**And it is not the problem.** ~6,000 symbols x 252 trading days = **1.51M rows
+per year**. At **565 bytes/row - the measured fact-row figure including indexes,
+used deliberately as a pessimistic upper bound**, since a price row is narrower
+and carries no `jsonb` - that is **~854 MB/year**, and realistically nearer
+~380 MB. **Ten years of daily capture is smaller than one quarter of facts.**
+
+**2. The fact store is where the size is, and it is already measured and already
+over.** 2026q2 alone: **3,369,002 facts, 697.8 MB table, 1,113.6 MB indexes,
+1,814.1 MB total, 565 bytes/row.** Scaled across the ruled 45-quarter window:
+**124.4 GB**, or **~114 GB** after tier 1's 8.5% cut. **The cluster is 15 GB.
+That is 7.6x over**, and **every narrowing lever has been priced and rejected**
+(OPEN-53): window fits only five quarters and is useless for validation;
+dimensions are refused on principle and leave ~49 GB anyway; indexes give 15% at
+best and `fact_one_per_filing` is 42% of them and non-negotiable; a concept
+allowlist needs roughly **three tags** to fit and GQS needs dozens. **Disk is the
+only lever with 8x in it.**
+**So the retention question the owner is reaching for has already been answered
+by measurement, and the answer is that deletion is not the lever.** The store
+cannot be pruned into 15 GB while remaining usable.
+
+**3. What is actually prunable, and it is small.** `fact_collision` (195 rows at
+one quarter) and the refused/quarantined counters are diagnostic. **They stay** -
+they are the evidence that the guards fired, and they are rounding error.
+**Nothing in this store is proposed for deletion.**
+
+**Forced by:** the owner's observation that the database will be large. **It
+will, and it already is, for a reason that predates price capture.**
+**What this needs from the owner, and it is the real decision underneath the
+retention question:** **the cluster is 15 GB and `fly mpg` has no subcommand that
+resizes a volume after creation** (OPEN-56) - the full command list is
+attach/backup/connect/create/databases/destroy/detach/list/proxy/restore/status/users.
+**So sizing is a create-time decision and correcting it later means a new cluster
+plus a data migration.** 15 GB -> 150 GB is **+$38/month**. **Under-provisioning
+is the expensive mistake here, not over-provisioning.**

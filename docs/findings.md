@@ -3491,3 +3491,47 @@ correction.** I wrote the order that carries F-035's rule — *name the decision
 measurement changes* — into §4, and in §2 of the same document asserted a
 measurement I had not made. **The rule was in the file. I applied it outward and
 not to the paragraph above it.**
+
+### F-040 — I wrote that the 45-quarter load can start today. It cannot.
+
+**Established 2026-09-25, by the Builder, against myself**, while pricing the
+owner's retention question — the third defect found in the same order document
+in one sitting.
+
+`ORDER-r2-Planner-2026-09-25-...-rd-treatment-session.md` §2 says the load is
+*"built, unattended, ~34 h, restart free and confirmed (F-034) — calendar time,
+not work time — it can start today regardless of how §17.1 lands."*
+
+**Every clause is true except the last, which is the operative one.** The load
+needs **~114 GB**. The cluster is **15 GB**. It cannot start today and could not
+finish if it did.
+
+**Worse, the correction is not "provision more disk later."** `fly mpg` exposes
+**no subcommand that resizes a volume after creation** (OPEN-56). **Disk is a
+create-time decision**, so the 45-quarter load is gated on **standing up a new,
+larger cluster and migrating**, which is a different task of a different size
+from *press go on a job that already exists*.
+
+**How it happened, and it is the same mechanism as F-039 a third time.** I read
+F-034 — restartable, 34 hours, no optimisation needed — and carried its
+conclusion forward **without carrying its precondition**. F-034 measured a
+*local* cluster with no disk constraint. The register's sizing analysis sits in
+OPEN-53 and findings 2140–2325, **which I did not read until the owner asked an
+unrelated question about retention.**
+
+**The rule, and the register already contains it twice.** *A capability
+confirmed in one environment is not a capability in another* — which is
+`F-next/a-suite-is-evidence-only-about-the-environment-it-declares` (F-036) in a
+second dress, and §1.1 of the builder closeout in a third. **Three findings, one
+mechanism, all mine, all in one day.** The honest reading is not that I keep
+making different mistakes; it is that **I keep reading a conclusion and not its
+conditions**, and no rule in the register fires on that, because each instance
+looks like a different subject.
+
+**What saved it both times was a question from outside the document** — the fresh
+Planner's report for F-039, the owner's retention question here. **Neither was
+looking for my error.** That is the argument for relay and for review, and it is
+the same argument F-036 closed with.
+
+**Corrected in the r2 order.** The R&D session's `L` deferral now ends on *the
+load, which is itself gated on a larger cluster*, rather than on the load alone.

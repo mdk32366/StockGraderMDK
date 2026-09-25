@@ -97,8 +97,20 @@ it first is what makes this a check rather than a number (F-035, F-A's rule).
 | Concept absent or negligible | Not loaded | **Ratify (a) only. Do not pick `L` blind** |
 
 **This sequences the session; it does not block it.** The 45-quarter load is
-built, unattended, ~34 h, restart free and confirmed (F-034). **Calendar time,
-not work time** — it can start today regardless of how §17.1 lands.
+built, unattended, ~34 h, restart free and confirmed (F-034).
+
+**But it cannot start today, and an earlier draft of this paragraph said it
+could — F-040.** The load needs **~114 GB** and **the cluster is 15 GB**, 7.6x
+over, with every narrowing lever already priced and rejected (OPEN-53). **And
+`fly mpg` has no subcommand that resizes a volume after creation** (OPEN-56), so
+this is not *provision more disk* — it is **stand up a larger cluster and
+migrate**, a different task of a different size.
+
+**So `L`'s deferral ends on a larger cluster, then the load — not on the load
+alone.** That is still a date-bearing end condition rather than P-13's shape, but
+it is two steps and the session should say so rather than inherit the shorter
+version. F-034 measured a *local* cluster with no disk constraint; its
+conclusion travelled here without its precondition.
 
 ---
 
