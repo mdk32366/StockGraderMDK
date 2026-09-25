@@ -93,20 +93,44 @@ the whole argument: **new cluster first, load second.**
 | `tools/verify_cluster.py` | *A count with no prior expectation returns a number that looks like an answer and nothing disputes it.* Expectations are arguments, defaulted to r1's measured state; a mismatch is a non-zero exit, not a line read past at the end of a long session. |
 | `tools/load_progress.py` | `pg_locks`, not `pg_stat_activity` — `schema_admin` gets `<insufficient privilege>` from the latter. Deliberately reports **no row count**: `pg_stat_database` does not flush mid-transaction and F-032 is the finding where exactly that misled someone. |
 
-## 6. What is NOT done
+## 6. The repoint — DONE
 
-**The app still points at r1.** D-031 requires the application to connect as a
-**`writer`**, not a `schema_admin`, and that role does not exist on r2. The
-repoint is four steps, not one: create `stockgrader_app` at `writer`, set its
-password in the dashboard, build the DSN against the **pgbouncer** host (the app
-uses the pooler; migrations must not), and `fly secrets import` from stdin —
-**never `fly secrets set`**, which writes the value into shell history.
+**The app points at r2 and is serving.**
 
-**OPEN-63 closes for free at that moment.** It is the deferred rotation of
-`stockgrader_app`, whose credential reached a transcript and shell history on r1.
-A new cluster means a new account regardless, so the rotation costs nothing
-now — and deferring past this point means **deliberately carrying a known
-compromised credential onto a clean cluster.**
+| step | outcome |
+|---|---|
+| `stockgrader_app` at `writer` | created by owner; password set in the dashboard |
+| A-017 re-proven on r2 | **6/6** via `tools/verify_writer.py` |
+| `DATABASE_URL` | imported from stdin, digest `fd2725dd59203146` (was `4d80594c9b6ff503`), **Deployed** |
+| Deploy | rolling, both machines updated |
+| `/healthz` | `{"status":"ok","build":"0e9c771..."}` |
+
+**A-017 holds on r2, proven rather than asserted:** `stockgrader_app` reads
+3,368,813 facts, performs INSERT/UPDATE/DELETE, and is refused `CREATE TABLE`
+with *permission denied for schema public* — the ceiling exactly where D-031
+wants it. **My prediction that it would lack GRANTs on another role's tables was
+wrong**: Fly's `writer` is grant-bearing by construction and no GRANT step was
+needed.
+
+**F-015 did not bite.** The deploy half happened — rolling update, both machines,
+digest changed and reported Deployed. That is the step the register records as
+the one that silently does not happen, and this time it did.
+
+**OPEN-63 is closed by this.** Its subject is *the credential the deployed
+application uses*, and the deployed application now uses a new account on a new
+cluster. **Residual, stated rather than implied:** the compromised
+`stockgrader_app` on **r1** still exists and still works against r1, and will
+until r1 is destroyed. Nothing points at it.
+
+## 6a. What is NOT done
+
+**r1 is still running, deliberately, and its end condition is now met** — D-039 required it retained until the new
+cluster passed the same verification, and r2 has (9/9). **It is not destroyed:**
+standing constraint, and B-9 says the destroy happens in a sitting somebody sees
+through. Recommend leaving it several days against r2 proving itself.
+
+**`d1zj5omk443ryqkv` must survive to 2026-10-03** regardless — OPEN-7's
+backup-expiry test runs against it that day.
 
 **`fly-user` on r2 is compromised from creation** (F-014, third occurrence — see
 F-044). The owner has ruled it acceptable and will cycle at the end. It is the

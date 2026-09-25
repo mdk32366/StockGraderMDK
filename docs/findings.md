@@ -3718,3 +3718,42 @@ prints the id and name, and writes the connection string straight to a password
 manager or a file with no terminal echo **would remove the human step that has
 now failed three times.** It is a small script and it is the difference between a
 rule and a guard.
+
+### F-045 — the register's prescribed secret-setting method does not work on the platform it is prescribed for
+
+**Established 2026-09-25, by the Builder**, during the r2 repoint.
+
+The phase-0 handover bans `fly secrets set KEY=value` because **it puts the
+value in shell history**, and prescribes **`fly secrets import` from stdin**
+instead. That prescription is correct about the risk and **fails on Windows
+PowerShell**, which is the only shell this project uses.
+
+```
+Error: "﻿DATABASE_URL" is not a valid secret name
+```
+
+**PowerShell 5.1 prepends a UTF-8 BOM when piping a string to a native
+executable.** `flyctl` reads the BOM as part of the key name. Setting
+`$OutputEncoding` to a BOM-less `UTF8Encoding` **did not fix it** - the BOM
+survives that path. And PowerShell has **no `<` input redirection**, so the
+obvious workaround is unavailable too.
+
+**What worked:** write the line with `[IO.File]::WriteAllText` and a
+`UTF8Encoding($false)`, then let `cmd` perform the redirect PowerShell cannot,
+then delete the file. **The secret touches disk for about two seconds.** That is
+worse than pure stdin and better than the alternatives, and it should be written
+down as the method rather than rediscovered.
+
+**The alternative considered and rejected, with its reasoning, because the
+rejection is the interesting part.** `fly secrets set` with the password
+**interpolated from an environment variable** defeats the ban's stated reason -
+PSReadLine records the line as typed, so history gets `$($env:PGPASSWORD)` and
+never the value. **But the ban's stated reason is not its only reason.** A value
+passed as an argument becomes a process command line, readable by anything that
+can enumerate processes while it runs; stdin is not. **The rule was written down
+with one of its two justifications**, and following the letter of it would have
+been fine while following the reasoning would have been better.
+
+**Same class as F-043:** a procedure recorded from documents, correct in intent,
+untested against the shell that has to run it. **Both were found by executing
+the procedure, neither by reading it.**
