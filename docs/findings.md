@@ -2819,3 +2819,51 @@ an exemption naming `public.bulk_facts` does **not** silence
 database, same moment, the public-only scope blind to the table and the
 schema-wide scope firing. **B7 asserts the old scope returns 0** — if the probe
 ever stops being blind, the comparison is not measuring what it claims.
+
+---
+
+### F-025 — the accounting constraint found a category nobody had named
+
+**Established 2026-09-25, on the fact loader's first run against a real database.**
+
+`coverage_quarter` carries a CHECK that every fact seen was loaded, refused or
+quarantined. On the first end-to-end load it **refused the row**: 11 facts seen,
+10 accounted for.
+
+**The missing one was an exact duplicate** — two `num.txt` rows sharing 0001's
+key *and* agreeing on value. Collapsing them loses nothing, which is exactly why
+the category was invisible: it is neither a load, nor a refusal, nor a
+quarantine, and every counter in the design was one of those three.
+
+**So a whole class of row had no counter, and nothing would have said so.** The
+load would have completed, the store would have held the right facts, and
+`facts_seen` would have exceeded the sum of its parts by however many exact
+duplicates the quarter contained — a discrepancy with no name attached, in a
+column set that looks complete.
+
+**`collapsed_duplicates` now exists, and it is derived rather than counted:**
+
+```python
+collapsed = len(rows) - len(loadable) - len(quarantined)
+```
+
+Derived from what `partition_collisions` actually did, so it cannot drift from
+the behaviour it describes. A counter incremented in the loop would have been a
+second implementation of the same decision, free to disagree with the first.
+
+**Why this is the finding rather than a bug note.** The constraint was written
+to catch a *silent drop* — a loader losing rows and reporting a clean load. It
+did not catch that. It caught **an incomplete taxonomy of outcomes**, which is a
+different and more interesting failure: the counters were not wrong, they were
+not exhaustive, and the difference is invisible until something forces the sum.
+
+> **An arithmetic constraint over a set of counters tests something no
+> individual counter can: that the categories cover the space.** Each counter
+> can be perfectly correct while the set omits a case, and only the requirement
+> that they add up will say so.
+
+Related to `a-guard-never-seen-red-is-not-a-guard`: this guard went red on its
+first real use, in a case its author had not anticipated, which is the strongest
+evidence available that it was worth writing. It would have been entirely
+reasonable to ship the counters without the CHECK — they were individually
+correct — and the gap would have shipped with them.
