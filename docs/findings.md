@@ -2588,3 +2588,64 @@ avoid.
 **Recorded as: the constraint is unmeasured, and the plan tier is still an open
 decision.** The only thing removed from the risk list is the external sort.
 **Sample:** 1 constrained cluster, 5.6M facts, 31x unconstrained page cache.
+
+### F-next/open-57-measured-under-a-real-cgroup - Basic survives the build; the steady state is still unestablished
+**Date:** 2026-09-25 - **By:** Builder, re-running OPEN-57 against a bounded page cache
+**Supersedes the previous OPEN-57 measurement**, which was optimistic by ~31x
+because only Postgres's buffers were constrained and the host's page cache was
+not. **This one bounds the page cache**, which is what the question was about.
+
+**The instrument, and why it is a valid test this time.** A Docker container with
+`--memory=1g --memory-swap=1g`. Cgroup v2 **charges page cache to the limit**, so
+the cache is bounded rather than merely the database's buffers. Evidence the
+limit bound, taken from the cgroup itself:
+
+| | |
+|---|---|
+| `memory.max` | 1,024 MB |
+| `memory.current` at rest | **990-1,022 MB - pinned at the cap** |
+| of which **file cache** | **969 MB** |
+| `memory.events` max-breaches | **95,784** |
+| `oom_kill` | **0** |
+
+**95,784 reclaim events and zero OOM kills.** The kernel was evicting cache
+continuously and Postgres never died.
+
+**Result 1 - the index build is not a problem, and this is now demonstrated
+rather than simulated.** 5,636,958 facts, `fact_one_per_filing` built in
+**15.4 s** producing a 1,075 MB index - **faster than the unconstrained host run
+(21.3 s)**, which is Linux/container I/O rather than anything about memory.
+Extrapolated to 42 GB: **~0.2 h.** **The external merge sort comes off the risk
+list properly.**
+
+**Result 2 - steady state runs, and the cache is already thrashing.** A
+point-in-time query over 5.6M facts: **627 / 659 / 882 ms** across three runs,
+with buffer counts **hit=16,113 read=123,325** - **88% of blocks came from disk
+rather than cache**, at a data-to-cache ratio of only about **2:1**.
+
+**At 114 GB the ratio is ~114:1**, so the read fraction approaches 100% and query
+time becomes governed by I/O throughput rather than by caching. **Sub-second at
+2:1 says very little about 114:1**, and extrapolating it would be
+`the-first-case-to-present-is-not-a-sample` in a new variable.
+
+**THE REMAINING CONFOUND, and it sits exactly in the path that matters.** The
+container's cgroup bounds what the **container** caches. Underneath it, **Docker's
+VM has 15.4 GB and its own unbounded page cache holding the same files.** So a
+block the container counts as `read` may still have been served from VM RAM
+rather than from a disk. **The confound is in the I/O path, which is precisely
+the thing the 114:1 case would be dominated by.**
+
+**So the honest position has moved but not arrived:**
+- previously: **optimistic by ~31x, proved nothing**
+- now: **page cache genuinely bounded; the build is settled; the steady state is
+  better evidenced and still not conclusive**, because one unbounded cache layer
+  remains beneath.
+
+**What would close it:** a bare-metal or VM host with 1 GB total, or a real Basic
+cluster loaded to size. **Both cost something the previous options did not** -
+which is a reason to decide whether the remaining uncertainty is worth buying
+out, not a reason to treat 882 ms as an answer.
+**The asymmetry still holds and still points the same way:** this could have
+proved Basic inadequate. It did not. **It is now meaningful evidence that the
+build is safe and weak evidence about anything else.**
+**Sample:** 1 cgroup-bounded container, 5.6M facts, 95,784 reclaim events.
