@@ -41,7 +41,15 @@ SEC limits, being accepted from Fly egress IPs.
 Falsified when: EDGAR returns 403 or 429 to ingestion.
 Consequence: ingestion stops. Unless a guard turns it red, the data quietly
 ages. Ingestion must fail loudly and responses must show data age.
-Status: ASSUMED
+Status: **TESTED FROM FLY 2026-09-26, HOLDS SO FAR.** Until now this was
+assumed because nothing had ever fetched from Fly egress - all 45 archives were
+pulled from the developer's laptop. The ingest app (D-040) now fetches through
+`EdgarClient` from `sjc`: **95 MB in ~1 second, no 403, no 429.** The
+fail-loudly requirement is met structurally - `EdgarClient` never retries a 403,
+and `load_window.py` counts a fetch failure as a quarter failure rather than
+skipping it silently. **Still assumed for sustained volume:** one machine
+fetching ~40 archives is not the same as a recurring nightly job, and the
+falsifying observation would be a 429 appearing partway through a run.
 
 **A-005 — A changed runtime secret reaches the app without an image rebuild**
 Relies on: Fly applying `fly secrets set` (or a staged secret plus
@@ -150,8 +158,24 @@ Falsified when: the app cannot run its queries, or the migration runner turns
 out to need the application's credential.
 Consequence: D-031 cannot proceed and the app stays over-privileged at
 `schema_admin`, leaving Step 16's separation nominal (F-017).
-Status: **TESTED 2026-09-22, HOLDS.** Run as `builder_a017_probe` (`writer`)
-against `stockgrader_scratch` on cluster `d1zj5omk443ryqkv`:
+Status: **RE-PROVEN ON r2, 2026-09-26, HOLDS - 6/6.** Re-run as the real
+`stockgrader_app` (`writer`) against `stockgrader_scratch` on
+`w8675081kdjr3pk4` via `tools/verify_writer.py`, which makes A-017 a repeatable
+test rather than a one-off session: SELECT on `fact` (3,368,813 rows) and
+`filing` (7,714) work; INSERT/UPDATE/DELETE work; `CREATE TABLE` is **refused**
+with `permission denied for schema public`. **Writes go to a real table inside a
+rolled-back transaction**, not a temp table - a `writer` here has no TEMP
+privilege, and the first version of the harness failed three checks on a missing
+probe table rather than on a privilege, which is a harness reporting a cascade
+instead of a cause.
+
+**One prediction falsified in the good direction:** the Builder expected a fresh
+`writer` to lack GRANTs on tables created by another role, and planned a GRANT
+step. **Fly's `writer` is grant-bearing by construction** and no GRANT was
+needed.
+
+ORIGINAL TEST, **2026-09-22**, as `builder_a017_probe` (`writer`) against
+`stockgrader_scratch` on cluster `d1zj5omk443ryqkv`:
 
 | Test | Result |
 |---|---|
@@ -166,3 +190,21 @@ needing the app's credential - remains **untested** and stays so until Phase 1.
 The scratch canary table was verified back at **zero rows** afterwards, so the
 test cleaned up after itself.
 
+
+**A-018 - 8192 MB holds the ingest machine for the whole 45-quarter window**
+Relies on: the FSDS parser's peak footprint staying under 8 GB for every quarter
+in the window. It buffers a whole quarter before the COPY - a `FactRow` per row,
+~3.6M rows - so the requirement scales with the archive, not with a constant.
+Falsified when: the ingest machine exits **-9** (SIGKILL, the OOM killer) on a
+quarter, as it did three times at 2048 MB (F-050).
+Consequence: the window load stops at that quarter. **It is not silent** - the
+driver counts a non-zero exit as a failure, stops after three consecutive ones,
+and names the first - so the failure mode is loud and the fix is a larger
+machine and a re-run, which skips what is already committed.
+**Why this is ASSUMED and not TESTED:** the quarters loaded so far are 2015-2016
+at 67-95 MB. **The heaviest are all still ahead** - 2024q1 is 124 MB, 30% larger
+than anything that has run at 8 GB. Sizing was chosen from a reading of
+`FactRow`, not from a measured peak RSS, so the headroom is estimated rather
+than known.
+Status: ASSUMED. **The real answer is to stream the parse (OPEN-67)**, which
+removes the assumption rather than re-testing it.
