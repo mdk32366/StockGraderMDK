@@ -14,24 +14,80 @@
 
 ## What exists today
 
+**Updated 2026-09-26.** This table said *"Database: none yet"* and *"Container:
+never built"* until then - written on day one and never revised, which is its
+own small lesson about documents that describe a plan rather than a system.
+
 | Component | File | Status |
 |---|---|---|
-| FastAPI app | `app/main.py` | `/healthz`, `/v1/meta` only |
-| API-key auth (fails closed) | `app/auth.py` | built, proven (testplan G-1..G-2) |
-| DB-safety guard (positive identity) | `tests/keel_db_guard.py` | built, logic proven; real-DB probe **never run** (testplan OPEN-1) |
+| FastAPI app | `app/main.py` | `/healthz`, `/v1/meta` only. **No DB-backed endpoint exists.** |
+| API-key auth (fails closed) | `app/auth.py` | built, proven (G-1..G-2) |
+| DB-safety guard (positive identity) | `tests/keel_db_guard.py` | built and **proven against a real cluster** (OPEN-1 closed) |
 | API contract snapshot | `tests/contract/` | built, proven (G-8) |
-| Gate: test then deploy then verify live SHA | `.github/workflows/gate.yml` | written; **not yet proven** (Step 14) |
-| Container | `Dockerfile` | written; **never built** (testplan OPEN-2) |
-| Database | — | none yet (D-009 open) |
+| Gate: test, then deploy, then verify live SHA | `.github/workflows/gate.yml` | **proven** - and was red for two days unnoticed (F-036) |
+| Web container | `Dockerfile` | built and deployed |
+| **Ingest container** | **`Dockerfile.ingest`** | **built and running (D-040)** |
+| Migration runner | `db/migrate.py` | D-021. Proven on 16.15 and 18.3 |
+| Migrations 0001-0004 | `db/migrations/` | applied and verified on r1 and r2 |
+| Fact store | cluster `stockgrader-db-r2` | **150 GB, PostgreSQL 16.15, loading the 45-quarter window** |
+| EDGAR client | `ingest/edgar.py` | D-023. Rate-limited, declared UA, no retry that hides a 403 |
+| FSDS loader | `ingest/fsds.py`, `tools/load_quarter.py` | proven; **buffers a quarter in memory** (F-050) |
+| Window fetcher + driver | `ingest/window.py`, `tools/fetch_fsds.py`, `tools/load_window.py` | built 2026-09-26 (F-046) |
+| Daily price capture | `ingest/prices.py`, `tools/capture_prices.py` | **running daily** on a schedule (D-036) |
+| Operational guards | `tools/apply_canary.py`, `verify_cluster.py`, `verify_writer.py`, `load_progress.py` | built 2026-09-25/26 |
+
+## Ingestion — the shape, as built (D-040)
+
+```
+  SEC  --EdgarClient-->  stockgrader-ingest (Fly app, sjc, 8 GB)
+                             |  one archive at a time, discarded after
+                             |  private network, NO proxy
+                             v
+                         stockgrader-db-r2 : stockgrader_scratch
+                             ^
+                             |  pgbouncer, writer role, read-only
+                         stockgradermdk (web)
+```
+
+**Two images, and the separation is the point.** `Dockerfile` has `app/` and no
+loader. `Dockerfile.ingest` has `ingest/` and three tools and no `app/`. The web
+process **cannot import an ingestion path** because the path is not in its image.
+
+**Two different endpoints, deliberately.** Migrations and bulk loads use the
+**direct** endpoint - the runner takes `pg_advisory_xact_lock` and owns each
+migration's transaction, and those semantics are not reliable through a
+transaction-mode pooler. The **app** uses **pgbouncer**. Getting this backwards
+is silent.
+
+**Run it:**
+
+```
+docker build -f Dockerfile.ingest -t sgmdk-ingest .
+docker tag  sgmdk-ingest registry.fly.io/stockgrader-ingest:latest
+docker push registry.fly.io/stockgrader-ingest:latest
+fly machine run registry.fly.io/stockgrader-ingest:latest -a stockgrader-ingest \
+    --region sjc --vm-size shared-cpu-4x --vm-memory 8192 --restart no
+fly logs -a stockgrader-ingest
+```
+
+**`DATABASE_URL` goes in as a staged secret over stdin** - never `--env`, which
+is refused as credential leakage and is the same exposure `fly secrets set`
+carries.
+
+**It is restartable by re-running.** The driver keeps no state; it reads
+`coverage_quarter` and resumes at the first gap. A kill costs the quarter in
+flight and nothing else - proven three times in one night (F-049).
 
 ## Planned shape
 
-The shape is not built yet and is gated on open D-entries.
+**Partly built as of 2026-09-26.** The first two bullets exist; the rest is
+still gated on open D-entries.
 
-- **Web process:** FastAPI, read-only against Postgres.
-- **Ingestion:** a separate Fly process group or scheduled Machine, never inside
-  the web process. It refreshes prices nightly and ingests fund holdings and
-  fundamentals as filings appear.
+- **Web process:** FastAPI, read-only against Postgres. **Built** - but no
+  DB-backed endpoint exists yet, so `DATABASE_URL` is set and nothing reads it.
+- **Ingestion:** a separate Fly app and image, never inside the web process.
+  **Built (D-040).** Prices capture nightly on a schedule (D-036); fundamentals
+  load from FSDS archives. Fund holdings are not built.
 - **Overlap:** the weight-based measure is the sum over shared holdings of
   min(wA, wB), alongside count-based overlap. Every result carries its
   resolution coverage (the share of each fund's weight that resolved to a common
@@ -45,7 +101,8 @@ The shape is not built yet and is gated on open D-entries.
 |---|---|---|
 | `STOCKGRADER_API_KEY` | Fly secrets | `app/auth.py` |
 | `FLY_API_TOKEN` | GitHub Actions secrets | `gate.yml` deploy job (deploy-scoped token) |
-| `DATABASE_URL` | Fly secrets (future) | app runtime; never in an image, never in a committed file |
+| `DATABASE_URL` | Fly secrets, app `stockgradermdk` | web runtime. **pgbouncer** endpoint, `stockgrader_app` at `writer`. Never in an image or a committed file |
+| `DATABASE_URL` | Fly secrets, app `stockgrader-ingest` | ingest runtime. **direct** endpoint, schema-admin rights. Same name, different app, deliberately different value - the pooler is wrong for migrations and bulk loads |
 | `GIT_SHA` | build arg (not a secret) | `/healthz` build verification |
 
 ## Recovery access (KEEL V11). Answer all four before any destructive op.

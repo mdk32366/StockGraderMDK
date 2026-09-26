@@ -3757,3 +3757,174 @@ been fine while following the reasoning would have been better.
 **Same class as F-043:** a procedure recorded from documents, correct in intent,
 untested against the shell that has to run it. **Both were found by executing
 the procedure, neither by reading it.**
+
+### F-046 — "the 45-quarter load is built" was true about loading and silent about fetching
+
+**Established 2026-09-25, by the Builder**, on being asked to start the load.
+
+The closeout and the register both carried the load as ready: *"~34 h,
+unattended, restart is free and confirmed (F-034). No optimisation needed."*
+
+**`tools/load_quarter.py` takes `--archive`, a LOCAL path.** It does not fetch;
+it builds the SEC URL only to record provenance in `fetch_log`. **43 of the 45
+archives did not exist on this machine** — 4.24 GB — and nothing in `tools/`
+looped over quarters. "Start the load" was not a command; it was a fetcher and a
+driver that had never been written.
+
+**F-034's restartability was measured against archives that were already
+local.** Its conclusion travelled into the register without its precondition,
+which is F-040's shape a fourth time and the reason this one was caught by
+reading rather than by running.
+
+**Built:** `ingest/window.py` (the ruled window in one place, so the fetcher and
+loader cannot disagree), `tools/fetch_fsds.py`, `tools/load_window.py`.
+
+**The fetch confirmed a register figure exactly.** All 45 archives total
+**4,242,443,105 bytes** — byte-for-byte the number derived independently during
+the sizing analysis by summing SEC's index. The 124.4 GB storage estimate rests
+on that ratio, and the ratio holds.
+
+### F-047 — the proxy has a connection ceiling, and a load that exceeds it can never finish
+
+**Established 2026-09-26, by the Builder**, from three identical failures.
+
+Loading through `fly mpg proxy` from a laptop, 2016q1 failed **three times** at
+**95, 92 and 93 minutes**, each with:
+
+```
+psycopg.OperationalError: consuming input failed: server closed the connection unexpectedly
+```
+
+2016q3 **succeeded at 85 minutes**. The consistency of the failures and the
+proximity of the success to the same boundary say this is a ceiling on how long
+a single connection survives, not bad luck.
+
+**Why that is worse than slow, and is the finding.** Per-quarter cost rises with
+table size (F-048). So quarters keep crossing the ceiling, and **once a quarter
+is past it, no number of retries helps** — the approach converges on never
+finishing while appearing to make progress. Three of the last six quarters
+attempted produced nothing; **3.5 hours of work was destroyed in one night.**
+
+**The register had the seed of this already** — *"the first proxy load died
+mid-`executemany`, the connection closed part-way"* — recorded as a round-trip
+problem and fixed with COPY. **It was not only a round-trip problem.** The
+transport dies under a long single statement too, and the fix for the first
+shape does not touch the second.
+
+### F-048 — per-quarter cost rises with the table, and the test I designed falsified my own hypothesis
+
+**Established 2026-09-26, by the Builder.**
+
+The 2015 quarters loaded in **42 minutes** each. 2016q1 took longer, and I
+proposed archive size as the explanation: 2016q1 is 91 MB against 75–79 MB, so
+14% more time for 21% more archive looked proportionate.
+
+**I stated a falsifiable prediction before the next result**, because a count
+with no prior expectation returns a number nothing disputes:
+
+> *If load time tracks archive size, 2016q2 lands around 36–38 minutes. If the
+> cost is rising with table growth, 2016q2 takes 48 minutes or more despite
+> being a quarter smaller.*
+
+**2016q3 is 67.8 MB — the smallest archive yet — and took 85 minutes.** Double
+the 2015 quarters, on a smaller input. Archive size cannot explain it and the
+hypothesis is dead.
+
+**It is OPEN-57 on the write path**, exactly where the register predicted it
+would surface: seven index structures maintained per row, against a `fact` table
+past ten million rows, on **1 GB of shared RAM**. The register's own note said
+both previous attempts to settle Basic's adequacy **measured reads**.
+
+**The rule worth keeping is about the method, not the result.** The prediction
+was wrong and the test was right: naming the number that would refute me, before
+seeing it, converted an argument into a one-line answer. **The falsifying
+outcome — a smaller archive taking longer — was the only one that could not be
+explained away, which is what made it worth waiting for.**
+
+### F-049 — a long load cannot live inside the agent session
+
+**Established 2026-09-26, by the Builder**, after three kills.
+
+Background tasks started by Claude Code were killed **three times** by its
+low-memory reaper, each time while the session was idle, with **~5.6 GB free of
+31.5 GB** — so it fires well before the machine is starved.
+
+**Cost per kill was one quarter**, because each quarter is one transaction and
+the driver keeps no state: it reads `coverage_quarter` and resumes at the first
+gap. **That design was written before it was needed and paid for itself three
+times in one night.** A progress file would have had to be reconciled by hand
+after every kill.
+
+**What it means operationally:** anything running longer than ~30–60 minutes
+must not be a background task of the session. Either the owner runs it in their
+own shell, or it runs somewhere else entirely — which is what F-051 did.
+
+**And a watchdog is not free.** One was running alongside the load to catch a
+silent hang. It was a second process feeding the memory pressure that caused the
+reaping, **guarding the rare failure while worsening the common one.** It was
+dropped on the third restart.
+
+### F-050 — the ingest image was sized by guess, and the answer was one grep away
+
+**Established 2026-09-26, by the Builder, against myself.**
+
+The first Fly-side machine was provisioned at **2048 MB** and killed three
+quarters in a row with **exit -9 — SIGKILL, the OOM killer** — within twenty
+seconds each.
+
+**Nothing measured that number. I chose it.** `ingest/fsds.py` defines
+`FactRow` as a **12-field dataclass carrying a dict**, instantiated once per
+row, and a quarter is ~3.6 million rows. At a conservative 400–600 bytes per
+instance that is 2–3 GB for the rows alone, before the decompressed `num.txt`
+and the intermediate lists. **Realistically 4–6 GB.**
+
+**That was answerable by reading one class definition before provisioning
+anything, and I provisioned first.** Re-run at 8192 MB it passed the point it
+had died at three times.
+
+**The register's pattern, stated plainly:** every self-inflicted finding today —
+F-039, F-040, F-043, and this — is the same act. A figure or a conclusion used
+without reading what it depends on. The owner's instruction after F-043 was
+*read the register first and cite it before acting*; **this one was not in the
+register, it was in the source, and the rule generalises: read the artifact you
+are about to depend on.**
+
+**The proper fix is not a bigger machine.** The parser buffers a whole quarter
+in memory before the COPY. Streaming it would make the loader size-independent
+and is the real answer if quarters keep growing. A one-time backfill does not
+justify it; a recurring load would.
+
+### F-051 — moving the loader next to the database is the whole difference
+
+**Established 2026-09-26, by the Builder.** Executes **D-022**, specified on day
+one and never built until now.
+
+| | laptop, via `fly mpg proxy` | Fly-side, private network |
+|---|---|---|
+| Archive fetch | pre-downloaded, 4.24 GB staged | **~1 second each**, discarded after |
+| Disk required | 4.24 GB | **~150 MB** scratch |
+| Write throughput | ~0.02 GiB/min | **~0.09 GiB/min** |
+| 2016q1 | failed 3×, never completed | passed the failure point in 45 s |
+| Killed by | the session's reaper, 3× | nothing in the path |
+| 15 hours produced | **5 quarters** | — |
+
+**Four to nine times the write throughput, and no connection ceiling**, because
+there is no tunnel: from inside Fly the cluster is on the private network at its
+direct endpoint.
+
+**Built as a separate image and a separate app, not a process group.** Fly
+process groups share one image, so adding the loader to the web app would put
+psycopg and every ingest module inside the process that serves HTTP — the exact
+coupling D-022 and D-031 exist to prevent. **`Dockerfile.ingest` contains
+`ingest/` and three tools and no `app/`**, so the web image cannot ingest and
+the ingest image cannot serve. That makes D-022 structural rather than a
+convention somebody follows.
+
+**`--fetch --discard-after` removed the volume.** One archive at a time, fetched,
+loaded, deleted — 150 MB of scratch instead of 4.24 GB, and no Fly volume to
+provision, pay for or forget.
+
+**One attempt was correctly refused.** Passing `DATABASE_URL` with its password
+as `--env` on the machine-run command line was blocked for credential leakage —
+the same exposure `fly secrets set` is banned for. It went in as a staged secret
+over stdin instead, which is what F-045 established as the working method.

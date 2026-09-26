@@ -1,0 +1,13 @@
+# The ingest image's runtime dependencies. Deliberately NOT `-r requirements.txt`.
+#
+# The web image pins fastapi/starlette/pydantic/uvicorn because the OpenAPI
+# contract snapshot is rendered by those exact versions (A-006). The loader
+# renders no contract and serves no HTTP, so inheriting those pins would couple
+# an ingest rebuild to the API contract for no reason.
+#
+# Everything else the ingest path needs is the standard library: urllib for
+# EdgarClient, csv/io/json/zipfile/hashlib for the archives. psycopg is the only
+# third-party import in ingest/ or tools/, which is why this file is one line.
+#
+# [binary] because the image is python:3.12-slim with no libpq to build against.
+psycopg[binary]==3.3.6

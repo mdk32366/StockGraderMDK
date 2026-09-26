@@ -1205,3 +1205,33 @@ reporting the same quarter, and fact counts matching - and then destroyed in a
 sitting somebody sees through (B-9). **Two Basic clusters running is ~$0.28/GB
 plus two plan fees**, and F-next/orphaned-restore-clusters-already-exist records
 that the plan fee, not storage, is what makes a forgotten cluster expensive.
+
+### D-040 - Ingest runs as its own Fly app and its own image, not a process group
+**Status:** RULED 2026-09-26. **Executes D-022**, which specified a separate
+process group on day one and was never built.
+**Choice:** a second Fly app, `stockgrader-ingest`, built from
+`Dockerfile.ingest` and run as a one-off Machine. The image contains `ingest/`
+and three tools and **no `app/`**; the web image contains `app/` and no loader.
+**Rejected: a process group in the web app.** Fly process groups **share one
+image**, so the loader could only be added by putting psycopg and every ingest
+module inside the process that serves HTTP. **D-031 says the web process is
+read-only against Postgres and must not be able to import an ingestion path** -
+which is a property of what is in the image, not of what the code chooses to
+call. Two images make it structural.
+**Forced by:** F-047 and F-051. Loading through `fly mpg proxy` from a laptop
+hit a **~93-minute connection ceiling** that rising per-quarter cost (F-048)
+keeps pushing quarters past, so the approach converges on never finishing.
+Inside Fly the cluster is on the private network: no tunnel, and **4-9x the
+write throughput** measured.
+**Runtime shape:** `--fetch --discard-after` pulls one archive, loads it,
+deletes it - **~150 MB of scratch instead of 4.24 GB, and no volume** to
+provision, pay for or forget. `DATABASE_URL` is a staged Fly secret set over
+stdin (F-045), never `--env` on a command line, which was correctly refused as
+credential leakage.
+**Sizing is measured, not chosen:** 2048 MB was killed by the OOM killer three
+times (F-050). `FactRow` is a 12-field dataclass instantiated ~3.6M times per
+quarter. **8192 MB.**
+**What this does not settle:** the parser buffers a whole quarter before the
+COPY, so the machine must grow with the data. Streaming it would make the loader
+size-independent, and is the right answer if loading ever becomes recurring
+rather than a one-time backfill.

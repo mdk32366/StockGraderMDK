@@ -1,0 +1,54 @@
+# The ingest image — D-022's "separate process group, never the web process",
+# finally built.
+#
+# WHY A SECOND DOCKERFILE AND NOT A STAGE IN THE FIRST
+# ------------------------------------------------------
+# The web image contains `app/` and nothing else, and its .dockerignore excludes
+# `db`, `tests` and `.venv` deliberately. Adding the loader to it would put
+# psycopg and every ingest module inside the process that serves HTTP — which is
+# exactly the coupling D-022 and D-031 exist to prevent. The web process is
+# read-only against Postgres and **must not be able to import an ingestion
+# path**; that is a property of what is in the image, not of what the code
+# chooses to call.
+#
+# WHY IT EXISTS AT ALL
+# --------------------
+# Loading through `fly mpg proxy` from a laptop cost 3.5 hours to dropped
+# connections in one night, and quarters began failing at a consistent ~93
+# minutes — a ceiling that rises to meet growing quarters, so the approach
+# converges on never finishing. Inside Fly the cluster is on the private
+# network: no proxy, no tunnel, no laptop.
+#
+# WHAT IT DOES NOT NEED
+# ---------------------
+# No volume. `load_window.py --fetch --discard-after` pulls one archive, loads
+# it, deletes it, and moves on, so the whole 45-quarter window runs in about
+# 150 MB of scratch rather than the 4.24 GB the archives total.
+
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /srv
+
+COPY requirements-ingest.txt .
+RUN pip install --no-cache-dir -r requirements-ingest.txt
+
+# Only what the loader needs. `app/` is deliberately absent: the ingest image
+# cannot serve HTTP and the web image cannot ingest, which makes D-022
+# structural rather than a convention somebody follows.
+COPY ingest ./ingest
+COPY tools/load_window.py tools/load_quarter.py tools/fetch_fsds.py ./tools/
+
+# tools/ is imported as a package by load_window's fetch path.
+RUN touch tools/__init__.py
+
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
+
+RUN useradd --create-home --uid 10001 ingestuser \
+    && mkdir -p /srv/cache && chown ingestuser /srv/cache
+USER ingestuser
+
+# DATABASE_URL is injected at runtime, never baked. Same rule as the web image.
+CMD ["python", "tools/load_window.py", "--cache", "/srv/cache", \
+     "--fetch", "--discard-after", "--go"]
