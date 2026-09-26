@@ -33,10 +33,10 @@ Every entry links to its file. This is the only navigable route in.
 
 - [MANIFEST-Code-2026-09-25-StockGraderMDK-D25.md](MANIFEST-Code-2026-09-25-StockGraderMDK-D25.md) — Code → Planner — StockGraderMDK — 2026-09-25 — D25 (5,069 bytes)
 - [2026-09-25-segments-grammar-undocumented.md](2026-09-25-segments-grammar-undocumented.md) — the `segments` grammar is undocumented, and the data breaks it (5,727 bytes)
-- [2026-09-25-r2-cluster-built.md](2026-09-25-r2-cluster-built.md) — Code → Planner — the 150 GB cluster is built and verified (8,435 bytes)
+- [2026-09-25-r2-cluster-built.md](2026-09-25-r2-cluster-built.md) — Code → Planner — the 150 GB cluster is built and verified (8,284 bytes)
 - [2026-09-25-price-capture-built.md](2026-09-25-price-capture-built.md) — Code → Planner — price capture built, not yet run (7,811 bytes)
 - [2026-09-25-first-real-load.md](2026-09-25-first-real-load.md) — 3.37 million facts are in a real cluster (7,402 bytes)
 - [2026-09-25-fact-loader-built.md](2026-09-25-fact-loader-built.md) — the fact loader is built and proven (8,406 bytes)
 - [2026-09-25-code-side-manifest-retained.md](2026-09-25-code-side-manifest-retained.md) — the Code-side manifest is retained (4,373 bytes)
-- [2026-09-25-cluster-150gb-runbook.md](2026-09-25-cluster-150gb-runbook.md) — RUNBOOK — provisioning the 150 GB cluster — D-039 (11,041 bytes)
+- [2026-09-25-cluster-150gb-runbook.md](2026-09-25-cluster-150gb-runbook.md) — RUNBOOK — provisioning the 150 GB cluster — D-039 (10,809 bytes)
 - [2026-09-25-builder-closeout-and-prework.md](2026-09-25-builder-closeout-and-prework.md) — CLOSEOUT AND PREWORK — Builder's half — StockGraderMDK — 2026-09-25 (14,468 bytes)

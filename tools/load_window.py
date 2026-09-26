@@ -45,9 +45,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from ingest.window import quarters  # noqa: E402
+from ingest.window import quarters, url  # noqa: E402
 
-PYTHON = REPO / ".venv" / "Scripts" / "python.exe"
+# The venv interpreter on Windows; plain `python` inside the ingest container,
+# where there is no venv and the image's interpreter is the right one.
+_VENV = REPO / ".venv" / "Scripts" / "python.exe"
+PYTHON = _VENV if _VENV.exists() else Path(sys.executable)
 LOADER = REPO / "tools" / "load_quarter.py"
 
 
@@ -68,6 +71,15 @@ def main(argv: list[str] | None = None) -> int:
                    help="drop fact's QUERY indexes for the load and rebuild "
                         "after. Built and tested; unused until now.")
     p.add_argument("--max-consecutive-failures", type=int, default=3)
+    p.add_argument("--fetch", action="store_true",
+                   help="fetch a missing archive just before loading it, "
+                        "through EdgarClient. Lets a machine with 150 MB of "
+                        "scratch load the whole window instead of needing the "
+                        "full 4.24 GB up front.")
+    p.add_argument("--discard-after", action="store_true",
+                   help="delete the archive after a SUCCESSFUL load. Only with "
+                        "--fetch, and only on success -- a failed quarter keeps "
+                        "its archive so the retry does not refetch.")
     p.add_argument("--go", action="store_true",
                    help="required. Without it this is a dry run.")
     p.add_argument("--dry-run", action="store_true")
@@ -88,15 +100,17 @@ def main(argv: list[str] | None = None) -> int:
 
     missing_archive = [q for q in window
                        if not (args.cache / f"{q}.zip").exists()]
+    # With --fetch, a missing archive is not a reason to skip a quarter.
     todo = [q for q in window
-            if q not in done and (args.cache / f"{q}.zip").exists()]
+            if q not in done
+            and (args.fetch or (args.cache / f"{q}.zip").exists())]
 
     print(f"window          : {window[0]}..{window[-1]}  ({len(window)})")
     print(f"already loaded  : {len(done & set(window))}")
     print(f"archive missing : {len(missing_archive)}")
     print(f"to load         : {len(todo)}\n")
 
-    if missing_archive:
+    if missing_archive and not args.fetch:
         print("Run tools/fetch_fsds.py first - these have no local archive:")
         print("  " + ", ".join(missing_archive[:12])
               + (f" ... +{len(missing_archive) - 12}" if len(missing_archive) > 12 else ""))
@@ -128,6 +142,33 @@ def main(argv: list[str] | None = None) -> int:
               f"elapsed {elapsed / 3600:.1f}h  eta ~{eta:.1f}h ===",
               flush=True)
 
+        archive = args.cache / f"{q}.zip"
+        if args.fetch and not archive.exists():
+            try:
+                from ingest.edgar import EdgarClient
+                from tools.fetch_fsds import is_complete
+                part = archive.with_suffix(".zip.part")
+                body = EdgarClient().fetch(url(q)).body
+                part.write_bytes(body)
+                if not is_complete(part):
+                    # Never rename a file that is not a usable archive: the
+                    # loader would read it as a small quarter rather than an
+                    # error.
+                    print(f"  FETCH INCOMPLETE {q}: {len(body):,} bytes",
+                          file=sys.stderr)
+                    failed += 1
+                    consecutive += 1
+                    first_failure = first_failure or q
+                    continue
+                part.replace(archive)
+                print(f"  fetched {q}: {len(body):,} bytes", flush=True)
+            except Exception as exc:                       # noqa: BLE001
+                print(f"  FETCH FAILED {q}: {exc}", file=sys.stderr)
+                failed += 1
+                consecutive += 1
+                first_failure = first_failure or q
+                continue
+
         cmd = [str(PYTHON), str(LOADER), "--quarter", q,
                "--archive", str(args.cache / f"{q}.zip"), "--submissions"]
         if args.defer_indexes:
@@ -141,6 +182,10 @@ def main(argv: list[str] | None = None) -> int:
         if r.returncode == 0:
             ok += 1
             consecutive = 0
+            if args.discard_after and args.fetch:
+                # Only on success. A failed quarter keeps its archive so the
+                # retry is a load, not another 100 MB download.
+                archive.unlink(missing_ok=True)
         else:
             failed += 1
             consecutive += 1
