@@ -30,3 +30,6 @@ price_capture/
 # Immutable once published, so re-fetchable - unlike price_capture/.
 fsds-cache/
 .fsds-cache/
+
+# Captured fly logs from the ingest backfill. Operational evidence, not source.
+ingest_logs/

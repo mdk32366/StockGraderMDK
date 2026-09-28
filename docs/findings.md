@@ -3928,3 +3928,64 @@ provision, pay for or forget.
 as `--env` on the machine-run command line was blocked for credential leakage —
 the same exposure `fly secrets set` is banned for. It went in as a staged secret
 over stdin instead, which is what F-045 established as the working method.
+
+### F-052 — the index cost is measured, and it is in the indexes we CAN drop
+
+**Established 2026-09-28, by the Builder**, with `tools/index_io.py`. Answers
+the write-path half of **OPEN-57** with attribution rather than inference.
+
+**Why the obvious measurements were refused.** `pg_locks` records what a
+transaction has *touched*, not where its time went — a load holds locks on
+`fact` and all seven indexes from start to commit, so a live listing looks
+identical whether an index costs everything or nothing. And counters **do not
+flush mid-transaction** (F-032), so sampling during a load reports the state
+before it started. **A delta between two commits has neither problem.**
+
+Baseline at 5 quarters / 12,632,999 facts; second reading at 8 quarters /
+19,889,636. **Three quarters attributable**, 7,256,637 facts:
+
+| index | disk reads | share | cache hits | grew | droppable |
+|---|---|---|---|---|---|
+| `fact_entity_concept_idx` | 12,737,865 | **39.9%** | 45,578,814 | 103.0 MB | **yes** |
+| `fact_one_per_filing` | 11,351,426 | 35.6% | 139,511,612 | 540.3 MB | no |
+| `fact_concept_period_idx` | 3,866,424 | 12.1% | 54,233,052 | 49.6 MB | **yes** |
+| `fact_consolidated_idx` | 2,633,478 | 8.2% | 33,307,032 | 29.4 MB | **yes** |
+| `fact_accession_idx` | 1,049,764 | 3.3% | 42,567,365 | 22.7 MB | **yes** |
+| `fact_pkey` | 203,984 | 0.6% | 15,061,760 | 50.1 MB | no |
+| `fact_source_fetch_idx` | 83,129 | 0.3% | 22,831,583 | 36.5 MB | **yes** |
+
+**Droppable indexes are 63.8% of index disk reads**, and the single heaviest
+reader is one of them.
+
+**This corrects a reading I had already given.** From the *cumulative* counters
+I said `fact_one_per_filing` — 4.5 GB, 70% of index bytes, undroppable as the
+`ON CONFLICT` arbiter — probably dominated, and that **RAM was the lever and
+index-dropping the secondary one**. On the attributable delta that is wrong:
+it is 35.6% of reads at a **92% cache hit rate**. It is enormous and
+well-cached. The droppable indexes hit cache far less — 78% for the worst — and
+do most of the disk work. **Size is not cost.** Cumulative counters mixed in the
+r2 rebuild and my own verification queries; the delta does not.
+
+**Two limits, stated because the number will be quoted.** The 60% threshold my
+tool prints a verdict against is one **I chose**, not one derived from anything.
+And 64% of index *I/O* is **not** 64% of load *time* — the parse, heap writes
+and WAL are all outside this measurement, and nothing here bounds them.
+
+**What it justifies, and what it does not.** It justifies restructuring
+`--defer-indexes` to drop the five **once per RUN** and rebuild once at the end,
+instead of the current per-quarter drop-and-rebuild inside each transaction —
+which in a 45-quarter loop rebuilds 45 times against a growing table and is
+worse than not deferring at all (F-048).
+
+**It does not justify doing it now.** The Fly-side run is loading at ~29
+min/quarter and finishes in ~18 hours unattended. The change costs about an
+hour, requires stopping a healthy run, and **breaks the property that any
+failure costs exactly one quarter** — a crash mid-run would leave the indexes
+dropped and the database fast but wrong for queries until rebuilt. **~8-10 hours
+saved against an hour of work plus risk to the first thing that has worked.**
+
+**Recorded rather than acted on, deliberately.** D-036 made ingestion recurring,
+so there will be a next load, and this is the evidence for it. **F-035's rule
+cuts both ways:** a measurement is worth its cycle if a decision changes on the
+result — and the decision this one changes is *when to build*, not *whether the
+run should stop*.
