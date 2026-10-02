@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 509.2200012207031,
+      "as_traded_close": 509.2200012207031,
+      "factor": 1.0,
+      "observed_on": "2026-10-02",
+      "symbol": "MSFT",
+      "trade_date": "2026-09-28"
+    },
+    {
+      "adjusted_close": 508.9599914550781,
+      "as_traded_close": 508.9599914550781,
+      "factor": 1.0,
+      "observed_on": "2026-10-02",
+      "symbol": "MSFT",
+      "trade_date": "2026-09-29"
+    },
+    {
+      "adjusted_close": 512.9000244140625,
+      "as_traded_close": 512.9000244140625,
+      "factor": 1.0,
+      "observed_on": "2026-10-02",
+      "symbol": "MSFT",
+      "trade_date": "2026-09-30"
+    },
+    {
+      "adjusted_close": 512.7999877929688,
+      "as_traded_close": 512.7999877929688,
+      "factor": 1.0,
+      "observed_on": "2026-10-02",
+      "symbol": "MSFT",
+      "trade_date": "2026-10-01"
+    },
+    {
+      "adjusted_close": 517.530029296875,
+      "as_traded_close": 517.530029296875,
+      "factor": 1.0,
+      "observed_on": "2026-10-02",
+      "symbol": "MSFT",
+      "trade_date": "2026-10-02"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 509.2200012207031,
+      "high": 513.3300170898438,
+      "low": 502.2200012207031,
+      "open": 505.4700012207031,
+      "symbol": "MSFT",
+      "trade_date": "2026-09-28",
+      "volume": 19626900
+    },
+    {
+      "captured_same_day": false,
+      "close": 508.9599914550781,
+      "high": 513.6400146484375,
+      "low": 502.3999938964844,
+      "open": 508.30999755859375,
+      "symbol": "MSFT",
+      "trade_date": "2026-09-29",
+      "volume": 21341800
+    },
+    {
+      "captured_same_day": false,
+      "close": 512.9000244140625,
+      "high": 519.8300170898438,
+      "low": 510.30999755859375,
+      "open": 511.6099853515625,
+      "symbol": "MSFT",
+      "trade_date": "2026-09-30",
+      "volume": 27223300
+    },
+    {
+      "captured_same_day": false,
+      "close": 512.7999877929688,
+      "high": 522.8499755859375,
+      "low": 512.1699829101562,
+      "open": 519.8800048828125,
+      "symbol": "MSFT",
+      "trade_date": "2026-10-01",
+      "volume": 19731900
+    },
+    {
+      "captured_same_day": true,
+      "close": 517.530029296875,
+      "high": 522.5,
+      "low": 513.6599731445312,
+      "open": 519.094970703125,
+      "symbol": "MSFT",
+      "trade_date": "2026-10-02",
+      "volume": 17179496
+    }
+  ],
+  "content_bytes": 1745,
+  "provider": "yahoo-chart",
+  "raw_file": "MSFT-yahoo-chart-b40dd4217eaf-20261002T221726Z.raw",
+  "retrieved_at": "2026-10-02T22:17:26.431081+00:00",
+  "sha256": "b40dd4217eaf3bc5cdd5fc995741a29a06b836867302d0d5104925e4a8e36c43",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/MSFT?interval=1d&range=5d"
+}
