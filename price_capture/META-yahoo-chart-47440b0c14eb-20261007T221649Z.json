@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 725.9299926757812,
+      "as_traded_close": 725.9299926757812,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "META",
+      "trade_date": "2026-10-01"
+    },
+    {
+      "adjusted_close": 728.0800170898438,
+      "as_traded_close": 728.0800170898438,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "META",
+      "trade_date": "2026-10-02"
+    },
+    {
+      "adjusted_close": 741.9000244140625,
+      "as_traded_close": 741.9000244140625,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "META",
+      "trade_date": "2026-10-05"
+    },
+    {
+      "adjusted_close": 738.8800048828125,
+      "as_traded_close": 738.8800048828125,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "META",
+      "trade_date": "2026-10-06"
+    },
+    {
+      "adjusted_close": 721.3099975585938,
+      "as_traded_close": 721.3099975585938,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "META",
+      "trade_date": "2026-10-07"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 725.9299926757812,
+      "high": 735.8800048828125,
+      "low": 721.510009765625,
+      "open": 728.530029296875,
+      "symbol": "META",
+      "trade_date": "2026-10-01",
+      "volume": 12408400
+    },
+    {
+      "captured_same_day": false,
+      "close": 728.0800170898438,
+      "high": 741.5800170898438,
+      "low": 726.2000122070312,
+      "open": 733.25,
+      "symbol": "META",
+      "trade_date": "2026-10-02",
+      "volume": 12964100
+    },
+    {
+      "captured_same_day": false,
+      "close": 741.9000244140625,
+      "high": 746.7000122070312,
+      "low": 727.1199951171875,
+      "open": 727.7100219726562,
+      "symbol": "META",
+      "trade_date": "2026-10-05",
+      "volume": 15215300
+    },
+    {
+      "captured_same_day": false,
+      "close": 738.8800048828125,
+      "high": 747.5999755859375,
+      "low": 736.6900024414062,
+      "open": 746.72998046875,
+      "symbol": "META",
+      "trade_date": "2026-10-06",
+      "volume": 12563100
+    },
+    {
+      "captured_same_day": true,
+      "close": 721.3099975585938,
+      "high": 738.0,
+      "low": 720.1503295898438,
+      "open": 737.967529296875,
+      "symbol": "META",
+      "trade_date": "2026-10-07",
+      "volume": 12743601
+    }
+  ],
+  "content_bytes": 1731,
+  "provider": "yahoo-chart",
+  "raw_file": "META-yahoo-chart-47440b0c14eb-20261007T221649Z.raw",
+  "retrieved_at": "2026-10-07T22:16:49.254041+00:00",
+  "sha256": "47440b0c14eba4edafaabe9ea80f38cae122371ff0b2e2f8727ac9ebf44860a9",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/META?interval=1d&range=5d"
+}

@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 143.9499969482422,
+      "as_traded_close": 143.9499969482422,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "PG",
+      "trade_date": "2026-10-01"
+    },
+    {
+      "adjusted_close": 144.91000366210938,
+      "as_traded_close": 144.91000366210938,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "PG",
+      "trade_date": "2026-10-02"
+    },
+    {
+      "adjusted_close": 145.94000244140625,
+      "as_traded_close": 145.94000244140625,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "PG",
+      "trade_date": "2026-10-05"
+    },
+    {
+      "adjusted_close": 148.41000366210938,
+      "as_traded_close": 148.41000366210938,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "PG",
+      "trade_date": "2026-10-06"
+    },
+    {
+      "adjusted_close": 147.82000732421875,
+      "as_traded_close": 147.82000732421875,
+      "factor": 1.0,
+      "observed_on": "2026-10-07",
+      "symbol": "PG",
+      "trade_date": "2026-10-07"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 143.9499969482422,
+      "high": 145.0,
+      "low": 143.39999389648438,
+      "open": 144.5500030517578,
+      "symbol": "PG",
+      "trade_date": "2026-10-01",
+      "volume": 7321200
+    },
+    {
+      "captured_same_day": false,
+      "close": 144.91000366210938,
+      "high": 145.2100067138672,
+      "low": 143.80999755859375,
+      "open": 144.39999389648438,
+      "symbol": "PG",
+      "trade_date": "2026-10-02",
+      "volume": 6248800
+    },
+    {
+      "captured_same_day": false,
+      "close": 145.94000244140625,
+      "high": 146.08999633789062,
+      "low": 144.3800048828125,
+      "open": 145.0,
+      "symbol": "PG",
+      "trade_date": "2026-10-05",
+      "volume": 7036500
+    },
+    {
+      "captured_same_day": false,
+      "close": 148.41000366210938,
+      "high": 149.67999267578125,
+      "low": 147.05999755859375,
+      "open": 148.02000427246094,
+      "symbol": "PG",
+      "trade_date": "2026-10-06",
+      "volume": 13333600
+    },
+    {
+      "captured_same_day": true,
+      "close": 147.82000732421875,
+      "high": 149.6649932861328,
+      "low": 147.7550048828125,
+      "open": 148.67999267578125,
+      "symbol": "PG",
+      "trade_date": "2026-10-07",
+      "volume": 8662344
+    }
+  ],
+  "content_bytes": 1761,
+  "provider": "yahoo-chart",
+  "raw_file": "PG-yahoo-chart-5cc64ee82306-20261007T221651Z.raw",
+  "retrieved_at": "2026-10-07T22:16:51.734867+00:00",
+  "sha256": "5cc64ee82306ec8648a5629e7689fed2dcd2bbdcbf933da0b41e6be7642ec4c7",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/PG?interval=1d&range=5d"
+}
