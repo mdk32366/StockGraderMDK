@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 251.39999389648438,
+      "as_traded_close": 251.39999389648438,
+      "factor": 1.0,
+      "observed_on": "2026-10-09",
+      "symbol": "AMZN",
+      "trade_date": "2026-10-05"
+    },
+    {
+      "adjusted_close": 256.2900085449219,
+      "as_traded_close": 256.2900085449219,
+      "factor": 1.0,
+      "observed_on": "2026-10-09",
+      "symbol": "AMZN",
+      "trade_date": "2026-10-06"
+    },
+    {
+      "adjusted_close": 259.9200134277344,
+      "as_traded_close": 259.9200134277344,
+      "factor": 1.0,
+      "observed_on": "2026-10-09",
+      "symbol": "AMZN",
+      "trade_date": "2026-10-07"
+    },
+    {
+      "adjusted_close": 254.05999755859375,
+      "as_traded_close": 254.05999755859375,
+      "factor": 1.0,
+      "observed_on": "2026-10-09",
+      "symbol": "AMZN",
+      "trade_date": "2026-10-08"
+    },
+    {
+      "adjusted_close": 262.42999267578125,
+      "as_traded_close": 262.42999267578125,
+      "factor": 1.0,
+      "observed_on": "2026-10-09",
+      "symbol": "AMZN",
+      "trade_date": "2026-10-09"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 251.39999389648438,
+      "high": 254.52999877929688,
+      "low": 250.17999267578125,
+      "open": 250.19000244140625,
+      "symbol": "AMZN",
+      "trade_date": "2026-10-05",
+      "volume": 39273900
+    },
+    {
+      "captured_same_day": false,
+      "close": 256.2900085449219,
+      "high": 256.67999267578125,
+      "low": 251.0800018310547,
+      "open": 253.39999389648438,
+      "symbol": "AMZN",
+      "trade_date": "2026-10-06",
+      "volume": 34120800
+    },
+    {
+      "captured_same_day": false,
+      "close": 259.9200134277344,
+      "high": 260.1400146484375,
+      "low": 253.1699981689453,
+      "open": 254.22999572753906,
+      "symbol": "AMZN",
+      "trade_date": "2026-10-07",
+      "volume": 36225800
+    },
+    {
+      "captured_same_day": false,
+      "close": 254.05999755859375,
+      "high": 259.8599853515625,
+      "low": 253.77999877929688,
+      "open": 259.739990234375,
+      "symbol": "AMZN",
+      "trade_date": "2026-10-08",
+      "volume": 38649900
+    },
+    {
+      "captured_same_day": true,
+      "close": 262.42999267578125,
+      "high": 262.79998779296875,
+      "low": 256.0,
+      "open": 256.29998779296875,
+      "symbol": "AMZN",
+      "trade_date": "2026-10-09",
+      "volume": 33510286
+    }
+  ],
+  "content_bytes": 1746,
+  "provider": "yahoo-chart",
+  "raw_file": "AMZN-yahoo-chart-ae34a4f0bd2a-20261009T221831Z.raw",
+  "retrieved_at": "2026-10-09T22:18:31.767454+00:00",
+  "sha256": "ae34a4f0bd2a07865011febe24e776204a2b20256eed390872b714102db9e917",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/AMZN?interval=1d&range=5d"
+}
