@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 333.6300048828125,
+      "as_traded_close": 333.6300048828125,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "AAPL",
+      "trade_date": "2026-10-06"
+    },
+    {
+      "adjusted_close": 336.6700134277344,
+      "as_traded_close": 336.6700134277344,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "AAPL",
+      "trade_date": "2026-10-07"
+    },
+    {
+      "adjusted_close": 340.4200134277344,
+      "as_traded_close": 340.4200134277344,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "AAPL",
+      "trade_date": "2026-10-08"
+    },
+    {
+      "adjusted_close": 336.6400146484375,
+      "as_traded_close": 336.6400146484375,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "AAPL",
+      "trade_date": "2026-10-09"
+    },
+    {
+      "adjusted_close": 340.9700012207031,
+      "as_traded_close": 340.9700012207031,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "AAPL",
+      "trade_date": "2026-10-12"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 333.6300048828125,
+      "high": 334.3800048828125,
+      "low": 330.6199951171875,
+      "open": 332.2799987792969,
+      "symbol": "AAPL",
+      "trade_date": "2026-10-06",
+      "volume": 30449000
+    },
+    {
+      "captured_same_day": false,
+      "close": 336.6700134277344,
+      "high": 338.6700134277344,
+      "low": 332.7799987792969,
+      "open": 336.9599914550781,
+      "symbol": "AAPL",
+      "trade_date": "2026-10-07",
+      "volume": 34147900
+    },
+    {
+      "captured_same_day": false,
+      "close": 340.4200134277344,
+      "high": 341.57000732421875,
+      "low": 335.8999938964844,
+      "open": 336.82000732421875,
+      "symbol": "AAPL",
+      "trade_date": "2026-10-08",
+      "volume": 35332400
+    },
+    {
+      "captured_same_day": false,
+      "close": 336.6400146484375,
+      "high": 338.6099853515625,
+      "low": 330.70001220703125,
+      "open": 331.70001220703125,
+      "symbol": "AAPL",
+      "trade_date": "2026-10-09",
+      "volume": 37855000
+    },
+    {
+      "captured_same_day": true,
+      "close": 340.9700012207031,
+      "high": 342.6300048828125,
+      "low": 337.6000061035156,
+      "open": 338.1600036621094,
+      "symbol": "AAPL",
+      "trade_date": "2026-10-12",
+      "volume": 25796997
+    }
+  ],
+  "content_bytes": 1739,
+  "provider": "yahoo-chart",
+  "raw_file": "AAPL-yahoo-chart-956bf11f2df5-20261012T221812Z.raw",
+  "retrieved_at": "2026-10-12T22:18:12.320136+00:00",
+  "sha256": "956bf11f2df530c98baed071ec5e61b9f0383b22b4f93e8b1d42d08389fbb268",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=5d"
+}

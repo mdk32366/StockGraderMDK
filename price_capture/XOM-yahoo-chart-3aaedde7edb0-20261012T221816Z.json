@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 164.47999572753906,
+      "as_traded_close": 164.47999572753906,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "XOM",
+      "trade_date": "2026-10-06"
+    },
+    {
+      "adjusted_close": 164.0500030517578,
+      "as_traded_close": 164.0500030517578,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "XOM",
+      "trade_date": "2026-10-07"
+    },
+    {
+      "adjusted_close": 168.5,
+      "as_traded_close": 168.5,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "XOM",
+      "trade_date": "2026-10-08"
+    },
+    {
+      "adjusted_close": 168.94000244140625,
+      "as_traded_close": 168.94000244140625,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "XOM",
+      "trade_date": "2026-10-09"
+    },
+    {
+      "adjusted_close": 172.14999389648438,
+      "as_traded_close": 172.14999389648438,
+      "factor": 1.0,
+      "observed_on": "2026-10-12",
+      "symbol": "XOM",
+      "trade_date": "2026-10-12"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 164.47999572753906,
+      "high": 165.9499969482422,
+      "low": 162.94000244140625,
+      "open": 163.05999755859375,
+      "symbol": "XOM",
+      "trade_date": "2026-10-06",
+      "volume": 9285400
+    },
+    {
+      "captured_same_day": false,
+      "close": 164.0500030517578,
+      "high": 166.86000061035156,
+      "low": 163.4600067138672,
+      "open": 165.60000610351562,
+      "symbol": "XOM",
+      "trade_date": "2026-10-07",
+      "volume": 9516200
+    },
+    {
+      "captured_same_day": false,
+      "close": 168.5,
+      "high": 169.19000244140625,
+      "low": 166.7100067138672,
+      "open": 167.11000061035156,
+      "symbol": "XOM",
+      "trade_date": "2026-10-08",
+      "volume": 13288100
+    },
+    {
+      "captured_same_day": false,
+      "close": 168.94000244140625,
+      "high": 170.2899932861328,
+      "low": 167.82000732421875,
+      "open": 167.8699951171875,
+      "symbol": "XOM",
+      "trade_date": "2026-10-09",
+      "volume": 8083600
+    },
+    {
+      "captured_same_day": true,
+      "close": 172.14999389648438,
+      "high": 172.5500030517578,
+      "low": 171.00999450683594,
+      "open": 171.00999450683594,
+      "symbol": "XOM",
+      "trade_date": "2026-10-12",
+      "volume": 8800320
+    }
+  ],
+  "content_bytes": 1757,
+  "provider": "yahoo-chart",
+  "raw_file": "XOM-yahoo-chart-3aaedde7edb0-20261012T221816Z.raw",
+  "retrieved_at": "2026-10-12T22:18:16.259309+00:00",
+  "sha256": "3aaedde7edb07c2a764bf1efc5b8777b0395df5769e9db767049fec36f004e65",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/XOM?interval=1d&range=5d"
+}
