@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 229.27999877929688,
+      "as_traded_close": 229.27999877929688,
+      "factor": 1.0,
+      "observed_on": "2026-10-15",
+      "symbol": "NVDA",
+      "trade_date": "2026-10-09"
+    },
+    {
+      "adjusted_close": 226.32000732421875,
+      "as_traded_close": 226.32000732421875,
+      "factor": 1.0,
+      "observed_on": "2026-10-15",
+      "symbol": "NVDA",
+      "trade_date": "2026-10-12"
+    },
+    {
+      "adjusted_close": 228.52000427246094,
+      "as_traded_close": 228.52000427246094,
+      "factor": 1.0,
+      "observed_on": "2026-10-15",
+      "symbol": "NVDA",
+      "trade_date": "2026-10-13"
+    },
+    {
+      "adjusted_close": 221.3000030517578,
+      "as_traded_close": 221.3000030517578,
+      "factor": 1.0,
+      "observed_on": "2026-10-15",
+      "symbol": "NVDA",
+      "trade_date": "2026-10-14"
+    },
+    {
+      "adjusted_close": 217.22999572753906,
+      "as_traded_close": 217.22999572753906,
+      "factor": 1.0,
+      "observed_on": "2026-10-15",
+      "symbol": "NVDA",
+      "trade_date": "2026-10-15"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 229.27999877929688,
+      "high": 233.9199981689453,
+      "low": 229.11000061035156,
+      "open": 233.83999633789062,
+      "symbol": "NVDA",
+      "trade_date": "2026-10-09",
+      "volume": 84645600
+    },
+    {
+      "captured_same_day": false,
+      "close": 226.32000732421875,
+      "high": 228.86000061035156,
+      "low": 224.89999389648438,
+      "open": 228.72999572753906,
+      "symbol": "NVDA",
+      "trade_date": "2026-10-12",
+      "volume": 70690300
+    },
+    {
+      "captured_same_day": false,
+      "close": 228.52000427246094,
+      "high": 228.63999938964844,
+      "low": 223.05999755859375,
+      "open": 224.33999633789062,
+      "symbol": "NVDA",
+      "trade_date": "2026-10-13",
+      "volume": 84036900
+    },
+    {
+      "captured_same_day": false,
+      "close": 221.3000030517578,
+      "high": 226.0,
+      "low": 219.63999938964844,
+      "open": 225.52999877929688,
+      "symbol": "NVDA",
+      "trade_date": "2026-10-14",
+      "volume": 118730100
+    },
+    {
+      "captured_same_day": true,
+      "close": 217.22999572753906,
+      "high": 218.4691925048828,
+      "low": 212.85000610351562,
+      "open": 215.33999633789062,
+      "symbol": "NVDA",
+      "trade_date": "2026-10-15",
+      "volume": 126396690
+    }
+  ],
+  "content_bytes": 1767,
+  "provider": "yahoo-chart",
+  "raw_file": "NVDA-yahoo-chart-45266d674543-20261015T221648Z.raw",
+  "retrieved_at": "2026-10-15T22:16:48.784555+00:00",
+  "sha256": "45266d6745431ac6b19ec8854ae9b13b28cfe98b79f717b648dc6f78315174ef",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/NVDA?interval=1d&range=5d"
+}
