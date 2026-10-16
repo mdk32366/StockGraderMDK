@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 263.7300109863281,
+      "as_traded_close": 263.7300109863281,
+      "factor": 1.0,
+      "observed_on": "2026-10-16",
+      "symbol": "JNJ",
+      "trade_date": "2026-10-12"
+    },
+    {
+      "adjusted_close": 248.61000061035156,
+      "as_traded_close": 248.61000061035156,
+      "factor": 1.0,
+      "observed_on": "2026-10-16",
+      "symbol": "JNJ",
+      "trade_date": "2026-10-13"
+    },
+    {
+      "adjusted_close": 253.91000366210938,
+      "as_traded_close": 253.91000366210938,
+      "factor": 1.0,
+      "observed_on": "2026-10-16",
+      "symbol": "JNJ",
+      "trade_date": "2026-10-14"
+    },
+    {
+      "adjusted_close": 253.27999877929688,
+      "as_traded_close": 253.27999877929688,
+      "factor": 1.0,
+      "observed_on": "2026-10-16",
+      "symbol": "JNJ",
+      "trade_date": "2026-10-15"
+    },
+    {
+      "adjusted_close": 255.55999755859375,
+      "as_traded_close": 255.55999755859375,
+      "factor": 1.0,
+      "observed_on": "2026-10-16",
+      "symbol": "JNJ",
+      "trade_date": "2026-10-16"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 263.7300109863281,
+      "high": 264.3900146484375,
+      "low": 260.3699951171875,
+      "open": 261.6000061035156,
+      "symbol": "JNJ",
+      "trade_date": "2026-10-12",
+      "volume": 5902500
+    },
+    {
+      "captured_same_day": false,
+      "close": 248.61000061035156,
+      "high": 256.17999267578125,
+      "low": 245.1699981689453,
+      "open": 254.55999755859375,
+      "symbol": "JNJ",
+      "trade_date": "2026-10-13",
+      "volume": 16647100
+    },
+    {
+      "captured_same_day": false,
+      "close": 253.91000366210938,
+      "high": 253.94000244140625,
+      "low": 248.5,
+      "open": 249.10000610351562,
+      "symbol": "JNJ",
+      "trade_date": "2026-10-14",
+      "volume": 9662000
+    },
+    {
+      "captured_same_day": false,
+      "close": 253.27999877929688,
+      "high": 262.45001220703125,
+      "low": 252.6199951171875,
+      "open": 257.1099853515625,
+      "symbol": "JNJ",
+      "trade_date": "2026-10-15",
+      "volume": 9274700
+    },
+    {
+      "captured_same_day": true,
+      "close": 255.55999755859375,
+      "high": 257.5050048828125,
+      "low": 254.0,
+      "open": 255.52000427246094,
+      "symbol": "JNJ",
+      "trade_date": "2026-10-16",
+      "volume": 6388530
+    }
+  ],
+  "content_bytes": 1728,
+  "provider": "yahoo-chart",
+  "raw_file": "JNJ-yahoo-chart-27d57e127d17-20261016T221546Z.raw",
+  "retrieved_at": "2026-10-16T22:15:46.810735+00:00",
+  "sha256": "27d57e127d1766cc1047b794e489d8b91f8d7d9cb69fdfc6968c5c0ab141be20",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/JNJ?interval=1d&range=5d"
+}
