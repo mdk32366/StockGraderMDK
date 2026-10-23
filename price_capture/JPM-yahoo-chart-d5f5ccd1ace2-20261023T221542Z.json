@@ -1,0 +1,102 @@
+{
+  "adjustments": [
+    {
+      "adjusted_close": 333.5299987792969,
+      "as_traded_close": 333.5299987792969,
+      "factor": 1.0,
+      "observed_on": "2026-10-23",
+      "symbol": "JPM",
+      "trade_date": "2026-10-19"
+    },
+    {
+      "adjusted_close": 335.260009765625,
+      "as_traded_close": 335.260009765625,
+      "factor": 1.0,
+      "observed_on": "2026-10-23",
+      "symbol": "JPM",
+      "trade_date": "2026-10-20"
+    },
+    {
+      "adjusted_close": 335.19000244140625,
+      "as_traded_close": 335.19000244140625,
+      "factor": 1.0,
+      "observed_on": "2026-10-23",
+      "symbol": "JPM",
+      "trade_date": "2026-10-21"
+    },
+    {
+      "adjusted_close": 336.5400085449219,
+      "as_traded_close": 336.5400085449219,
+      "factor": 1.0,
+      "observed_on": "2026-10-23",
+      "symbol": "JPM",
+      "trade_date": "2026-10-22"
+    },
+    {
+      "adjusted_close": 331.5799865722656,
+      "as_traded_close": 331.5799865722656,
+      "factor": 1.0,
+      "observed_on": "2026-10-23",
+      "symbol": "JPM",
+      "trade_date": "2026-10-23"
+    }
+  ],
+  "bars": [
+    {
+      "captured_same_day": false,
+      "close": 333.5299987792969,
+      "high": 341.010009765625,
+      "low": 333.2200012207031,
+      "open": 339.2200012207031,
+      "symbol": "JPM",
+      "trade_date": "2026-10-19",
+      "volume": 6925800
+    },
+    {
+      "captured_same_day": false,
+      "close": 335.260009765625,
+      "high": 339.8599853515625,
+      "low": 332.54998779296875,
+      "open": 333.9700012207031,
+      "symbol": "JPM",
+      "trade_date": "2026-10-20",
+      "volume": 6157500
+    },
+    {
+      "captured_same_day": false,
+      "close": 335.19000244140625,
+      "high": 337.1199951171875,
+      "low": 332.6499938964844,
+      "open": 337.1199951171875,
+      "symbol": "JPM",
+      "trade_date": "2026-10-21",
+      "volume": 5770600
+    },
+    {
+      "captured_same_day": false,
+      "close": 336.5400085449219,
+      "high": 336.6199951171875,
+      "low": 332.260009765625,
+      "open": 332.2799987792969,
+      "symbol": "JPM",
+      "trade_date": "2026-10-22",
+      "volume": 6199100
+    },
+    {
+      "captured_same_day": true,
+      "close": 331.5799865722656,
+      "high": 335.1405029296875,
+      "low": 330.3999938964844,
+      "open": 333.0,
+      "symbol": "JPM",
+      "trade_date": "2026-10-23",
+      "volume": 4778374
+    }
+  ],
+  "content_bytes": 1734,
+  "provider": "yahoo-chart",
+  "raw_file": "JPM-yahoo-chart-d5f5ccd1ace2-20261023T221542Z.raw",
+  "retrieved_at": "2026-10-23T22:15:42.584791+00:00",
+  "sha256": "d5f5ccd1ace2efa9cb33dde542462bbab42c0dfbad102c98d28e40e141b8896f",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/JPM?interval=1d&range=5d"
+}
